@@ -1,0 +1,96 @@
+
+    <div class="layout" [class.sidebar-collapsed]="sidebarCollapsed">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <img src="assets/logo.png" alt="AeroServe" class="sidebar-logo" />
+          @if (!sidebarCollapsed) {
+            <span class="sidebar-brand">AeroServe</span>
+          }
+          <button class="toggle-btn" (click)="sidebarCollapsed = !sidebarCollapsed">
+            <span class="icon">{{ sidebarCollapsed ? '☰' : '✕' }}</span>
+          </button>
+        </div>
+        <nav class="sidebar-nav">
+          @for (item of filteredNavItems; track item.route) {
+            <a [routerLink]="item.route" routerLinkActive="active" class="nav-item">
+              <span class="nav-icon">{{ item.icon }}</span>
+              @if (!sidebarCollapsed) {
+                <span class="nav-label">{{ item.label }}</span>
+              }
+            </a>
+          }
+        </nav>
+        <div class="sidebar-footer">
+          <button class="nav-item logout-btn" (click)="onLogout()">
+            <span class="nav-icon">🚪</span>
+            @if (!sidebarCollapsed) {
+              <span class="nav-label">Logout</span>
+            }
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main">
+        <header class="topbar">
+          <div class="topbar-left">
+            <h2 class="page-title">{{ getPageTitle() }}</h2>
+          </div>
+          <div class="topbar-right">
+            <div class="notif-badge" (click)="showNotifications = !showNotifications">
+              🔔
+              @if (unreadCount > 0) {
+                <span class="badge">{{ unreadCount }}</span>
+              }
+            </div>
+            <div class="user-info" (click)="$event.stopPropagation(); toggleUserMenu()">
+              <!-- Show real avatar or initials fallback -->
+              <div class="user-avatar">
+                @if (getUserAvatarUrl()) {
+                  <img [src]="getUserAvatarUrl()!" alt="avatar" class="user-avatar-img" (error)="onAvatarError($event)" />
+                } @else {
+                  <span>{{ getInitials() }}</span>
+                }
+              </div>
+              @if (user) {
+                <div class="user-details">
+                  <span class="user-name">{{ user.first_name }} {{ user.last_name }}</span>
+                  <span class="user-role">{{ user.role?.display_name }}</span>
+                </div>
+              }
+              <span class="dropdown-caret">▾</span>
+
+              @if (showUserMenu) {
+                <div class="user-dropdown" (click)="$event.stopPropagation()">
+                  <div class="dropdown-header">
+                    <div class="dh-avatar">
+                      @if (getUserAvatarUrl()) {
+                        <img [src]="getUserAvatarUrl()!" alt="avatar" class="user-avatar-img" (error)="onAvatarError($event)" />
+                      } @else {
+                        <span>{{ getInitials() }}</span>
+                      }
+                    </div>
+                    <div>
+                      <div class="dh-name">{{ user?.first_name }} {{ user?.last_name }}</div>
+                      <div class="dh-email">{{ user?.email }}</div>
+                    </div>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <a [routerLink]="'/profile'" class="dropdown-item" (click)="closeUserMenu()">
+                    <span>👤</span> Mon profil
+                  </a>
+                  <button class="dropdown-item danger" (click)="onLogout()">
+                    <span>🚪</span> Se déconnecter
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </header>
+        <main class="content">
+          <router-outlet />
+        </main>
+      </div>
+    </div>
+

@@ -1,0 +1,156 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+use Illuminate\Validation\Rule;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator; // ✅ IMPORTANT
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Models\Role;
+use App\Models\Airport;
+use App\Models\PointDeVente;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+class PointDeVenteController extends Controller
+{
+  public function index()
+{
+    return PointDeVente::with(['airport', 'responsableFb'])->get();
+}
+
+public function store(Request $request): JsonResponse
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'airport_id' => 'required|exists:airports,id',
+        'responsable_fb_id' => 'nullable|exists:users,id',
+        'location' => 'nullable|in:AIRSIDE,LANDSIDE',
+    ]);
+
+    try {
+
+        $pdv = DB::transaction(function () use ($request) {
+
+            $responsableId = $request->responsable_fb_id;
+
+            if ($responsableId) {
+
+                // 1. Get user
+                $user = User::with('role')->find($responsableId);
+
+                // 2. Check role
+                if (!$user || !$user->role || $user->role->name !== 'RESPONSABLE_FB') {
+                    abort(422, 'Selected user is not a RESPONSABLE_FB.');
+                }
+
+                // 3. One PDV per responsible (STRICT RULE)
+                $exists = PointDeVente::where('responsable_fb_id', $responsableId)->exists();
+
+                if ($exists) {
+                    abort(422, 'This responsible FB is already assigned to a point de vente.');
+                }
+            }
+
+            return PointDeVente::create([
+                'name' => $request->name,
+                'airport_id' => $request->airport_id,
+                'responsable_fb_id' => $responsableId,
+                'location' => $request->location,
+            ]);
+        });
+
+        return response()->json([
+            'message' => 'Point de vente created successfully',
+            'data' => $pdv->load(['airport', 'responsableFb'])
+        ], 201);
+
+    } catch (\Throwable $e) {
+
+        Log::error('STORE ERROR', [
+            'message' => $e->getMessage()
+        ]);
+
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+    public function show(PointDeVente $pointDeVente): JsonResponse
+    {
+        return response()->json($pointDeVente->load('airport', 'users.role'));
+    }
+public function update(Request $request, $id)
+{
+    $pointDeVente = PointDeVente::find($id);
+
+    if (!$pointDeVente) {
+        return response()->json([
+            'message' => 'Point de vente not found.'
+        ], 404);
+    }
+
+    $request->validate([
+        'name' => 'sometimes|string|max:255',
+        'airport_id' => 'sometimes|exists:airports,id',
+        'is_active' => 'sometimes|boolean',
+        'responsable_fb_id' => 'nullable|exists:users,id',
+        'location' => 'nullable|in:AIRSIDE,LANDSIDE',
+    ]);
+
+    $newResponsable = $request->input('responsable_fb_id');
+    $oldResponsable = $pointDeVente->responsable_fb_id;
+
+    if ($request->has('responsable_fb_id') && $newResponsable != $oldResponsable) {
+
+        $exists = PointDeVente::where('responsable_fb_id', $newResponsable)
+            ->where('id', '!=', $pointDeVente->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'message' => 'This responsable is already assigned to another point de vente.'
+            ], 422);
+        }
+    }
+
+    $pointDeVente->update([
+        'name' => $request->name ?? $pointDeVente->name,
+        'airport_id' => $request->airport_id ?? $pointDeVente->airport_id,
+        'is_active' => $request->is_active ?? $pointDeVente->is_active,
+        'location' => $request->has('location') ? $request->location : $pointDeVente->location,
+        'responsable_fb_id' => $request->has('responsable_fb_id')
+            ? $newResponsable
+            : $oldResponsable,
+    ]);
+
+    return response()->json([
+        'message' => 'Updated successfully',
+        'data' => $pointDeVente->fresh()->load(['airport', 'responsableFb'])
+    ]);
+}
+public function destroy($id): JsonResponse
+{
+    $pdv = PointDeVente::find($id);
+
+    if (!$pdv) {
+        return response()->json([
+            'message' => 'Point de vente not found'
+        ], 404);
+    }
+
+    $pdv->delete();
+
+    return response()->json([
+        'message' => 'Deleted successfully',
+        'id' => $id
+    ]);
+}
+
+    public function airports(): JsonResponse
+    {
+        return response()->json(Airport::with('pointsDeVente')->get());
+    }
+}

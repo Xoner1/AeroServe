@@ -1,0 +1,288 @@
+.board {
+  display: flex;
+  gap: 18px;
+  padding: 20px;
+  background: #f3f1f1;
+  min-height: 100vh;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+/* ================= COLUMN ================= */
+.column {
+  flex: 1;
+  background: #fffdfd;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #eef2f7;
+  transition: 0.2s ease;
+}
+
+.column:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+}
+
+/* ================= HEADER ================= */
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.column-header h3 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #334155;
+  font-weight: 700;
+}
+
+.count {
+  background: rgb(207, 43, 2);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ================= DROPZONE ================= */
+.dropzone {
+  flex: 1;
+  min-height: 420px;
+  padding: 10px;
+  border-radius: 12px;
+  transition: 0.2s;
+}
+
+.dropzone:hover {
+  background: #f8fafc;
+}
+
+.dropzone.cdk-drop-list-dragging {
+  background: #fff7ed;
+  border: 2px dashed #ece3e3;
+}
+
+//* ================= CARD (CAISSIER PRO UI) ================= */
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  background: linear-gradient(145deg, #ffffff, #fff8f5);
+  border: 1px solid #f1f5f9;
+  border-left: 4px solid #cf6f02;
+
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+
+  cursor: grab;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* hover premium */
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* subtle glow effect */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(207, 111, 2, 0.08),
+    transparent
+  );
+  transition: 0.6s;
+}
+
+.card:hover::before {
+  left: 100%;
+}
+
+/* ================= AVATAR ================= */
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-weight: 800;
+  font-size: 13px;
+  color: #fff;
+
+  background: linear-gradient(135deg, #cf6f02, #b22222);
+
+  box-shadow: 0 6px 12px rgba(207, 111, 2, 0.25);
+  flex-shrink: 0;
+
+  position: relative;
+}
+
+/* online dot (caissier actif style POS) */
+.avatar::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+
+  width: 10px;
+  height: 10px;
+  background: #22c55e;
+  border: 2px solid white;
+  border-radius: 50%;
+}
+
+/* ================= INFO ================= */
+.info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* NAME */
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* email */
+.email {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* meta row */
+.meta {
+  font-size: 12px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ================= TAG BADGES ================= */
+.badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* experience */
+.exp-yes {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.exp-no {
+  background: #ffe4e6;
+  color: #cf6f02;
+}
+
+/* ================= BIO ================= */
+.bio {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #334155;
+
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 10px;
+
+  border-left: 3px solid #cf6f02;
+}
+
+/* ================= ACTION HINT (OPTIONAL) ================= */
+.card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.card-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.card-btn.edit {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.card-btn.delete {
+  background: #ffe4e6;
+  color: #cf6f02;
+}
+
+.card-btn:hover {
+  transform: scale(1.05);
+}
+.name {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+
+
+
+/* ================= EMPTY ================= */
+.empty {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px dashed #e2e8f0;
+  border-radius: 10px;
+}
+
+/* ================= DRAG EFFECT ================= */
+.cdk-drag-preview {
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  transform: rotate(2deg);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms ease;
+}

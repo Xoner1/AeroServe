@@ -1,0 +1,236 @@
+/* ================= PAGE ================= */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ================= HEADER ================= */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .btn {
+    background: #1a56db;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: 0.2s;
+
+    &:hover {
+      background: #1e40af;
+    }
+  }
+}
+
+/* ================= CARD ================= */
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* ================= TABLE ================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  thead {
+    background: #f8fafc;
+
+    th {
+      text-align: left;
+      padding: 12px;
+      font-weight: 600;
+      color: #64748b;
+      border-bottom: 1px solid #e2e8f0;
+    }
+  }
+
+  tbody {
+    tr {
+      transition: 0.2s;
+
+      &:hover {
+        background: #f8fafc;
+        transform: scale(1.01);
+      }
+
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        color: #334155;
+      }
+    }
+  }
+}
+
+/* ================= CATEGORY BADGES ================= */
+.badge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* Food → green */
+.food {
+  background: #dcfce7;
+  color: #166534;
+}
+
+/* Drinks → blue */
+.drinks {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+/* Commercial → gray */
+.commercial {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* Raw material */
+.matiere_premiere {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ================= ACTIONS ================= */
+button {
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:first-child {
+  color: #2563eb;
+  margin-right: 8px;
+}
+
+button:last-child {
+  color: #dc2626;
+}
+
+/* ================= MODAL ================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+
+  /* FADE */
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* MODAL BOX */
+.modal {
+  background: white;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+
+  /* SCALE ANIMATION */
+  animation: scaleIn 0.25s ease-in-out;
+
+  h3 {
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+}
+
+/* ================= FORM ================= */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #334155;
+  }
+
+  input,
+  select {
+    padding: 10px 12px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    outline: none;
+
+    &:focus {
+      border-color: #1a56db;
+      box-shadow: 0 0 0 3px rgba(26,86,219,0.15);
+    }
+  }
+}
+
+/* ================= MODAL ACTIONS ================= */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+
+  button {
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  button[type="button"] {
+    background: #f1f5f9;
+    color: #334155;
+  }
+
+  button[type="submit"] {
+    background: #1a56db;
+    color: white;
+
+    &:hover {
+      background: #1e40af;
+    }
+  }
+}
+
+/* ================= ANIMATIONS ================= */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

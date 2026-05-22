@@ -1,0 +1,316 @@
+.page {
+  padding: 20px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* ================= HEADER ================= */
+.header {
+  background: #cf6f02;
+  color: white;
+  padding: 16px 20px;
+  border-radius: 12px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+
+    input {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      width: 220px;
+    }
+  }
+}
+
+/* ================= CARD ================= */
+.card {
+  margin-top: 20px;
+  background: white;
+  border-radius: 14px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+/* ================= TABLE ================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead {
+  background:#cf6f02;
+  color: white;
+
+  th {
+    padding: 14px;
+    text-align: left;
+    font-weight: 600;
+  }
+}
+
+tbody {
+  tr {
+    transition: 0.2s ease;
+
+    &:hover {
+      background: #fff1f1;
+    }
+  }
+
+  td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+}
+
+/* ================= INPUTS ================= */
+input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  outline: none;
+
+  &:focus {
+    border-color:#cf6f02;
+  }
+}
+
+/* ================= BADGES ================= */
+.badge {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ROLE BADGE (optional reuse) */
+.role {
+  background: #ffe5e5;
+  color: #cf6f02;
+}
+
+/* ================= STATUS ================= */
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-inactive {
+  background: #ffe4e6;
+  color: #cf6f02;
+}
+
+.status-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+/* ================= ACTION BUTTONS ================= */
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ICON BUTTON BASE */
+.btn-icon {
+  border: none;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 14px;
+  background: #f1f5f9;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+/* EDIT */
+.btn-icon.edit {
+  background: #e0f2fe;
+  color: #075985;
+
+  &:hover {
+    background: #bae6fd;
+  }
+}
+
+/* DELETE */
+.btn-icon.danger {
+  background: #ffe4e6;
+  color: #cf6f02;
+
+  &:hover {
+    background: #fecdd3;
+  }
+}
+
+/* ================= PRIMARY BUTTON ================= */
+.btn-primary {
+  background: #cf6f02;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+
+  &:hover {
+    background: #8b1a1a;
+  }
+}
+
+/* ================= SECONDARY BUTTON ================= */
+.btn-secondary {
+  background: #e2e8f0;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+
+  &:hover {
+    background: #cbd5e1;
+  }
+}
+
+/* ================= MODAL ================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: white;
+  width: 520px;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+
+  h3 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    border-bottom: 2px solid #cf6f02;
+    padding-bottom: 8px;
+  }
+}
+
+/* ================= FORM ================= */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+
+  label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 5px;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* ================= MODAL ACTIONS ================= */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* ================= MESSAGES ================= */
+.form-error {
+  background: #ffe4e6;
+  color: #cf6f02;
+  border: 1px solid #f5c2c7;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    background-color: #ccc;
+    border-radius: 20px;
+    inset: 0;
+    transition: .3s;
+  }
+
+  .slider:before {
+    content: "";
+    position: absolute;
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: .3s;
+  }
+
+  input:checked + .slider {
+    background: #cf6f02;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(18px);
+  }
+}
+.form-success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+/* animation */
+.form-error,
+.form-success {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}

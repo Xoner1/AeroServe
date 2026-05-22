@@ -1,0 +1,80 @@
+<div class="page">
+
+  <div class="header">
+    <h2>Gestion des catégories</h2>
+    <button class="btn btn-primary" (click)="openCreate()">
+      + Ajouter catégorie
+    </button>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Code</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (c of categories; track c.id) {
+          <tr>
+            <td>{{ c.name }}</td>
+            <td>{{ c.type }}</td>
+            <td>{{ c.code || '-' }}</td>
+
+            <td>
+              <button (click)="edit(c)">✏️</button>
+              <button (click)="delete(c.id)">🗑️</button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MODAL -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="close()">
+      <div class="modal" (click)="$event.stopPropagation()">
+
+        <h3>{{ editing ? 'Modifier' : 'Créer' }} catégorie</h3>
+
+        <form (ngSubmit)="save()">
+
+          <div class="form-group">
+            <label>Nom</label>
+            <input [(ngModel)]="form.name" name="name" required />
+          </div>
+
+          <div class="form-group">
+            <label>Type</label>
+            <select [(ngModel)]="form.type" name="type">
+              <option value="commercial">Commercial</option>
+              <option value="matiere_premiere">Matière première</option>
+              <option value="food">Food</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Code (optionnel)</label>
+            <input [(ngModel)]="form.code" name="code" placeholder="Ex: CAT-001" />
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" (click)="close()">Annuler</button>
+            <button type="submit">
+              {{ editing ? 'Modifier' : 'Créer' }}
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </div>
+  }
+
+</div>
