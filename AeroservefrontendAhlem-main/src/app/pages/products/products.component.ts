@@ -6,13 +6,14 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Product, Category } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
+import { AppIconComponent } from '../../shared/icon/app-icon.component';
 import Swal from 'sweetalert2';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLoadingComponent],
+  imports: [CommonModule, FormsModule, PageLoadingComponent, AppIconComponent],
   template: `
     @if (loading) {
       <app-page-loading variant="table" [rows]="10" />
@@ -73,7 +74,9 @@ import { environment } from '../../../environments/environment';
                       @if (p.image) {
                         <img [src]="getImageUrl(p.image)" alt="Product" class="table-product-img" />
                       } @else {
-                        <span class="product-icon"></span>
+                        <div class="product-icon-fallback">
+                          <app-icon name="Package" [size]="18"></app-icon>
+                        </div>
                       }
                     </td>
                     <td>
@@ -111,12 +114,16 @@ import { environment } from '../../../environments/environment';
                     </td>
 
                     <td class="actions">
-                      @if (p.type === 'food') {
+                      @if (!validationMode && p.type === 'food') {
                         <button class="btn-icon assistant-btn" (click)="openChatbot(p)" title="Assistant IA "></button>
                       }
                       @if (validationMode && p.approval_status === 'pending') {
-                        <button class="btn-icon approve-btn" (click)="updateApprovalStatus(p, 'approved')" title="Approuver" style="font-size: 18px; color: #137333; background: #E8F0EB; padding: 4px 8px; border-radius: 6px; border: 1px solid #137333;">✔️</button>
-                        <button class="btn-icon reject-btn" (click)="updateApprovalStatus(p, 'rejected')" title="Rejeter" style="font-size: 18px; color: #c5221f; background: #F5E4E4; padding: 4px 8px; border-radius: 6px; border: 1px solid #c5221f;">❌</button>
+                        <button class="approve-btn" (click)="updateApprovalStatus(p, 'approved')" title="Approuver">
+                          <app-icon name="Check" [size]="16"></app-icon>
+                        </button>
+                        <button class="reject-btn" (click)="updateApprovalStatus(p, 'rejected')" title="Rejeter">
+                          <app-icon name="X" [size]="16"></app-icon>
+                        </button>
                       } @else {
                         <button class="btn-icon" (click)="editProduct(p)"></button>
                         <button class="btn-icon danger" (click)="deleteProduct(p.id)"></button>
@@ -951,6 +958,64 @@ import { environment } from '../../../environments/environment';
       background: rgba(34, 197, 94, 0.1) !important;
     }
 
+    .product-icon-fallback {
+      width: 40px;
+      height: 40px;
+      background: #EDE9E2;
+      color: #5C625A;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #D8D2C8;
+      transition: all 0.2s ease;
+    }
+    .product-icon-fallback:hover {
+      background: #E5DFD5;
+      color: #2C3E35;
+    }
+
+    .approve-btn {
+      color: #137333;
+      background: #E8F0EB;
+      border: 1px solid rgba(19, 115, 51, 0.15);
+      padding: 8px 10px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .approve-btn:hover {
+      background: #d5e7dd;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(19, 115, 51, 0.15);
+    }
+    .approve-btn:active {
+      transform: translateY(0);
+    }
+
+    .reject-btn {
+      color: #c5221f;
+      background: #F5E4E4;
+      border: 1px solid rgba(197, 34, 31, 0.15);
+      padding: 8px 10px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .reject-btn:hover {
+      background: #eccdcd;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(197, 34, 31, 0.15);
+    }
+    .reject-btn:active {
+      transform: translateY(0);
+    }
   `]
 })
 

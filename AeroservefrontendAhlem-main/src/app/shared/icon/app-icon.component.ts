@@ -24,7 +24,9 @@ import {
   AlertTriangle,
   AlertCircle,
   Info,
-  ChevronDown
+  ChevronDown,
+  Check,
+  X
 } from 'lucide';
 
 @Component({
@@ -91,7 +93,9 @@ export class AppIconComponent implements AfterViewInit, OnChanges {
         AlertTriangle,
         AlertCircle,
         Info,
-        ChevronDown
+        ChevronDown,
+        Check,
+        X
       },
       attrs: {
         'stroke-width': '1.75',
