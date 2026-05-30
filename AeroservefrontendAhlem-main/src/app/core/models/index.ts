@@ -168,6 +168,9 @@ export interface Planning {
   is_day_off: boolean;
   start_time?: string;
   end_time?: string;
+  shift?: 'MATIN' | 'APRES_MIDI' | 'SOIR';
+  day_status?: 'ON' | 'OFF' | 'CONGE';
+  created_by?: number;
   caissier?: User;
   point_de_vente?: PointDeVente;
 }
@@ -251,4 +254,13 @@ export interface DashboardData {
   expired_products_count: number;
   sales_by_pdv: any[];
   daily_sales: { date: string; total: number }[];
+  active_users?: number;
+  pending_orders?: number;
+  processed_today?: number;
+  delayed_orders?: number;
+  kitchen_load?: number;
+  warehouse_load?: number;
+  total_waste?: number;
+  waste_trend?: { date: string; total: number }[];
+  role_specific?: any;
 }

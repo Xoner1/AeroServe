@@ -55,7 +55,7 @@ class HygieneReportController extends Controller
 
     public function show(HygieneReport $hygieneReport): JsonResponse
     {
-        return response()->json($hygieneReport->load('product.allergens', 'inspector'));
+        return response()->json($hygieneReport->load('product', 'inspector'));
     }
 
     public function update(Request $request, HygieneReport $hygieneReport): JsonResponse

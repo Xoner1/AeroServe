@@ -308,4 +308,26 @@ if ($role->name === 'CAISSIER') {
             'user' => $user->fresh()->load('role'),
         ]);
     }
+
+    public function pendingCaissiers(): JsonResponse
+    {
+        $pending = User::whereHas('role', fn($q) => $q->where('name', 'CAISSIER'))
+            ->where('status', 'en_attente')
+            ->with('role', 'pointDeVente')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($pending);
+    }
+
+    public function deleteCaissier(User $user): JsonResponse
+    {
+        if ($user->role?->name !== 'CAISSIER') {
+            return response()->json(['message' => 'Cet utilisateur n\'est pas un caissier.'], 422);
+        }
+
+        $user->delete();
+
+        return response()->json(['message' => 'Caissier supprimé avec succès.']);
+    }
 }

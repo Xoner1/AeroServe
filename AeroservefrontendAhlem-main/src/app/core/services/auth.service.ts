@@ -22,12 +22,12 @@ export class AuthService {
       })
     );
   }
-forgotPassword(email: string): Observable<any> {
-  return this.http.post(`${this.apiUrl}/forgot-password`, { email });
-}
-resetPasswordWithToken(data: any) {
-  return this.http.post(`${this.apiUrl}/password/reset`, data);
-}
+  forgotPassword(email: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/forgot-password`, { email });
+  }
+  resetPasswordWithToken(data: any) {
+    return this.http.post(`${this.apiUrl}/password/reset`, data);
+  }
   logout(): void {
     const token = this.getToken();
     if (token) {
@@ -49,8 +49,13 @@ resetPasswordWithToken(data: any) {
 
   if (!token || !user) return false;
 
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    return false;
+  }
+
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const payload = JSON.parse(atob(parts[1]));
     const exp = payload.exp * 1000;
 
     if (Date.now() > exp) {
@@ -79,23 +84,22 @@ canAccessLogin(): boolean {
     return roles.includes(userRole);
   }
 
- getProfile(): Observable<User> {
-  return this.http.get<any>(`${this.apiUrl}/me`).pipe(
-    map(res => res.user || res)
-  );
-}
+  getProfile(): Observable<User> {
+    return this.http.get<any>(`${this.apiUrl}/me`).pipe(
+      map(res => res.user || res)
+    );
+  }
 
+  updateProfile(data: FormData): Observable<any> {
+    // PHP can't parse multipart/form-data on PUT — use POST with method spoofing
+    data.append('_method', 'PUT');
+    return this.http.post(`${this.apiUrl}/profile`, data);
+  }
 
-updateProfile(data: FormData): Observable<any> {
-  // PHP can't parse multipart/form-data on PUT — use POST with method spoofing
-  data.append('_method', 'PUT');
-  return this.http.post(`${this.apiUrl}/profile`, data);
-}
-
-setCurrentUser(user: User): void {
-  this.currentUserSubject.next(user);
-  localStorage.setItem('user', JSON.stringify(user));
-}
+  setCurrentUser(user: User): void {
+    this.currentUserSubject.next(user);
+    localStorage.setItem('user', JSON.stringify(user));
+  }
   private getStoredUser(): User | null {
     const stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;

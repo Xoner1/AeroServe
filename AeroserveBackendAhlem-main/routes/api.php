@@ -65,9 +65,6 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::put('/users/{user}/reject', [UserController::class, 'rejectCaissier']);
 
         Route::get('/users/check-email', [UserController::class, 'checkEmail']);
-        Route::put('/caissiers/{user}/status', [UserController::class, 'updateCaissierStatus']);
-        Route::put('/users/{user}/caissier', [UserController::class, 'updateCaissier']);
-        Route::delete('/users/{user}/caissier', [UserController::class, 'deleteCaissier']);
     });
 
     /*

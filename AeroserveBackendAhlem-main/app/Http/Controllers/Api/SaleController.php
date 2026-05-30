@@ -6,11 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Stock;
+use App\Traits\FifoStockTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class SaleController extends Controller
 {
+    use FifoStockTrait;
     public function index(Request $request): JsonResponse
     {
         $query = Sale::with('caissier', 'pointDeVente', 'items.product');
@@ -46,6 +48,21 @@ class SaleController extends Controller
             return response()->json(['message' => 'Le point de vente est requis.'], 422);
         }
 
+        // 1. Verify stock sufficiency for all items BEFORE proceeding
+        foreach ($request->items as $item) {
+            $stock = Stock::where('product_id', $item['product_id'])->first();
+            $product = Product::find($item['product_id']);
+            $productName = $product?->name ?? 'Produit';
+
+            if (!$stock || $stock->quantity < $item['quantity']) {
+                $available = $stock ? $stock->quantity : 0;
+                return response()->json([
+                    'message' => "Stock insuffisant pour \"{$productName}\". Quantité demandée : {$item['quantity']}, Quantité disponible : {$available}."
+                ], 422);
+            }
+        }
+
+        // 2. Create the sale
         $sale = Sale::create([
             'caissier_id' => auth()->id(),
             'pdv_id' => $pdvId,
@@ -70,23 +87,17 @@ class SaleController extends Controller
                 'subtotal' => $subtotal,
             ]);
 
-            // Deduct from stock
+            // 3. Deduct from stock using unified FIFO trait
             $stock = Stock::where('product_id', $item['product_id'])->first();
             if ($stock) {
-                $stock->decrement('quantity', $item['quantity']);
-                $stock->movements()->create([
-                    'type' => 'out',
-                    'quantity' => $item['quantity'],
-                    'reason' => 'Vente #' . $sale->id,
-                    'user_id' => auth()->id(),
-                ]);
+                $this->fifoDeduction($stock, (float) $item['quantity'], 'Vente #' . $sale->id);
             }
         }
 
         $sale->update(['total_amount' => $total]);
 
         return response()->json([
-            'message' => 'Vente enregistrée.',
+            'message' => 'Vente enregistrée avec succès.',
             'sale' => $sale->load('items.product'),
         ], 201);
     }

@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Default fallback base URL, now made non-final to allow dynamic updates
-  static String baseUrl = 'http://10.233.117.133:8000/api';
+  // Production backend API URL (can be customized dynamically via SharedPreferences)
+  static String baseUrl = 'https://aeroserve.alwaysdata.net/api';
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();

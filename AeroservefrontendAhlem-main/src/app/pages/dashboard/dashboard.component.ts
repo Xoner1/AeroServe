@@ -52,7 +52,7 @@ export class DashboardComponent implements OnInit {
 
   loadDashboard(): void {
     const { dateFrom, dateTo } = this.getDateRange();
-    this.api.get<any>('dashboard', { params: { date_from: dateFrom, date_to: dateTo } }).subscribe({
+    this.api.get<any>('dashboard', { date_from: dateFrom, date_to: dateTo }).subscribe({
       next: (d) => {
         this.data = d;
         if (d.daily_sales?.length) {

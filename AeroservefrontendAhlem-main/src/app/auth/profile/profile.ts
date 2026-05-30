@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,7 +14,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './profile.html',
   styleUrl: './profile.scss',
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
 
   user: User | null = null;
 
@@ -35,7 +35,7 @@ export class ProfileComponent implements OnInit {
     avatar: null as File | null,
     bio: '',
     age: null,
-    experience: ''
+    experience: false
   };
 
   constructor(
@@ -60,7 +60,7 @@ export class ProfileComponent implements OnInit {
         this.refreshAvatarUrl();
       },
       error: () => {
-        this.error = 'Failed to load profile';
+        this.error = 'Échec du chargement du profil';
       }
     });
   }
@@ -74,8 +74,9 @@ export class ProfileComponent implements OnInit {
       last_name: user.last_name,
       email: user.email,
       phone: user.phone || '',
-      bio: (user as any).bio || '',
-      age: (user as any).age || null,
+      bio: user.bio || '',
+      age: user.age || null,
+      experience: user.experience ?? false,
       avatar: null
     };
 
@@ -178,7 +179,7 @@ export class ProfileComponent implements OnInit {
       },
 
       error: (err) => {
-        this.error = err.error?.message || 'Update failed';
+        this.error = err.error?.message || 'Échec de la mise à jour';
         this.loading = false;
       }
     });
@@ -198,5 +199,11 @@ export class ProfileComponent implements OnInit {
   // =========================
   goToDashboard(): void {
     this.router.navigate(['/dashboard']);
+  }
+
+  ngOnDestroy(): void {
+    if (this.previewAvatar) {
+      URL.revokeObjectURL(this.previewAvatar);
+    }
   }
 }

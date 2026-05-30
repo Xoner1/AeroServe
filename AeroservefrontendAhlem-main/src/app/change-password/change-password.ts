@@ -82,8 +82,8 @@ export class ChangePasswordComponent implements OnInit {
     },
     error: (err) => {
       this.loading = false;
-      console.log(err.error); //  debug important
       this.errors = err.error?.message || 'Erreur serveur';
     }
   });
-}}
+}
+}

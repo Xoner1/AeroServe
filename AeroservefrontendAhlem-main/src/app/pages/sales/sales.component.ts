@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { Sale } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-sales',
@@ -456,7 +457,25 @@ export class SalesComponent implements OnInit {
 
   save(): void {
     this.api.post('sales', this.form).subscribe({
-      next: () => { this.closeModal(); this.load(); }
+      next: () => {
+        Swal.fire({
+          title: 'Succès !',
+          text: 'La vente a été enregistrée avec succès.',
+          icon: 'success',
+          confirmButtonColor: '#6B8F71'
+        });
+        this.closeModal();
+        this.load();
+      },
+      error: (err) => {
+        console.error(err);
+        Swal.fire({
+          title: 'Erreur',
+          text: err.error?.message || "Une erreur est survenue lors de l'enregistrement de la vente.",
+          icon: 'error',
+          confirmButtonColor: '#C0483A'
+        });
+      }
     });
   }
 }

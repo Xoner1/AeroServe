@@ -4,18 +4,18 @@
       <div class="sidebar-overlay" (click)="mobileSidebarOpen = false"></div>
 
       <!-- Sidebar -->
-      <aside class="sidebar">
+      <aside class="sidebar" role="complementary" aria-label="Menu latéral">
         <div class="sidebar-header">
-          <img src="assets/logo.png" alt="AeroServe" class="sidebar-logo" />
+          <img src="assets/logo.png" alt="AeroServe Logo" class="sidebar-logo" />
           @if (!sidebarCollapsed) {
             <span class="sidebar-brand">AeroServe</span>
           }
-          <button class="toggle-btn" (click)="sidebarCollapsed = !sidebarCollapsed">
+          <button class="toggle-btn" (click)="sidebarCollapsed = !sidebarCollapsed" aria-label="Réduire le menu" [aria-expanded]="!sidebarCollapsed">
             <app-icon [name]="sidebarCollapsed ? 'PanelLeftOpen' : 'PanelLeftClose'" [size]="18"></app-icon>
           </button>
         </div>
-        <nav class="sidebar-nav">
-          @for (item of filteredNavItems; track item.route) {
+        <nav class="sidebar-nav" role="navigation" aria-label="Navigation principale">
+          @for (item of filteredNavItems; track $index) {
             <a [routerLink]="item.route" routerLinkActive="active" class="nav-item" (click)="mobileSidebarOpen = false">
               <app-icon [name]="item.icon" [size]="18" className="nav-icon-svg"></app-icon>
               @if (!sidebarCollapsed) {
@@ -25,7 +25,7 @@
           }
         </nav>
         <div class="sidebar-footer">
-          <button class="nav-item logout-btn" (click)="onLogout(); mobileSidebarOpen = false">
+          <button class="nav-item logout-btn" (click)="onLogout(); mobileSidebarOpen = false" aria-label="Se déconnecter">
             <app-icon name="LogOut" [size]="18" className="nav-icon-svg"></app-icon>
             @if (!sidebarCollapsed) {
               <span class="nav-label">Logout</span>
@@ -38,27 +38,27 @@
       <div class="main">
         <header class="topbar">
           <div class="topbar-left">
-            <button class="mobile-menu-btn" (click)="toggleMobileSidebar()">
+            <button class="mobile-menu-btn" (click)="toggleMobileSidebar()" aria-label="Ouvrir le menu principal" [aria-expanded]="mobileSidebarOpen">
               <app-icon name="Menu" [size]="20"></app-icon>
             </button>
             <h2 class="page-title">{{ getPageTitle() }}</h2>
           </div>
           <div class="topbar-right">
             <div class="notif-wrapper" (click)="$event.stopPropagation()">
-              <div class="notif-badge" (click)="toggleNotifications($event)">
-                <span class="notif-bell-icon">🔔</span>
-                <span class="ws-dot" [class.connected]="wsConnected" [class.disconnected]="!wsConnected"></span>
+              <div class="notif-badge" (click)="toggleNotifications($event)" role="button" aria-haspopup="true" [aria-expanded]="showNotifications" [attr.aria-label]="'Afficher les notifications, ' + unreadCount + ' non lues'">
+                <span class="notif-bell-icon" aria-hidden="true">🔔</span>
+                <span class="ws-dot" [class.connected]="wsConnected" [class.disconnected]="!wsConnected" [attr.title]="wsConnected ? 'WebSocket connecté' : 'WebSocket déconnecté'"></span>
                 @if (unreadCount > 0) {
                   <span class="badge">{{ unreadCount }}</span>
                 }
               </div>
 
               @if (showNotifications) {
-                <div class="notif-dropdown">
+                <div class="notif-dropdown" role="dialog" aria-label="Boîte de notifications">
                   <div class="notif-dropdown-header">
                     <h3>Notifications</h3>
                     @if (unreadCount > 0) {
-                      <button class="mark-all-btn" (click)="markAllAsRead($event)">Tout marquer comme lu</button>
+                      <button class="mark-all-btn" (click)="markAllAsRead($event)" aria-label="Tout marquer comme lu">Tout marquer comme lu</button>
                     }
                   </div>
                   <div class="dropdown-divider"></div>
@@ -67,7 +67,7 @@
                       <div class="notif-empty">Aucune notification</div>
                     } @else {
                       @for (notif of notifications; track notif.id) {
-                        <div class="notif-item" [class.unread]="!notif.is_read" (click)="markAsRead($event, notif); navigateToNotification(notif)">
+                        <div class="notif-item" [class.unread]="!notif.is_read" (click)="markAsRead($event, notif); navigateToNotification(notif)" role="button" [attr.aria-label]="notif.title + ': ' + notif.message">
                           <div class="notif-icon-wrapper" [class]="notif.type">
                             <span class="notif-icon">
                               @if (notif.type === 'warning') { <app-icon name="AlertTriangle" [size]="14"></app-icon> }
@@ -92,7 +92,7 @@
               }
             </div>
 
-            <div class="user-info" (click)="$event.stopPropagation(); toggleUserMenu()">
+            <div class="user-info" (click)="$event.stopPropagation(); toggleUserMenu()" role="button" aria-haspopup="true" [aria-expanded]="showUserMenu" aria-label="Menu de l'utilisateur">
               <!-- Show real avatar or initials fallback -->
               <div class="user-avatar">
                 @if (getUserAvatarUrl() && !avatarLoadFailed) {
@@ -110,7 +110,7 @@
               <app-icon name="ChevronDown" [size]="14" className="dropdown-caret-icon"></app-icon>
 
               @if (showUserMenu) {
-                <div class="user-dropdown" (click)="$event.stopPropagation()">
+                <div class="user-dropdown" (click)="$event.stopPropagation()" role="dialog" aria-label="Menu du compte">
                   <div class="dropdown-header">
                     <div class="dh-avatar">
                       @if (getUserAvatarUrl() && !avatarLoadFailed) {
@@ -125,10 +125,10 @@
                     </div>
                   </div>
                   <div class="dropdown-divider"></div>
-                  <a [routerLink]="'/profile'" class="dropdown-item" (click)="closeUserMenu()">
+                  <a [routerLink]="'/profile'" class="dropdown-item" (click)="closeUserMenu()" aria-label="Mon profil">
                     <app-icon name="User" [size]="16"></app-icon> Mon profil
                   </a>
-                  <button class="dropdown-item danger" (click)="onLogout()">
+                  <button class="dropdown-item danger" (click)="onLogout()" aria-label="Se déconnecter">
                     <app-icon name="LogOut" [size]="16"></app-icon> Se déconnecter
                   </button>
                 </div>
@@ -142,23 +142,23 @@
       </div>
 
       <!-- ─── Chatbot FAB ─── -->
-      <button class="chat-fab" (click)="toggleChatbot()" [class.active]="showChatbot">
-        <span class="chat-fab-icon">💬</span>
+      <button class="chat-fab" (click)="toggleChatbot()" [class.active]="showChatbot" aria-label="Ouvrir l'assistant intelligent" aria-haspopup="true" [aria-expanded]="showChatbot">
+        <span class="chat-fab-icon" aria-hidden="true">💬</span>
       </button>
 
       <!-- ─── Chatbot Drawer ─── -->
       @if (showChatbot) {
-        <div class="chat-overlay" (click)="toggleChatbot()">
+        <div class="chat-overlay" (click)="toggleChatbot()" role="dialog" aria-modal="true" aria-label="Assistant intelligent AeroServe">
           <div class="chat-drawer" (click)="$event.stopPropagation()">
             <div class="chat-header">
               <div class="chat-title">
-                <span class="chat-avatar-icon">🤖</span>
+                <span class="chat-avatar-icon" aria-hidden="true">🤖</span>
                 <div>
                   <h4 style="margin:0; font-size:14px; font-weight:700;">Assistant AeroServe</h4>
                   <span style="font-size:11px; opacity:0.85;">Posez vos questions</span>
                 </div>
               </div>
-              <button class="chat-close" (click)="toggleChatbot()">✕</button>
+              <button class="chat-close" (click)="toggleChatbot()" aria-label="Fermer l'assistant">✕</button>
             </div>
             <div class="chat-body">
               <div class="chat-messages">
@@ -180,14 +180,14 @@
                 }
               </div>
             </div>
-            <div class="chat-chips">
+            <div class="chat-chips" role="group" aria-label="Questions rapides">
               <button (click)="askQuickQuestion('Comment passer une commande ?')">Commandes ?</button>
               <button (click)="askQuickQuestion('Quels produits sont disponibles ?')">Produits ?</button>
               <button (click)="askQuickQuestion('Comment consulter les stocks ?')">Stocks ?</button>
             </div>
             <div class="chat-footer">
-              <input type="text" [(ngModel)]="chatbotInput" (keyup.enter)="sendChatbotMessage()" placeholder="Posez une question..." [disabled]="chatbotLoading" />
-              <button class="chat-send" (click)="sendChatbotMessage()" [disabled]="chatbotLoading">➤</button>
+              <input type="text" [(ngModel)]="chatbotInput" (keyup.enter)="sendChatbotMessage()" placeholder="Posez une question..." [disabled]="chatbotLoading" aria-label="Votre message à l'assistant" />
+              <button class="chat-send" (click)="sendChatbotMessage()" [disabled]="chatbotLoading" aria-label="Envoyer le message">➤</button>
             </div>
           </div>
         </div>

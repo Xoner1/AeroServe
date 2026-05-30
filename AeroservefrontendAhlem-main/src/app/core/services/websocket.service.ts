@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject, BehaviorSubject, timer } from 'rxjs';
+import { Observable, Subject, BehaviorSubject, timer, Subscription } from 'rxjs';
 import { AuthService } from './auth.service';
 import { environment } from '../../../environments/environment';
 
@@ -17,7 +17,8 @@ export class WebSocketService {
   private maxReconnectDelay = 30000;
   private baseDelay = 1000;
   private shouldReconnect = true;
-  private pingInterval: any = null;
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private reconnectSubscription: Subscription | null = null;
 
   messages$: Observable<WsMessage> = this.messageSubject.asObservable();
   connectionStatus$: Observable<boolean> = this.connectionStatusSubject.asObservable();
@@ -34,6 +35,7 @@ export class WebSocketService {
     this.shouldReconnect = false;
     this.reconnectAttempt = 0;
     this.clearPing();
+    this.clearReconnectTimer();
     this.ws?.close();
     this.ws = null;
     this.connectionStatusSubject.next(false);
@@ -49,6 +51,7 @@ export class WebSocketService {
     const token = this.auth.getToken();
     const url = `${environment.wsUrl}?token=${token}`;
 
+    this.clearReconnectTimer();
     this.ws = new WebSocket(url);
 
     this.ws.onopen = () => {
@@ -74,13 +77,18 @@ export class WebSocketService {
     this.ws.onclose = () => {
       this.connectionStatusSubject.next(false);
       this.clearPing();
+      this.clearReconnectTimer();
       if (this.shouldReconnect) {
         const delay = Math.min(
           this.baseDelay * Math.pow(2, this.reconnectAttempt),
           this.maxReconnectDelay
         );
         this.reconnectAttempt++;
-        timer(delay).subscribe(() => this.doConnect());
+        this.reconnectSubscription = timer(delay).subscribe(() => {
+          if (this.shouldReconnect) {
+            this.doConnect();
+          }
+        });
       }
     };
   }
@@ -99,12 +107,21 @@ export class WebSocketService {
     }
   }
 
+  private clearReconnectTimer(): void {
+    if (this.reconnectSubscription) {
+      this.reconnectSubscription.unsubscribe();
+      this.reconnectSubscription = null;
+    }
+  }
+
   private handleMessage(msg: WsMessage): void {
     if (msg.type === 'pong') return;
     if (msg.type === 'notification' && !document.hidden) {
       const n = msg.data;
       if (n && n.title) {
-        new Notification(n.title, { body: n.message, icon: '/assets/icon.png' });
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(n.title, { body: n.message, icon: '/assets/icon.png' });
+        }
       }
     }
   }

@@ -8,11 +8,13 @@ use App\Models\Notification;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Stock;
+use App\Traits\FifoStockTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
+    use FifoStockTrait;
     public function index(): JsonResponse
     {
         return response()->json(
@@ -223,34 +225,6 @@ class MenuController extends Controller
         return response()->json($menu);
     }
 
-    // ─── FIFO Deduction Helper ───────────────────────────────────────────────
-
-    private function fifoDeduction(Stock $stock, float $quantity): void
-    {
-        $batches = \App\Models\StockMovement::where('stock_id', $stock->id)
-            ->where('type', 'in')
-            ->where('quantity', '>', 0)
-            ->orderByRaw('ISNULL(expiration_date) ASC')
-            ->orderBy('expiration_date', 'asc')
-            ->orderBy('created_at', 'asc')
-            ->get();
-
-        $remaining = $quantity;
-
-        foreach ($batches as $batch) {
-            if ($remaining <= 0) break;
-
-            if ($batch->quantity >= $remaining) {
-                $batch->decrement('quantity', $remaining);
-                $remaining = 0;
-            } else {
-                $remaining -= $batch->quantity;
-                $batch->update(['quantity' => 0]);
-            }
-        }
-
-        $stock->decrement('quantity', $quantity);
-    }
 
     private function notifyChefMagasinLowStock(array $insufficientStock): void
     {

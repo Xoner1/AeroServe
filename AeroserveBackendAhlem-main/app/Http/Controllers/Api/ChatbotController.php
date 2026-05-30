@@ -50,8 +50,8 @@ class ChatbotController extends Controller
             $productContext .= "Date d'expiration: {$product->expiration_date}\n";
         }
 
-        $groqKey = env('GROQ_API_KEY');
-        $geminiKey = env('GEMINI_API_KEY');
+        $groqKey = config('services.groq.key');
+        $geminiKey = config('services.gemini.key');
 
         // 1. Try Groq AI (Llama 3)
         if ($groqKey && $groqKey !== 'null' && !empty($groqKey)) {

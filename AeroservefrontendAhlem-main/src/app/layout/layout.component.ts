@@ -1,4 +1,5 @@
-import { Component, OnInit, HostListener, inject, OnDestroy } from '@angular/core';
+import { Component, OnInit, HostListener, inject, OnDestroy, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -41,73 +42,35 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   navItems: NavItem[] = [
+    { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] },
+    { label: 'Users', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
+    { label: 'Caissier Approval', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN'] },
+    { label: 'Caissier', icon: 'UserCog', route: '/caissier', roles: ['RESPONSABLE_FB'] },
+    { label: 'Points of Sales', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
+    { label: 'Products', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE'] },
+    { label: 'Products Validation', icon: 'CheckCircle', route: '/products-validation', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN', 'CHEF_MAGASIN'] },
+    { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN'] },
+    { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN', 'CHEF_CUISINE'] },
+    { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB'] },
+    { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN', 'RESPONSABLE_HYGIENE'] },
+    { label: 'Category', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['SUPER_ADMIN', 'CAISSIER'] },
+    { label: 'Profile', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] }
+  ];
 
-  /* ─── SUPER_ADMIN ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN'] },
-  { label: 'Users', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
-  { label: 'Caissier Approval', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN'] },
-  { label: 'Points of Sales', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
-  { label: 'Products', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN'] },
-  { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN'] },
-  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN'] },
-  { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN'] },
-  { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN'] },
-  { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN'] },
-  { label: 'Category', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN'] },
-  { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['SUPER_ADMIN'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN'] },
-
-  /* ─── RESPONSABLE_FB ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['RESPONSABLE_FB'] },
-  { label: 'Caissier', icon: 'UserCog', route: '/caissier', roles: ['RESPONSABLE_FB'] },
-  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['RESPONSABLE_FB'] },
-  { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['RESPONSABLE_FB'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['RESPONSABLE_FB'] },
-
-  /* ─── CHEF_CUISINE ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['CHEF_CUISINE'] },
-  { label: 'Products', icon: 'Package', route: '/products', roles: ['CHEF_CUISINE'] },
-  { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['CHEF_CUISINE'] },
-  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['CHEF_CUISINE'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['CHEF_CUISINE'] },
-
-  /* ─── CHEF_MAGASIN ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['CHEF_MAGASIN'] },
-  { label: 'Products', icon: 'Package', route: '/products', roles: ['CHEF_MAGASIN'] },
-  { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['CHEF_MAGASIN'] },
-  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['CHEF_MAGASIN'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['CHEF_MAGASIN'] },
-
-  /* ─── RESPONSABLE_ACHAT ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['RESPONSABLE_ACHAT'] },
-  { label: 'Category', icon: 'Tag', route: '/category', roles: ['RESPONSABLE_ACHAT'] },
-  { label: 'Products Validation', icon: 'CheckCircle', route: '/products-validation', roles: ['RESPONSABLE_ACHAT'] },
-  { label: 'Products', icon: 'Package', route: '/products', roles: ['RESPONSABLE_ACHAT'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['RESPONSABLE_ACHAT'] },
-
-  /* ─── RESPONSABLE_HYGIENE ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['RESPONSABLE_HYGIENE'] },
-  { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['RESPONSABLE_HYGIENE'] },
-  { label: 'Products', icon: 'Package', route: '/products', roles: ['RESPONSABLE_HYGIENE'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['RESPONSABLE_HYGIENE'] },
-
-  /* ─── CAISSIER ─── */
-  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['CAISSIER'] },
-  { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['CAISSIER'] },
-  { label: 'Profile', icon: 'User', route: '/profile', roles: ['CAISSIER'] },
-
-];
-get filteredNavItems(): NavItem[] {
-  return this.navItems.filter(item => {
-    if (!item.roles) return true;
-    return this.auth.hasRole(...item.roles);
-  });
-}
+  get filteredNavItems(): NavItem[] {
+    return this.navItems.filter(item => {
+      if (!item.roles) return true;
+      return this.auth.hasRole(...item.roles);
+    });
+  }
 
 
   avatarLoadFailed = false;
 
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   // ─── Chatbot ─────────────────────────────────────────────────────────────────
   showChatbot = false;
@@ -124,16 +87,16 @@ get filteredNavItems(): NavItem[] {
 
   ngOnInit(): void {
     this.user = this.auth.getCurrentUser();
-    this.auth.currentUser$.subscribe(u => {
+    this.auth.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(u => {
       this.user = u;
       this.avatarLoadFailed = false;
     });
-    this.notifService.unreadCount$.subscribe(c => this.unreadCount = c);
+    this.notifService.unreadCount$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(c => this.unreadCount = c);
     this.notifService.loadUnreadCount();
     this.notifService.connectWebSocket();
-    this.ws.connectionStatus$.subscribe(connected => this.wsConnected = connected);
-    this.notifService.notifications$.subscribe(notifs => {
-      const current = this.notifications;
+    this.ws.connectionStatus$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(connected => this.wsConnected = connected);
+    this.notifService.notifications$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(notifs => {
+      const current = [...this.notifications];
       for (const n of notifs) {
         if (!current.find(ex => ex.id === n.id)) {
           current.unshift(n);
@@ -184,7 +147,7 @@ get filteredNavItems(): NavItem[] {
     '/hygiene-reports': 'Hygiene Reports',
   };
 
-  const path = '/' + (window.location.pathname.split('/')[1] || 'dashboard');
+  const path = '/' + (this.router.url.split('?')[0].split('/')[1] || 'dashboard');
 
   return titles[path] || 'AeroServe';
 }

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Product, Category } from '../../core/models';
@@ -18,7 +19,7 @@ import { environment } from '../../../environments/environment';
     } @else {
       <div class="page">
         <div class="page-header">
-          <h2>Produits</h2>
+          <h2>{{ validationMode ? 'Validation des Produits' : 'Produits' }}</h2>
 
           <div class="header-actions">
             @if (userRole !== 'CHEF_CUISINE' && userRole !== 'CHEF_MAGASIN') {
@@ -34,16 +35,18 @@ import { environment } from '../../../environments/environment';
               <span class="filter-badge">Commercial + Matière première</span>
             }
 
-            @if (userRole === 'RESPONSABLE_ACHAT') {
+            @if (userRole === 'RESPONSABLE_ACHAT' && !validationMode) {
               <select [(ngModel)]="filterApprovalStatus" (ngModelChange)="applyFilter()" class="filter-select">
                 <option value="">Tous les statuts</option>
-                <option value="EN_ATTENTE">En attente</option>
+                <option value="pending">En attente</option>
                 <option value="approved">Approuvé</option>
                 <option value="rejected">Refusé</option>
               </select>
             }
 
-            <button class="btn btn-primary" (click)="openModal()">+ Ajouter</button>
+            @if (!validationMode) {
+              <button class="btn btn-primary" (click)="openModal()">+ Ajouter</button>
+            }
           </div>
         </div>
 
@@ -111,8 +114,13 @@ import { environment } from '../../../environments/environment';
                       @if (p.type === 'food') {
                         <button class="btn-icon assistant-btn" (click)="openChatbot(p)" title="Assistant IA "></button>
                       }
-                      <button class="btn-icon" (click)="editProduct(p)"></button>
-                      <button class="btn-icon danger" (click)="deleteProduct(p.id)"></button>
+                      @if (validationMode && p.approval_status === 'pending') {
+                        <button class="btn-icon approve-btn" (click)="updateApprovalStatus(p, 'approved')" title="Approuver" style="font-size: 18px; color: #137333; background: #E8F0EB; padding: 4px 8px; border-radius: 6px; border: 1px solid #137333;">✔️</button>
+                        <button class="btn-icon reject-btn" (click)="updateApprovalStatus(p, 'rejected')" title="Rejeter" style="font-size: 18px; color: #c5221f; background: #F5E4E4; padding: 4px 8px; border-radius: 6px; border: 1px solid #c5221f;">❌</button>
+                      } @else {
+                        <button class="btn-icon" (click)="editProduct(p)"></button>
+                        <button class="btn-icon danger" (click)="deleteProduct(p.id)"></button>
+                      }
                     </td>
                   </tr>
                 }
@@ -955,6 +963,7 @@ export class ProductsComponent implements OnInit {
   filterType = '';
   filterApprovalStatus = '';
   loading = true;
+  validationMode = false;
 
   // ================= CHATBOT PROPERTIES =================
   showChatbot = false;
@@ -1042,18 +1051,23 @@ export class ProductsComponent implements OnInit {
     usage_status: 'IN_USE'
   };
 
-  constructor(private api: ApiService, private auth: AuthService) {}
+  constructor(private api: ApiService, private auth: AuthService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
+    this.validationMode = this.route.snapshot.data['validationMode'] === true;
+    
     // Role-based default type filter
     if (this.userRole === 'CHEF_CUISINE') {
       this.filterType = 'food';
     } else if (this.userRole === 'CHEF_MAGASIN') {
       this.filterType = 'commercial';
     }
-    // Default filter EN_ATTENTE for RESPONSABLE_ACHAT
-    if (this.userRole === 'RESPONSABLE_ACHAT') {
-      this.filterApprovalStatus = 'EN_ATTENTE';
+    
+    // Default filter pending for RESPONSABLE_ACHAT
+    if (this.validationMode) {
+      this.filterApprovalStatus = 'pending';
+    } else if (this.userRole === 'RESPONSABLE_ACHAT') {
+      this.filterApprovalStatus = 'pending';
     }
     this.load();
     this.loadCategories();
@@ -1335,6 +1349,65 @@ export class ProductsComponent implements OnInit {
           text: err.error?.message || 'Une erreur est survenue lors de la sauvegarde.',
           icon: 'error',
           confirmButtonColor: '#6B8F71'
+        });
+      }
+    });
+  }
+
+  // ================= APPROVAL STATUS =================
+  updateApprovalStatus(product: Product, status: 'approved' | 'rejected'): void {
+    Swal.fire({
+      title: status === 'approved' ? 'Approuver le produit ?' : 'Rejeter le produit ?',
+      text: `Voulez-vous ${status === 'approved' ? 'approuver' : 'rejeter'} le produit "${product.name}" ?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: status === 'approved' ? '#6B8F71' : '#C0483A',
+      cancelButtonColor: '#4b5563',
+      confirmButtonText: status === 'approved' ? 'Oui, approuver' : 'Oui, rejeter',
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Try standard Laravel attribute update
+        const formData = new FormData();
+        formData.append('approval_status', status);
+        formData.append('name', product.name);
+        formData.append('type', product.type);
+        if (product.category_id) {
+          formData.append('category_id', String(product.category_id));
+        }
+
+        this.api.put(`products/${product.id}`, formData).subscribe({
+          next: () => {
+            Swal.fire({
+              title: 'Succès !',
+              text: `Le produit a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
+              icon: 'success',
+              confirmButtonColor: '#6B8F71'
+            });
+            this.load();
+          },
+          error: () => {
+            // Fallback: try direct /status endpoint
+            this.api.put(`products/${product.id}/status`, { status }).subscribe({
+              next: () => {
+                Swal.fire({
+                  title: 'Succès !',
+                  text: `Le produit a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
+                  icon: 'success',
+                  confirmButtonColor: '#6B8F71'
+                });
+                this.load();
+              },
+              error: (err2) => {
+                Swal.fire({
+                  title: 'Erreur',
+                  text: err2.error?.message || 'Une erreur est survenue lors de la validation.',
+                  icon: 'error',
+                  confirmButtonColor: '#C0483A'
+                });
+              }
+            });
+          }
         });
       }
     });

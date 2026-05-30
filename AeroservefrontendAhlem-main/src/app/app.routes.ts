@@ -1,15 +1,14 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
-import { ChangePasswordRequest } from './change-password-request/change-password-request';
-import { ProfileComponent } from './auth/profile/profile';
+import { loginGuard } from './core/guards/login.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', loadComponent: () => import('./public/landing.component').then(m => m.LandingComponent) },
-  { path: 'login', loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent) },
+  { path: 'login', canActivate: [loginGuard], loadComponent: () => import('./auth/login.component').then(m => m.LoginComponent) },
   {
     path: 'forgot-password',
-    component: ChangePasswordRequest
+    loadComponent: () => import('./change-password-request/change-password-request').then(m => m.ChangePasswordRequest)
   },
   {
     path: 'change-password',
@@ -24,7 +23,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: 'dashboard', loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-      { path: 'profile', component: ProfileComponent },
+      { path: 'profile', loadComponent: () => import('./auth/profile/profile').then(m => m.ProfileComponent) },
+
 
       /* SUPER_ADMIN only */
       {
@@ -108,7 +108,8 @@ export const routes: Routes = [
       {
         path: 'products-validation',
         canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_ACHAT')],
-        loadComponent: () => import('./pages/products/products.component').then(m => m.ProductsComponent)
+        loadComponent: () => import('./pages/products/products.component').then(m => m.ProductsComponent),
+        data: { validationMode: true }
       },
 
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }

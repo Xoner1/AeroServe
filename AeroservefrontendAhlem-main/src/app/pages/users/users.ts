@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Role, User, USER_STATUS } from '../../core/models';
@@ -14,7 +14,7 @@ import Swal from 'sweetalert2';
   templateUrl: './users.html',
   styleUrl: './users.scss',
 })
-export class Users implements OnInit {
+export class Users implements OnInit, OnDestroy {
 
   users: User[] = [];
   roles: Role[] = [];
@@ -143,7 +143,6 @@ export class Users implements OnInit {
     this.emailExists = false;
     this.avatarPreview = null;
     this.page = 1;
-    console.log('OPEN MODAL CLICKED');
 
     this.form.get('role_id')?.enable();
     this.form.reset({
@@ -234,17 +233,17 @@ export class Users implements OnInit {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
-      this.formError = 'Please fill all required fields';
+      this.formError = 'Veuillez remplir tous les champs obligatoires';
       return;
     }
 
     if (this.emailExists) {
-      this.formError = 'Email already exists';
+      this.formError = 'Cet e-mail existe déjà';
       return;
     }
 
     if (!this.editing && !this.form.value.password) {
-      this.formError = 'Password is required';
+      this.formError = 'Le mot de passe est obligatoire';
       return;
     }
 
@@ -326,6 +325,12 @@ export class Users implements OnInit {
   }
 
   get pendingUsersCount(): number {
-    return this.users.filter(u => u.status === 'inactive').length;
+    return this.users.filter(u => u.status === 'en_attente').length;
+  }
+
+  ngOnDestroy(): void {
+    if (this.avatarPreview) {
+      URL.revokeObjectURL(this.avatarPreview);
+    }
   }
 }
