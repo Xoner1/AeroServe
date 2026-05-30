@@ -6,7 +6,7 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-change-password-request',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule], // ✅ AJOUT ICI
+  imports: [CommonModule, ReactiveFormsModule], //  AJOUT ICI
   templateUrl: './change-password-request.html',
 styleUrls: ['./change-password-request.scss']})
 export class ChangePasswordRequest implements OnInit {
@@ -34,7 +34,7 @@ resetForm: FormGroup;
     this.errors = null;
     this.successMsg = null;
 
-    // ✅ Correction ici
+    //  Correction ici
     const email = this.resetForm.value.email;
 
     this.authService.forgotPassword(email).subscribe({
@@ -42,7 +42,7 @@ resetForm: FormGroup;
   this.loading = false;
   this.successMsg = result.message || 'Lien envoyé avec succès';
 
-  this.resetForm.reset(); // 🔥 ajout
+  this.resetForm.reset(); //  ajout
 },
       error: (error) => {
         this.loading = false;

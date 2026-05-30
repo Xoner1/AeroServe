@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/app_theme.dart';
+import '../core/app_icons.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
+import '../widgets/status_badge.dart';
+import '../widgets/empty_state_widget.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -28,7 +33,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final res = await ApiService.get('/internal-orders');
       final list = res is List ? res : (res['data'] ?? []);
       setState(() {
-        _orders = (list as List).map((e) => Sale.fromJson(e) is InternalOrder ? InternalOrder.fromJson(e) : InternalOrder.fromJson(e)).toList();
+        _orders = (list as List).map((e) => InternalOrder.fromJson(e)).toList();
         _loading = false;
       });
     } catch (_) {
@@ -42,21 +47,33 @@ class _OrdersScreenState extends State<OrdersScreen> {
     final isCashier = userRole == 'CAISSIER';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFf1f5f9),
+      backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: const Text('Commandes internes', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: const Color(0xFFb22222),
+        title: Text(
+          'Commandes internes', 
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
+        ),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.accent),
+            )
           : RefreshIndicator(
               onRefresh: _load,
+              color: AppTheme.primary,
               child: _orders.isEmpty
-                  ? ListView(children: const [SizedBox(height: 200), Center(child: Text('Aucune commande'))])
+                  ? EmptyStateWidget(
+                      icon: AppIcons.noData,
+                      title: 'Aucune commande',
+                      description: 'Créez une nouvelle commande en appuyant sur le bouton ci-dessous.',
+                      actionLabel: isCashier ? null : 'Créer une commande',
+                      onActionPressed: isCashier ? null : _showCreateDialog,
+                    )
                   : ListView.builder(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(AppTheme.spacingM),
                       itemCount: _orders.length,
                       itemBuilder: (_, i) => _buildOrderCard(_orders[i], isCashier),
                     ),
@@ -64,9 +81,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
       floatingActionButton: isCashier
           ? null
           : FloatingActionButton(
-              backgroundColor: const Color(0xFFb22222),
+              backgroundColor: AppTheme.accent,
+              foregroundColor: Colors.white,
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
               onPressed: () => _showCreateDialog(),
-              child: const Icon(Icons.add, color: Colors.white),
+              child: const Icon(AppIcons.add),
             ),
     );
   }
@@ -74,84 +94,105 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget _buildOrderCard(InternalOrder order, bool isCashier) {
     final date = DateFormat('dd/MM/yyyy HH:mm').format(order.orderDate);
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFFf97316).withOpacity(0.1),
-          child: const Icon(Icons.inventory_2, color: Color(0xFFf97316), size: 20),
-        ),
-        title: Text('Commande #${order.id}', style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(date),
-        trailing: _statusBadge(order.status),
-        children: [
-          if (order.items != null)
-            ...order.items!.map((item) => ListTile(
-                  dense: true,
-                  title: Text(item.productName ?? 'Produit #${item.productId}'),
-                  trailing: Text('Qté: ${item.quantity}'),
-                )),
-          if (order.notes != null && order.notes!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text('Note: ${order.notes}', style: const TextStyle(color: Color(0xFF64748b), fontSize: 13)),
-            ),
-          // Block cashiers from seeing/interacting with order status transitions
-          if (!isCashier)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (order.status.toLowerCase() == 'pending') ...[
-                    OutlinedButton.icon(
-                      onPressed: () => _updateStatus(order.id, 'approved'),
-                      icon: const Icon(Icons.check, size: 16),
-                      label: const Text('Approuver'),
-                      style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF16a34a)),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      elevation: 0,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusM)),
+          ),
+          collapsedShape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppTheme.radiusM)),
+          ),
+          tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
+          leading: CircleAvatar(
+            backgroundColor: AppTheme.warning.withValues(alpha: 0.08),
+            child: const Icon(AppIcons.orders, color: AppTheme.warning, size: 20),
+          ),
+          title: Text(
+            'Commande #${order.id}', 
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+          ),
+          subtitle: Text(
+            date,
+            style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12.5),
+          ),
+          trailing: StatusBadge(status: order.status),
+          children: [
+            const Divider(color: AppTheme.divider, height: 1),
+            if (order.items != null)
+              ...order.items!.map((item) => ListTile(
+                    dense: true,
+                    title: Text(
+                      item.productName ?? 'Produit #${item.productId}',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
                     ),
-                    const SizedBox(width: 8),
+                    trailing: Text(
+                      'Qté: ${item.quantity}',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                    ),
+                  )),
+            if (order.notes != null && order.notes!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(
+                  left: AppTheme.spacingM, 
+                  right: AppTheme.spacingM, 
+                  bottom: AppTheme.spacingS,
+                  top: AppTheme.spacingXS,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(AppIcons.info, size: 16, color: AppTheme.textSecondary),
+                    const SizedBox(width: AppTheme.spacingXS),
+                    Expanded(
+                      child: Text(
+                        'Note: ${order.notes}', 
+                        style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 13),
+                      ),
+                    ),
                   ],
-                  if (order.status.toLowerCase() == 'approved')
-                    OutlinedButton.icon(
-                      onPressed: () => _updateStatus(order.id, 'delivered'),
-                      icon: const Icon(Icons.local_shipping, size: 16),
-                      label: const Text('Livrer'),
-                      style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFb22222)),
-                    ),
-                ],
+                ),
               ),
-            ),
-        ],
+            if (!isCashier)
+              Padding(
+                padding: const EdgeInsets.only(
+                  right: AppTheme.spacingM, 
+                  bottom: AppTheme.spacingM, 
+                  top: AppTheme.spacingXS,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (order.status.toLowerCase() == 'pending') ...[
+                      OutlinedButton.icon(
+                        onPressed: () => _updateStatus(order.id, 'approved'),
+                        icon: const Icon(AppIcons.check, size: 16),
+                        label: const Text('Approuver'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.success,
+                          side: const BorderSide(color: AppTheme.success, width: 1.5),
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.spacingS),
+                    ],
+                    if (order.status.toLowerCase() == 'approved')
+                      OutlinedButton.icon(
+                        onPressed: () => _updateStatus(order.id, 'delivered'),
+                        icon: const Icon(AppIcons.tracking, size: 16),
+                        label: const Text('Livrer'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.accent,
+                          side: const BorderSide(color: AppTheme.accent, width: 1.5),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
-    );
-  }
-
-  Widget _statusBadge(String status) {
-    Color bg;
-    Color fg;
-    switch (status.toLowerCase()) {
-      case 'approved':
-        bg = const Color(0xFFe0e7ff);
-        fg = const Color(0xFF4f46e5);
-        break;
-      case 'delivered':
-        bg = const Color(0xFFdcfce7);
-        fg = const Color(0xFF16a34a);
-        break;
-      case 'cancelled':
-        bg = const Color(0xFFfee2e2);
-        fg = const Color(0xFFdc2626);
-        break;
-      default:
-        bg = const Color(0xFFFEF9C3);
-        fg = const Color(0xFFca8a04);
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-      child: Text(status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 
@@ -160,7 +201,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
       await ApiService.put('/internal-orders/$id/status', {'status': status});
       _load();
     } on ApiException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.error,
+            content: Text(e.message, style: GoogleFonts.inter(color: Colors.white)),
+          ),
+        );
+      }
     }
   }
 
@@ -171,58 +219,123 @@ class _OrdersScreenState extends State<OrdersScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+          padding: EdgeInsets.only(
+            left: AppTheme.spacingL, 
+            right: AppTheme.spacingL, 
+            top: AppTheme.spacingL, 
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppTheme.spacingL,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Nouvelle commande', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Nouvelle commande', 
+                    style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                  ),
+                  IconButton(
+                    icon: const Icon(AppIcons.cancel, color: AppTheme.textSecondary),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppTheme.spacingM),
               TextField(
                 controller: notesCtrl,
-                decoration: const InputDecoration(labelText: 'Notes', border: OutlineInputBorder()),
+                style: GoogleFonts.inter(fontSize: 14.5),
+                decoration: const InputDecoration(
+                  labelText: 'Notes',
+                  hintText: 'Précisez les consignes de livraison...',
+                ),
                 maxLines: 2,
               ),
-              const SizedBox(height: 12),
-              ...itemRows.asMap().entries.map((e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: e.value.productCtrl,
-                            decoration: const InputDecoration(labelText: 'Produit ID', border: OutlineInputBorder(), isDense: true),
-                            keyboardType: TextInputType.number,
+              const SizedBox(height: AppTheme.spacingM),
+              Text(
+                'Articles', 
+                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              ),
+              const SizedBox(height: AppTheme.spacingXS),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.3,
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: itemRows.length,
+                  itemBuilder: (context, idx) {
+                    final row = itemRows[idx];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: row.productCtrl,
+                              style: GoogleFonts.inter(fontSize: 14.5),
+                              decoration: const InputDecoration(
+                                labelText: 'Produit ID',
+                                isDense: true,
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: e.value.qtyCtrl,
-                            decoration: const InputDecoration(labelText: 'Quantité', border: OutlineInputBorder(), isDense: true),
-                            keyboardType: TextInputType.number,
+                          const SizedBox(width: AppTheme.spacingS),
+                          Expanded(
+                            flex: 2,
+                            child: TextField(
+                              controller: row.qtyCtrl,
+                              style: GoogleFonts.inter(fontSize: 14.5),
+                              decoration: const InputDecoration(
+                                labelText: 'Quantité',
+                                isDense: true,
+                              ),
+                              keyboardType: TextInputType.number,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  )),
+                          if (itemRows.length > 1) ...[
+                            const SizedBox(width: AppTheme.spacingXS),
+                            IconButton(
+                              icon: const Icon(AppIcons.delete, color: AppTheme.error),
+                              onPressed: () => setModalState(() => itemRows.removeAt(idx)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
               TextButton.icon(
                 onPressed: () => setModalState(() => itemRows.add(_OrderItemRow())),
-                icon: const Icon(Icons.add, size: 18),
+                icon: const Icon(AppIcons.add, size: 18),
                 label: const Text('Ajouter article'),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.spacingM),
               SizedBox(
                 width: double.infinity,
+                height: 48,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFb22222), foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                  ),
                   onPressed: () => _submitOrder(notesCtrl.text, itemRows, ctx),
-                  child: const Text('Enregistrer'),
+                  child: Text(
+                    'Enregistrer la commande',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
                 ),
               ),
             ],
@@ -251,7 +364,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
       if (ctx.mounted) Navigator.pop(ctx);
       _load();
     } on ApiException catch (e) {
-      if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(e.message)));
+      if (ctx.mounted) {
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.error,
+            content: Text(e.message, style: GoogleFonts.inter(color: Colors.white)),
+          ),
+        );
+      }
     }
   }
 }

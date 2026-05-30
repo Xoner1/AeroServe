@@ -93,8 +93,9 @@ public function pdvsResponsable()
 
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar
-            ? url('storage/' . $this->avatar)
-            : null;
+        if (!$this->avatar || $this->avatar === 'null') {
+            return null;
+        }
+        return rtrim(config('app.url'), '/') . '/storage/' . $this->avatar;
     }
 }

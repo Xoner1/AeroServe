@@ -96,7 +96,7 @@ columns = [
 
   private showToast(message: string, type: 'success' | 'error'): void {
     const toast = document.createElement('div');
-    const bg = type === 'success' ? '#16a34a' : '#dc2626';
+    const bg = type === 'success' ? '#6B8F71' : '#C0483A';
     toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${bg};color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);`;
     toast.textContent = message;
     document.body.appendChild(toast);

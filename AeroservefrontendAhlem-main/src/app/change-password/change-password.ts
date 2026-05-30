@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './change-password.html',
-  styleUrls: ['./change-password.scss'], // ✅ FIXED
+  styleUrls: ['./change-password.scss'], //  FIXED
 })
 export class ChangePasswordComponent implements OnInit {
 
@@ -22,7 +22,7 @@ export class ChangePasswordComponent implements OnInit {
   token: string = '';
   email: string = '';
 
-  // 👁️ toggle
+  //  toggle
   showPassword = false;
   showConfirm = false;
 
@@ -34,11 +34,11 @@ export class ChangePasswordComponent implements OnInit {
 
   ngOnInit(): void {
 
-    // ✅ GET params
+    //  GET params
     this.token = this.route.snapshot.queryParamMap.get('token') || '';
     this.email = this.route.snapshot.queryParamMap.get('email') || '';
 
-    // ✅ FORM with MATCH VALIDATOR
+    //  FORM with MATCH VALIDATOR
     this.changePasswordForm = this.fb.group(
       {
         password: ['', [Validators.required, Validators.minLength(8)]],
@@ -48,7 +48,7 @@ export class ChangePasswordComponent implements OnInit {
     );
   }
 
-  // ✅ CUSTOM VALIDATOR
+  //  CUSTOM VALIDATOR
   passwordMatchValidator(form: AbstractControl) {
     const password = form.get('password')?.value;
     const confirm = form.get('password_confirmation')?.value;
@@ -82,7 +82,7 @@ export class ChangePasswordComponent implements OnInit {
     },
     error: (err) => {
       this.loading = false;
-      console.log(err.error); // 🔥 debug important
+      console.log(err.error); //  debug important
       this.errors = err.error?.message || 'Erreur serveur';
     }
   });

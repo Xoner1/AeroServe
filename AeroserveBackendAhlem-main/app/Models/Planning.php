@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Planning extends Model
 {
-    protected $fillable = ['caissier_id', 'pdv_id', 'date', 'is_day_off', 'start_time', 'end_time', 'created_by'];
+    protected $fillable = ['caissier_id', 'pdv_id', 'date', 'is_day_off', 'start_time', 'end_time', 'created_by', 'shift', 'day_status'];
 
     protected function casts(): array
     {

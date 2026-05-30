@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { Category } from '../../core/models';
+import Swal from 'sweetalert2';
 
 
 
@@ -40,7 +41,12 @@ export class CategoryComponent implements OnInit {
         this.categories = res.data || res;
       },
       error: () => {
-        alert('Failed to load categories');
+        Swal.fire({
+          title: 'Erreur',
+          text: 'Impossible de charger les catégories.',
+          icon: 'error',
+          confirmButtonColor: '#6B8F71'
+        });
       }
     });
   }
@@ -62,32 +68,79 @@ export class CategoryComponent implements OnInit {
   save(): void {
     if (!this.form.name) return;
 
+    const payload = { ...this.form };
+    if (!payload.code || payload.code.trim() === '') {
+      delete payload.code;
+    }
+
     const request = this.editing
-      ? this.api.put(`categories/${this.editId}`, this.form)
-      : this.api.post('categories', this.form);
+      ? this.api.put(`categories/${this.editId}`, payload)
+      : this.api.post('categories', payload);
 
     request.subscribe({
       next: () => {
         this.showModal = false;
         this.load();
-        alert('Operation completed successfully');
+        Swal.fire({
+          title: 'Succès !',
+          text: 'Catégorie enregistrée avec succès.',
+          icon: 'success',
+          confirmButtonColor: '#6B8F71'
+        });
       },
-      error: () => {
-        alert('Operation failed');
+      error: (err: any) => {
+        const messages: string[] = [];
+        if (err.error?.errors) {
+          for (const field in err.error.errors) {
+            messages.push(...err.error.errors[field]);
+          }
+        }
+        const text = messages.length > 0
+          ? messages.join('<br>')
+          : (err.error?.message || 'Erreur lors de la sauvegarde.');
+        Swal.fire({
+          title: 'Erreur de validation',
+          html: text,
+          icon: 'error',
+          confirmButtonColor: '#6B8F71'
+        });
       }
     });
   }
 
   // ================= DELETE =================
   delete(id: number): void {
-    const shouldDelete = confirm('Delete this category?');
-    if (!shouldDelete) {
-      return;
-    }
-
-    this.api.delete(`categories/${id}`).subscribe({
-      next: () => this.load(),
-      error: () => alert('Delete failed')
+    Swal.fire({
+      title: 'Êtes-vous sûr ?',
+      text: 'Cette catégorie sera supprimée définitivement !',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#C0483A',
+      cancelButtonColor: '#4b5563',
+      confirmButtonText: 'Oui, supprimer !',
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`categories/${id}`).subscribe({
+          next: () => {
+            Swal.fire({
+              title: 'Supprimé !',
+              text: 'La catégorie a été supprimée.',
+              icon: 'success',
+              confirmButtonColor: '#6B8F71'
+            });
+            this.load();
+          },
+          error: (err: any) => {
+            Swal.fire({
+              title: 'Erreur',
+              text: err.error?.message || 'Impossible de supprimer cette catégorie.',
+              icon: 'error',
+              confirmButtonColor: '#6B8F71'
+            });
+          }
+        });
+      }
     });
   }
 

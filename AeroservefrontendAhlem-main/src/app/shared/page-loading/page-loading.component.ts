@@ -46,7 +46,7 @@ import { CommonModule } from '@angular/common';
     .skeleton-card {
       height: 118px;
       border-radius: 12px;
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+      background: linear-gradient(90deg, #EDE9E2 25%, #D8D2C8 37%, #EDE9E2 63%);
       background-size: 400% 100%;
       animation: shimmer 1.2s ease infinite;
     }
@@ -55,7 +55,7 @@ import { CommonModule } from '@angular/common';
       height: 16px;
       border-radius: 8px;
       margin-bottom: 12px;
-      background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 37%, #f1f5f9 63%);
+      background: linear-gradient(90deg, #EDE9E2 25%, #D8D2C8 37%, #EDE9E2 63%);
       background-size: 400% 100%;
       animation: shimmer 1.2s ease infinite;
     }

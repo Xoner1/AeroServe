@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\ChatbotController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\HygieneReportController;
 use App\Http\Controllers\Api\InternalOrderController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Api\PointDeVenteController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SaleController;
 use App\Http\Controllers\Api\StockController;
+use App\Http\Controllers\Api\StockForecastController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +41,7 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     Route::get('/comments', [CommentController::class, 'index']);
     Route::post('/comments', [CommentController::class, 'store']);
+    Route::post('/chatbot/ask', [ChatbotController::class, 'ask']);
 
     Route::get('/roles', [UserController::class, 'roles']);
 
@@ -85,6 +88,7 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('plannings', PlanningController::class);
         Route::post('/plannings/bulk', [PlanningController::class, 'bulkStore']);
+        Route::get('/points-de-vente', [PointDeVenteController::class, 'index']);
     });
 
     /*
@@ -140,6 +144,9 @@ Route::middleware(['jwt.auth'])->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:RESPONSABLE_ACHAT,SUPER_ADMIN')->group(function () {
+        Route::get('/stock-forecast', [StockForecastController::class, 'forecast']);
+        Route::get('/stock-anomalies', [StockForecastController::class, 'anomalies']);
+        Route::get('/stock-recommendations', [StockForecastController::class, 'recommendations']);
         Route::put('/products/{product}/approve', [ProductController::class, 'approveProduct']);
         Route::post('/categories', [ProductController::class, 'storeCategory']);
         Route::put('/categories/{category}', [ProductController::class, 'updateCategory']);

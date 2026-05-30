@@ -11,18 +11,21 @@ class ResetPasswordMail extends Mailable
     use Queueable, SerializesModels;
 
     public $token;
+    public $email;
 
-    public function __construct($token)
+    public function __construct($token, $email)
     {
         $this->token = $token;
+        $this->email = $email;
     }
 
-public function build()
-{
-    return $this->subject('Réinitialisation du mot de passe')
-        ->markdown('email.reset-password')
-        ->with([
-            'token' => $this->token
-        ]);
-}
+    public function build()
+    {
+        return $this->subject('Réinitialisation du mot de passe')
+            ->markdown('email.reset-password')
+            ->with([
+                'token' => $this->token,
+                'email' => $this->email,
+            ]);
+    }
 }

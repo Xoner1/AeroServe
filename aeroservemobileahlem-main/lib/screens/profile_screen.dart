@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/app_theme.dart';
+import '../core/app_icons.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
@@ -41,95 +44,164 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = auth.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFf1f5f9),
+      backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: const Text('Profil', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: const Color(0xFF1a56db),
+        title: Text(
+          'Profil', 
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
+        ),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingM),
         children: [
           // User card
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(AppTheme.spacingL),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
+              border: Border.all(color: AppTheme.divider, width: 1.0),
+              boxShadow: AppTheme.softShadow,
             ),
             child: Column(
               children: [
                 CircleAvatar(
                   radius: 36,
-                  backgroundColor: const Color(0xFF1a56db),
-                  child: Text(
-                    user?.initials ?? '?',
-                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                  ),
+                  backgroundColor: AppTheme.primary,
+                  backgroundImage: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                      ? NetworkImage(user.avatarUrl!)
+                      : null,
+                  child: (user?.avatarUrl == null || user!.avatarUrl!.isEmpty)
+                      ? Text(
+                          user?.initials ?? '?',
+                          style: GoogleFonts.inter(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppTheme.spacingM),
                 Text(
                   user?.fullName ?? 'Utilisateur',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Color(0xFF0f172a)),
+                  style: GoogleFonts.inter(
+                    fontSize: 19, 
+                    fontWeight: FontWeight.w700, 
+                    color: AppTheme.textPrimary,
+                    letterSpacing: -0.3,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(user?.email ?? '', style: const TextStyle(color: Color(0xFF64748b))),
+                Text(
+                  user?.email ?? '', 
+                  style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 13.5),
+                ),
                 if (user?.roleName != null) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppTheme.spacingS),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1a56db).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: AppTheme.accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
                     ),
                     child: Text(
-                      user!.roleName!,
-                      style: const TextStyle(color: Color(0xFF1a56db), fontWeight: FontWeight.w600, fontSize: 13),
+                      user!.roleName!.toUpperCase(),
+                      style: GoogleFonts.inter(
+                        color: AppTheme.accent, 
+                        fontWeight: FontWeight.w600, 
+                        fontSize: 11.5,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
                 ],
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          // Notifications section
+          const SizedBox(height: AppTheme.spacingXL),
+          
+          // Notifications header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Notifications', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0f172a))),
+              Text(
+                'Notifications récentes', 
+                style: GoogleFonts.inter(
+                  fontSize: 15.5, 
+                  fontWeight: FontWeight.w700, 
+                  color: AppTheme.textPrimary,
+                  letterSpacing: -0.1,
+                ),
+              ),
               if (_notifications.isNotEmpty)
-                Text('${_notifications.length}', style: const TextStyle(color: Color(0xFF64748b))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                  ),
+                  child: Text(
+                    '${_notifications.length}', 
+                    style: GoogleFonts.inter(
+                      color: AppTheme.primary, 
+                      fontSize: 11, 
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppTheme.spacingS),
+          
           if (_loadingNotif)
-            const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator()))
+            const Padding(
+              padding: EdgeInsets.all(AppTheme.spacingXL), 
+              child: Center(child: CircularProgressIndicator(color: AppTheme.accent)),
+            )
           else if (_notifications.isEmpty)
             Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-              child: const Center(child: Text('Aucune notification', style: TextStyle(color: Color(0xFF94a3b8)))),
+              padding: const EdgeInsets.all(AppTheme.spacingXL),
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                border: Border.all(color: AppTheme.divider, width: 1.0),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(AppIcons.notifications, color: AppTheme.textSecondary.withValues(alpha: 0.5), size: 36),
+                    const SizedBox(height: AppTheme.spacingS),
+                    Text(
+                      'Aucune notification', 
+                      style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 13.5, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
             )
           else
-            ..._notifications.take(10).map(_buildNotificationCard),
-          const SizedBox(height: 24),
+            ..._notifications.take(8).map(_buildNotificationCard),
+            
+          const SizedBox(height: AppTheme.spacingXXL),
+          
           // Logout button
           SizedBox(
             width: double.infinity,
             height: 48,
-            child: ElevatedButton.icon(
+            child: OutlinedButton.icon(
               onPressed: () async {
                 await auth.logout();
               },
-              icon: const Icon(Icons.logout),
-              label: const Text('Se déconnecter', style: TextStyle(fontWeight: FontWeight.w600)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFdc2626),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
+              icon: const Icon(AppIcons.logout, size: 18),
+              label: const Text('Se déconnecter'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.error,
+                side: const BorderSide(color: AppTheme.error, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
               ),
             ),
           ),
@@ -139,23 +211,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildNotificationCard(AppNotification n) {
+    final isUnread = n.readAt == null;
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      elevation: 0,
+      color: isUnread ? AppTheme.info.withValues(alpha: 0.04) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        side: BorderSide(
+          color: isUnread ? AppTheme.info.withValues(alpha: 0.2) : AppTheme.divider,
+          width: 1,
+        ),
+      ),
       child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
         leading: CircleAvatar(
           radius: 18,
-          backgroundColor: n.readAt == null ? const Color(0xFF1a56db).withOpacity(0.1) : const Color(0xFFf1f5f9),
+          backgroundColor: isUnread ? AppTheme.info.withValues(alpha: 0.1) : AppTheme.surface,
           child: Icon(
-            n.readAt == null ? Icons.notifications_active : Icons.notifications_none,
-            color: n.readAt == null ? const Color(0xFF1a56db) : const Color(0xFF94a3b8),
+            isUnread ? AppIcons.notifications : Icons.notifications_none_rounded,
+            color: isUnread ? AppTheme.info : AppTheme.textSecondary,
             size: 18,
           ),
         ),
-        title: Text(n.title, style: TextStyle(fontWeight: n.readAt == null ? FontWeight.w600 : FontWeight.w400, fontSize: 14)),
-        subtitle: Text(n.body, style: const TextStyle(fontSize: 12, color: Color(0xFF64748b)), maxLines: 2),
+        title: Text(
+          n.title, 
+          style: GoogleFonts.inter(
+            fontWeight: isUnread ? FontWeight.w600 : FontWeight.w500, 
+            fontSize: 13.5,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2.0),
+          child: Text(
+            n.body, 
+            style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary), 
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
         onTap: () async {
-          if (n.readAt == null) {
+          if (isUnread) {
             try {
               await ApiService.put('/notifications/${n.id}/read', {});
               _loadNotifications();

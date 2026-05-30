@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Notification } from '../models';
+import { WebSocketService } from './websocket.service';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
@@ -10,7 +11,22 @@ export class NotificationService {
   private unreadCountSubject = new BehaviorSubject<number>(0);
   unreadCount$ = this.unreadCountSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
+  private notificationsSubject = new BehaviorSubject<Notification[]>([]);
+  notifications$ = this.notificationsSubject.asObservable();
+
+  constructor(private http: HttpClient, private ws: WebSocketService) {
+    this.ws.messages$.subscribe(msg => {
+      if (msg.type === 'notification') {
+        const n = msg.data as Notification;
+        const current = this.notificationsSubject.value;
+        this.notificationsSubject.next([n, ...current]);
+        this.unreadCountSubject.next(this.unreadCountSubject.value + 1);
+      }
+      if (msg.type === 'unread_count') {
+        this.unreadCountSubject.next(msg.data.count);
+      }
+    });
+  }
 
   getAll(): Observable<Notification[]> {
     return this.http.get<Notification[]>(`${this.apiUrl}/notifications`);
@@ -39,5 +55,13 @@ export class NotificationService {
     this.getUnreadCount().subscribe(res => {
       this.unreadCountSubject.next(res.unread_count);
     });
+  }
+
+  connectWebSocket(): void {
+    this.ws.connect();
+  }
+
+  disconnectWebSocket(): void {
+    this.ws.disconnect();
   }
 }

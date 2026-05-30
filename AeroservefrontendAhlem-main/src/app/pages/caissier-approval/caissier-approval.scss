@@ -38,7 +38,7 @@
   font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #334155;
+  color: #4A4D4B;
   font-weight: 700;
 }
 
@@ -61,11 +61,11 @@
 }
 
 .dropzone:hover {
-  background: #f8fafc;
+  background: #EDE9E2;
 }
 
 .dropzone.cdk-drop-list-dragging {
-  background: #fff7ed;
+  background: #F5EDE4;
   border: 2px dashed #ece3e3;
 }
 
@@ -76,7 +76,7 @@
   gap: 14px;
 
   background: linear-gradient(145deg, #ffffff, #fff8f5);
-  border: 1px solid #f1f5f9;
+  border: 1px solid #EDE9E2;
   border-left: 4px solid #cf6f02;
 
   padding: 14px;
@@ -133,7 +133,7 @@
   font-size: 13px;
   color: #fff;
 
-  background: linear-gradient(135deg, #cf6f02, #b22222);
+  background: linear-gradient(135deg, #cf6f02, #2C3E35);
 
   box-shadow: 0 6px 12px rgba(207, 111, 2, 0.25);
   flex-shrink: 0;
@@ -167,7 +167,7 @@
 .name {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: #1A1D1B;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -176,13 +176,13 @@
 /* email */
 .email {
   font-size: 12px;
-  color: #64748b;
+  color: #A8C5A0;
 }
 
 /* meta row */
 .meta {
   font-size: 12px;
-  color: #475569;
+  color: #4A4D4B;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -201,7 +201,7 @@
 
 /* experience */
 .exp-yes {
-  background: #dcfce7;
+  background: #E8F0EB;
   color: #166534;
 }
 
@@ -214,9 +214,9 @@
 .bio {
   margin-top: 6px;
   font-size: 12px;
-  color: #334155;
+  color: #4A4D4B;
 
-  background: #f8fafc;
+  background: #EDE9E2;
   padding: 8px 10px;
   border-radius: 10px;
 
@@ -255,7 +255,7 @@
 .name {
   font-weight: 700;
   font-size: 14px;
-  color: #0f172a;
+  color: #1A1D1B;
 }
 
 
@@ -264,11 +264,11 @@
 /* ================= EMPTY ================= */
 .empty {
   text-align: center;
-  color: #94a3b8;
+  color: #A8C5A0;
   font-size: 13px;
   margin-top: 20px;
   padding: 20px;
-  border: 1px dashed #e2e8f0;
+  border: 1px dashed #D8D2C8;
   border-radius: 10px;
 }
 

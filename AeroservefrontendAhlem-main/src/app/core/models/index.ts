@@ -30,7 +30,7 @@ export interface Caissier {
   phone?: string;
   status?: string;
 
-  // ✅ NEW
+  //  NEW
   age?: number | null;
   experience?: boolean;
   bio?: string | null;

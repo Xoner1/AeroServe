@@ -74,13 +74,15 @@ interface CartItem {
                       <td>{{ o.point_de_vente?.name || '-' }}</td>
                       <td>
                         <span class="delivery-date-tag">
-                          📅 {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Not specified' }}
+                           {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Not specified' }}
                         </span>
                       </td>
                       <td>{{ o.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
                       <td class="actions">
                         <button class="btn-sm" (click)="viewOrder(o)">View Details</button>
-                        <button class="btn-icon danger" (click)="deleteOrder(o.id)">🗑️</button>
+                        @if (userRole === 'SUPER_ADMIN') {
+                          <button class="btn-icon danger" (click)="deleteOrder(o.id)"></button>
+                        }
                       </td>
                     </tr>
                   }
@@ -115,15 +117,15 @@ interface CartItem {
                 (cdkDropListDropped)="drop($event)"
               >
                 @for (o of pendingOrders; track o.id) {
-                  <div cdkDrag class="kanban-card" (click)="viewOrder(o)">
+                  <div cdkDrag [cdkDragData]="o" class="kanban-card" (click)="viewOrder(o)">
                     <div class="card-top">
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge type-sm">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">🏪 {{ o.point_de_vente?.name || 'General' }}</p>
-                    <p class="card-creator">👤 F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
+                    <p class="card-pos"> {{ o.point_de_vente?.name || 'General' }}</p>
+                    <p class="card-creator"> F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
-                      <span class="card-date">📅 {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
+                      <span class="card-date"> {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
                       <button class="btn-card-action">Manage</button>
                     </div>
                   </div>
@@ -148,15 +150,15 @@ interface CartItem {
                 (cdkDropListDropped)="drop($event)"
               >
                 @for (o of partialOrders; track o.id) {
-                  <div cdkDrag class="kanban-card" (click)="viewOrder(o)">
+                  <div cdkDrag [cdkDragData]="o" class="kanban-card" (click)="viewOrder(o)">
                     <div class="card-top">
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge type-sm">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">🏪 {{ o.point_de_vente?.name || 'General' }}</p>
-                    <p class="card-creator">👤 F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
+                    <p class="card-pos"> {{ o.point_de_vente?.name || 'General' }}</p>
+                    <p class="card-creator"> F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
-                      <span class="card-date">📅 {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
+                      <span class="card-date"> {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
                       <button class="btn-card-action">Manage</button>
                     </div>
                   </div>
@@ -181,15 +183,15 @@ interface CartItem {
                 (cdkDropListDropped)="drop($event)"
               >
                 @for (o of availableOrders; track o.id) {
-                  <div cdkDrag class="kanban-card" (click)="viewOrder(o)">
+                  <div cdkDrag [cdkDragData]="o" class="kanban-card" (click)="viewOrder(o)">
                     <div class="card-top">
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge type-sm">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">🏪 {{ o.point_de_vente?.name || 'General' }}</p>
-                    <p class="card-creator">👤 F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
+                    <p class="card-pos"> {{ o.point_de_vente?.name || 'General' }}</p>
+                    <p class="card-creator"> F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
-                      <span class="card-date">📅 {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
+                      <span class="card-date"> {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
                       <button class="btn-card-action">Manage</button>
                     </div>
                   </div>
@@ -214,15 +216,15 @@ interface CartItem {
                 (cdkDropListDropped)="drop($event)"
               >
                 @for (o of unavailableOrders; track o.id) {
-                  <div cdkDrag class="kanban-card" (click)="viewOrder(o)">
+                  <div cdkDrag [cdkDragData]="o" class="kanban-card" (click)="viewOrder(o)">
                     <div class="card-top">
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge type-sm">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">🏪 {{ o.point_de_vente?.name || 'General' }}</p>
-                    <p class="card-creator">👤 F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
+                    <p class="card-pos"> {{ o.point_de_vente?.name || 'General' }}</p>
+                    <p class="card-creator"> F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
-                      <span class="card-date">📅 {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
+                      <span class="card-date"> {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'No Date' }}</span>
                       <button class="btn-card-action">Manage</button>
                     </div>
                   </div>
@@ -259,7 +261,7 @@ interface CartItem {
                     <p><strong>Point of Sale:</strong> {{ selectedOrder.point_de_vente?.name || '-' }}</p>
                     <p><strong>Requested Delivery Date:</strong> 
                       <span class="delivery-date-tag">
-                        📅 {{ selectedOrder.delivery_date ? (selectedOrder.delivery_date | date:'dd/MM/yyyy') : 'Not specified' }}
+                         {{ selectedOrder.delivery_date ? (selectedOrder.delivery_date | date:'dd/MM/yyyy') : 'Not specified' }}
                       </span>
                     </p>
                     <p><strong>Notes / Special Instructions:</strong></p>
@@ -310,17 +312,42 @@ interface CartItem {
                   </table>
                 </div>
 
-                <!-- COMMENTS BOX -->
+                <!-- COMMENTS BOX — Facebook-style with ownership -->
                 <div class="comments-panel card">
-                  <h4>💬 Comments & Chat Logs</h4>
+                  <h4> Comments &amp; Chat Logs</h4>
                   <div class="comments-list">
                     @for (c of comments; track c.id) {
-                      <div class="comment-bubble" [class.self]="c.user_id === currentUser.id">
-                        <div class="comment-header">
-                          <span class="comment-user">{{ c.user?.first_name }} {{ c.user?.last_name }}</span>
-                          <span class="comment-time">{{ c.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                      <div class="fb-comment">
+                        <div class="fb-comment-avatar">
+                          @if (c.user?.avatar_url || c.user?.avatar) {
+                            <img [src]="getImgUrl(c.user?.avatar_url || c.user?.avatar)" alt="" />
+                          } @else {
+                            <span class="fb-avatar-fallback">{{ (c.user?.first_name?.[0] || '') + (c.user?.last_name?.[0] || '') }}</span>
+                          }
                         </div>
-                        <p class="comment-body">{{ c.body }}</p>
+                        <div class="fb-comment-body">
+                          <div class="fb-comment-header">
+                            <strong class="fb-comment-author">{{ c.user?.first_name }} {{ c.user?.last_name }}</strong>
+                            <span class="fb-comment-time">{{ c.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                          </div>
+                          @if (editingCommentId === c.id) {
+                            <div class="fb-comment-edit">
+                              <textarea [(ngModel)]="editCommentText" rows="2" class="fb-edit-input"></textarea>
+                              <div class="fb-edit-actions">
+                                <button class="btn btn-primary btn-xs" (click)="saveEditComment(c.id)">Save</button>
+                                <button class="btn btn-xs" (click)="cancelEditComment()">Cancel</button>
+                              </div>
+                            </div>
+                          } @else {
+                            <p class="fb-comment-text">{{ c.body }}</p>
+                          }
+                          @if (c.user_id === currentUser.id && editingCommentId !== c.id) {
+                            <div class="fb-comment-actions">
+                              <button class="fb-action-btn" (click)="startEditComment(c)">Edit</button>
+                              <button class="fb-action-btn danger" (click)="deleteComment(c.id, selectedOrder.id)">Delete</button>
+                            </div>
+                          }
+                        </div>
                       </div>
                     }
                     @if (comments.length === 0) {
@@ -328,10 +355,12 @@ interface CartItem {
                     }
                   </div>
                   
-                  <div class="comment-input-area">
-                    <textarea [(ngModel)]="newComment" placeholder="Write a comment..." rows="2"></textarea>
-                    <button class="btn btn-primary" (click)="addComment(selectedOrder.id)">Send Comment</button>
-                  </div>
+                  @if (userRole !== 'RESPONSABLE_FB') {
+                    <div class="comment-input-area">
+                      <textarea [(ngModel)]="newComment" placeholder="Write a comment..." rows="2"></textarea>
+                      <button class="btn btn-primary" (click)="addComment(selectedOrder.id)">Send Comment</button>
+                    </div>
+                  }
                 </div>
 
               </div>
@@ -339,11 +368,13 @@ interface CartItem {
               <div class="modal-actions">
                 @if (userRole === 'CHEF_CUISINE' || userRole === 'CHEF_MAGASIN') {
                   <div class="transition-controls">
-                    <span>Move column manually: </span>
-                    <button class="btn-sm btn-status-yellow" (click)="updateOrderStatus(selectedOrder, 'EN_ATTENTE')">Pending</button>
-                    <button class="btn-sm btn-status-orange" (click)="updateOrderStatus(selectedOrder, 'PARTIELLEMENT_DISPONIBLE')">Partial</button>
-                    <button class="btn-sm btn-status-green" (click)="updateOrderStatus(selectedOrder, 'DISPONIBLE')">Ready</button>
-                    <button class="btn-sm btn-status-red" (click)="updateOrderStatus(selectedOrder, 'NON_DISPONIBLE')">Unavailable</button>
+                    <span>Update Status: </span>
+                    <select class="status-select" (change)="onStatusChange($event)">
+                      <option value="" disabled [selected]="true">— Select Status —</option>
+                      <option value="DISPONIBLE">Disponible</option>
+                      <option value="NON_DISPONIBLE">Non Disponible</option>
+                      <option value="PARTIELLEMENT_DISPONIBLE">Partiellement Disponible</option>
+                    </select>
                   </div>
                 }
                 <button class="btn btn-secondary" (click)="closeModals()">Close</button>
@@ -373,12 +404,12 @@ interface CartItem {
                 <h3>Select Supply Order Type</h3>
                 <div class="type-cards">
                   <div class="type-card" [class.selected]="form.type === 'food'" (click)="selectType('food')">
-                    <div class="type-icon">🍽️</div>
+                    <div class="type-icon"></div>
                     <strong>FOOD</strong>
                     <small>Fresh ingredients & food preparations</small>
                   </div>
                   <div class="type-card" [class.selected]="form.type === 'commercial'" (click)="selectType('commercial')">
-                    <div class="type-icon">🛒</div>
+                    <div class="type-icon"></div>
                     <strong>COMMERCIAL</strong>
                     <small>Retail goods & raw materials</small>
                   </div>
@@ -422,7 +453,7 @@ interface CartItem {
                       @if (prod.image) {
                         <img [src]="getImgUrl(prod.image)" [alt]="prod.name" class="product-img" />
                       } @else {
-                        <div class="product-img placeholder">🍴</div>
+                        <div class="product-img placeholder"></div>
                       }
                       <div class="product-info">
                         <strong>{{ prod.name }}</strong>
@@ -474,12 +505,12 @@ interface CartItem {
                 
                 <div class="scheduling-block">
                   <div class="form-group">
-                    <label>📅 Requested Delivery Date *</label>
+                    <label> Requested Delivery Date *</label>
                     <input type="date" [(ngModel)]="form.delivery_date" name="delivery_date" class="date-input" required />
                   </div>
 
                   <div class="form-group">
-                    <label>📝 Special instructions / Notes</label>
+                    <label> Special instructions / Notes</label>
                     <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Enter custom notes or delivery instructions here..."></textarea>
                   </div>
                 </div>
@@ -514,175 +545,186 @@ interface CartItem {
     }
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 24px; font-family: 'Inter', sans-serif; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px; }
-    .page-header h2 { margin: 0; font-size: 28px; font-weight: 800; color: #0f172a; }
-    .subtitle { margin: 4px 0 0 0; font-size: 14px; color: #64748b; }
-    .card { background: #ffffff; border-radius: 22px; padding: 24px; box-shadow: 0 12px 28px rgba(15,23,42,.04); border: 1px solid #f1f5f9; }
+    .page { display: flex; flex-direction: column; gap: 24px; font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #D8D2C8; padding-bottom: 16px; }
+    .page-header h2 { margin: 0; font-size: 28px; font-weight: 800; color: #1A1D1B; }
+    .subtitle { margin: 4px 0 0 0; font-size: 14px; color: #A8C5A0; }
+    .card { background: #FFFFFF; border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(26,29,27,.04); border: 1px solid #D8D2C8; }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th { text-align: left; padding: 16px; background: #f8fafc; color: #64748b; font-weight: 700; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
-    td { padding: 16px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    th { text-align: left; padding: 16px; background: #EDE9E2; color: #A8C5A0; font-weight: 700; border-bottom: 2px solid #D8D2C8; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+    td { padding: 16px; border-bottom: 1px solid #EEEEE9; color: #4A4D4B; }
     .actions { display: flex; gap: 8px; }
     .badge { padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; text-transform: capitalize; }
-    .badge.type { background: #eff6ff; color: #2563eb; border: 1px solid rgba(37,99,235,.1); }
-    .badge.type-sm { font-size: 10px; padding: 2px 8px; background: #eff6ff; color: #2563eb; font-weight: 800; border-radius: 4px; text-transform: uppercase; }
+    .badge.type { background: #E8F0EB; color: #6B8F71; border: 1px solid rgba(107,131,116,.15); }
+    .badge.type-sm { font-size: 10px; padding: 2px 8px; background: #E8F0EB; color: #6B8F71; font-weight: 800; border-radius: 4px; text-transform: uppercase; }
     
-    .status-en_attente { background: #fef3c7; color: #d97706; border: 1px solid rgba(217,119,6,.15); }
-    .status-disponible { background: #dcfce7; color: #15803d; border: 1px solid rgba(21,128,61,.15); }
-    .status-partiellement_disponible { background: #ffedd5; color: #ea580c; border: 1px solid rgba(234,88,12,.15); }
-    .status-non_disponible { background: #fee2e2; color: #b91c1c; border: 1px solid rgba(185,28,28,.15); }
+    .status-en_attente { background: #F5EDE4; color: #D4924A; border: 1px solid rgba(212,163,115,.15); }
+    .status-disponible { background: #E8F0EB; color: #6B8F71; border: 1px solid rgba(107,131,116,.15); }
+    .status-partiellement_disponible { background: #F5EDE4; color: #D4924A; border: 1px solid rgba(212,163,115,.15); }
+    .status-non_disponible { background: #F5E4E4; color: #C0483A; border: 1px solid rgba(194,115,115,.15); }
     
-    .delivery-date-tag { background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+    .delivery-date-tag { background: #EDE9E2; color: #4A4D4B; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; }
     
-    .btn { padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all .2s ease; display: inline-flex; align-items: center; justify-content: center; }
-    .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,.25); }
-    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,.35); }
+    .btn { padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all .15s ease; display: inline-flex; align-items: center; justify-content: center; }
+    .btn-primary { background: #6B8F71; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #5A7263; }
     .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-secondary { background: #f1f5f9; color: #475569; }
-    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-secondary { background: #EDE9E2; color: #4A4D4B; }
+    .btn-secondary:hover { background: #D8D2C8; }
     
-    .btn-sm { padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: #f1f5f9; color: #475569; transition: all .15s; }
-    .btn-sm:hover { background: #e2e8f0; color: #0f172a; }
-    .btn-icon { background: none; border: none; cursor: pointer; font-size: 16px; padding: 6px 8px; border-radius: 8px; transition: all .2s ease; }
-    .btn-icon.danger:hover { background: #fee2e2; }
+    .btn-sm { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: #EDE9E2; color: #4A4D4B; transition: all .15s; }
+    .btn-sm:hover { background: #D8D2C8; color: #1A1D1B; }
+    .btn-icon { background: none; border: none; cursor: pointer; font-size: 16px; padding: 6px 8px; border-radius: 8px; transition: all .15s ease; }
+    .btn-icon.danger:hover { background: #F5E4E4; }
     
     /* Kanban Styles */
     .kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; align-items: flex-start; margin-top: 10px; }
-    .kanban-col { background: #f8fafc; border-radius: 20px; padding: 16px; border: 1px solid #e2e8f0; max-height: 80vh; display: flex; flex-direction: column; }
+    .kanban-col { background: #EDE9E2; border-radius: 16px; padding: 16px; border: 1px solid #D8D2C8; max-height: 80vh; display: flex; flex-direction: column; }
     .col-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 12px; margin-bottom: 16px; border-bottom: 2px solid; }
-    .col-header.pending { color: #d97706; border-color: #fef3c7; }
-    .col-header.partial { color: #ea580c; border-color: #ffedd5; }
-    .col-header.available { color: #15803d; border-color: #dcfce7; }
-    .col-header.unavailable { color: #b91c1c; border-color: #fee2e2; }
+    .col-header.pending { color: #D4924A; border-color: #F5EDE4; }
+    .col-header.partial { color: #D4924A; border-color: #F5EDE4; }
+    .col-header.available { color: #6B8F71; border-color: #E8F0EB; }
+    .col-header.unavailable { color: #C0483A; border-color: #F5E4E4; }
     
-    .col-count { background: rgba(0,0,0,.05); padding: 2px 8px; border-radius: 99px; font-size: 11px; }
+    .col-count { background: rgba(26,29,27,.05); padding: 2px 8px; border-radius: 99px; font-size: 11px; }
     .col-cards { display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1; padding: 2px; min-height: 50px; }
-    .kanban-card { background: #fff; border-radius: 14px; padding: 16px; border: 1.5px solid #e2e8f0; cursor: pointer; transition: all .2s; box-shadow: 0 4px 6px rgba(0,0,0,.02); }
-    .kanban-card:hover { transform: translateY(-2px); border-color: #cbd5e1; box-shadow: 0 10px 15px rgba(0,0,0,.05); }
+    .kanban-card { background: #FFFFFF; border-radius: 14px; padding: 16px; border: 1.5px solid #D8D2C8; cursor: pointer; transition: all .15s; box-shadow: 0 4px 6px rgba(26,29,27,.02); }
+    .kanban-card:hover { transform: translateY(-2px); border-color: #6B8F71; box-shadow: 0 8px 16px rgba(26,29,27,.06); }
     .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .card-id { font-weight: 700; color: #475569; font-size: 13px; }
-    .card-pos { font-weight: 700; color: #0f172a; margin: 0 0 6px 0; font-size: 14px; }
-    .card-creator { font-size: 12px; color: #64748b; margin: 0 0 12px 0; }
-    .card-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding-top: 8px; border-top: 1px solid #f1f5f9; }
-    .card-date { color: #64748b; font-weight: 600; }
-    .btn-card-action { border: none; background: #eff6ff; color: #2563eb; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
-    .empty-col { text-align: center; color: #94a3b8; font-size: 13px; padding: 24px; border: 2px dashed #cbd5e1; border-radius: 12px; background: #fff; }
-
+    .card-id { font-weight: 700; color: #4A4D4B; font-size: 13px; }
+    .card-pos { font-weight: 700; color: #1A1D1B; margin: 0 0 6px 0; font-size: 14px; }
+    .card-creator { font-size: 12px; color: #A8C5A0; margin: 0 0 12px 0; }
+    .card-bottom { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding-top: 8px; border-top: 1px solid #EEEEE9; }
+    .card-date { color: #A8C5A0; font-weight: 600; }
+    .btn-card-action { border: none; background: #E8F0EB; color: #6B8F71; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+    .empty-col { text-align: center; color: #A8C5A0; font-size: 13px; padding: 24px; border: 2px dashed #D8D2C8; border-radius: 12px; background: #FFFFFF; }
+    
     /* Drag & Drop CDK Styles */
     .cdk-drag-preview {
-      background: #fff;
+      background: #FFFFFF;
       border-radius: 14px;
       padding: 16px;
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04);
-      border: 1.5px solid #2563eb;
+      box-shadow: 0 8px 24px rgba(26,29,27,.1);
+      border: 1.5px solid #6B8F71;
       opacity: 0.95;
       transform: rotate(2deg);
       z-index: 9999;
     }
     .cdk-drag-placeholder {
       opacity: 0.4;
-      background: #f1f5f9;
-      border: 2px dashed #cbd5e1;
+      background: #EDE9E2;
+      border: 2px dashed #D8D2C8;
       border-radius: 14px;
     }
     .cdk-drag-animating { transition: transform 250ms cubic-bezier(0, 0, 0.2, 1); }
     .col-cards.cdk-drop-list-dragging .kanban-card:not(.cdk-drag-placeholder) { transition: transform 250ms cubic-bezier(0, 0, 0.2, 1); }
-
+    
     /* Modal Overlay & Details */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
-    .modal { background: #fff; border-radius: 24px; padding: 28px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,.25); }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(29,35,31,.6); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
+    .modal { background: #FFFFFF; border-radius: 20px; padding: 28px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; box-shadow: 0 4px 24px rgba(26,29,27,.08); }
     .modal-wide { max-width: 980px; }
     .modal-header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .modal-header-nav h3 { margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; }
-    .btn-close-x { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; font-weight: bold; }
+    .modal-header-nav h3 { margin: 0; font-size: 22px; font-weight: 800; color: #1A1D1B; }
+    .btn-close-x { background: none; border: none; font-size: 18px; color: #A8C5A0; cursor: pointer; font-weight: bold; }
     
     .order-detail-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
     .detail-panel { padding: 20px; }
     .status-summary { display: flex; gap: 10px; margin-bottom: 16px; }
-    .meta-info p { margin: 8px 0; font-size: 13.5px; color: #475569; }
-    .notes-box { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 13px; color: #475569; margin-top: 6px; min-height: 50px; }
+    .meta-info p { margin: 8px 0; font-size: 13.5px; color: #4A4D4B; }
+    .notes-box { background: #EDE9E2; border: 1.5px solid #D8D2C8; border-radius: 10px; padding: 12px; font-size: 13px; color: #4A4D4B; margin-top: 6px; min-height: 50px; }
     
     .prod-cell { display: flex; align-items: center; gap: 8px; }
     .prod-thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; }
-    .qty-input-sm { width: 60px; padding: 6px; border: 1.5px solid #cbd5e1; border-radius: 8px; text-align: center; font-weight: bold; }
+    .qty-input-sm { width: 60px; padding: 6px; border: 1.5px solid #D8D2C8; border-radius: 8px; text-align: center; font-weight: bold; }
     .fulfill-input-control { display: flex; gap: 6px; align-items: center; }
-    .btn-fulfill-save { border: none; background: #2563eb; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; }
-    .btn-fulfill-save:hover { background: #1d4ed8; }
+    .btn-fulfill-save { border: none; background: #6B8F71; color: #fff; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 12px; cursor: pointer; }
+    .btn-fulfill-save:hover { background: #5A7263; }
 
-    /* Comments Section */
+    /* Comments Section — Facebook-style */
     .comments-panel { display: flex; flex-direction: column; height: 100%; max-height: 480px; padding: 20px; }
-    .comments-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 6px; margin-bottom: 16px; min-height: 200px; }
-    .comment-bubble { background: #f1f5f9; padding: 10px 14px; border-radius: 14px; border-top-left-radius: 2px; align-self: flex-start; max-width: 85%; }
-    .comment-bubble.self { background: #eff6ff; align-self: flex-end; border-radius: 14px; border-top-right-radius: 2px; }
-    .comment-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; gap: 12px; }
-    .comment-user { font-weight: 700; color: #475569; }
-    .comment-bubble.self .comment-user { color: #1d4ed8; }
-    .comment-time { color: #94a3b8; }
-    .comment-body { margin: 0; font-size: 13px; color: #1e293b; line-height: 1.4; word-break: break-word; }
-    .empty-comments { text-align: center; color: #94a3b8; font-size: 12px; padding: 32px; }
+    .comments-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 6px; margin-bottom: 16px; min-height: 200px; }
+    .fb-comment { display: flex; gap: 10px; align-items: flex-start; }
+    .fb-comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: #2C3E35; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+    .fb-comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .fb-avatar-fallback { color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .fb-comment-body { flex: 1; background: #EDE9E2; border-radius: 12px; padding: 10px 14px; }
+    .fb-comment-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+    .fb-comment-author { font-size: 12px; color: #1A1D1B; }
+    .fb-comment-time { font-size: 10px; color: #A8C5A0; }
+    .fb-comment-text { margin: 0; font-size: 13px; color: #4A4D4B; line-height: 1.45; word-break: break-word; white-space: pre-wrap; }
+    .fb-comment-actions { display: flex; gap: 12px; margin-top: 6px; }
+    .fb-action-btn { background: none; border: none; padding: 0; font-size: 11px; font-weight: 600; color: #A8C5A0; cursor: pointer; }
+    .fb-action-btn:hover { color: #6B8F71; }
+    .fb-action-btn.danger { color: #C0483A; }
+    .fb-action-btn.danger:hover { color: #A85555; }
+    .fb-comment-edit { display: flex; flex-direction: column; gap: 6px; }
+    .fb-edit-input { width: 100%; padding: 8px 10px; border: 1.5px solid #6B8F71; border-radius: 8px; font-size: 13px; resize: none; outline: none; }
+    .fb-edit-actions { display: flex; gap: 6px; }
+    .btn-xs { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid #D8D2C8; background: #FFFFFF; color: #4A4D4B; }
+    .btn-xs:hover { background: #EDE9E2; }
+    .empty-comments { text-align: center; color: #A8C5A0; font-size: 12px; padding: 32px; }
     
-    .comment-input-area { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 14px; }
-    .comment-input-area textarea { padding: 10px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; resize: none; outline: none; }
-    .comment-input-area textarea:focus { border-color: #2563eb; }
+    .comment-input-area { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid #EEEEE9; padding-top: 14px; }
+    .comment-input-area textarea { padding: 10px 12px; border: 1.5px solid #D8D2C8; border-radius: 10px; font-size: 13px; resize: none; outline: none; }
+    .comment-input-area textarea:focus { border-color: #6B8F71; }
 
     /* Create Order Wizard */
     .steps { display: flex; align-items: center; margin-bottom: 28px; justify-content: center; }
     .step { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
-    .step-circle { width: 36px; height: 36px; border-radius: 50%; background: #e2e8f0; color: #94a3b8; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: all .2s; }
-    .step.active .step-circle { background: #2563eb; color: #fff; box-shadow: 0 0 0 4px rgba(37,99,235,.15); }
-    .step.done .step-circle { background: #15803d; color: #fff; }
-    .step span { font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .step.active span { color: #2563eb; }
-    .step.done span { color: #15803d; }
-    .step-line { flex: 1; height: 3px; background: #e2e8f0; margin: 0 12px 18px; transition: background .2s; }
-    .step-line.done { background: #15803d; }
+    .step-circle { width: 36px; height: 36px; border-radius: 50%; background: #D8D2C8; color: #A8C5A0; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+    .step.active .step-circle { background: #6B8F71; color: #fff; box-shadow: 0 0 0 4px rgba(107,131,116,.15); }
+    .step.done .step-circle { background: #6B8F71; color: #fff; }
+    .step span { font-size: 10px; color: #A8C5A0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .step.active span { color: #6B8F71; }
+    .step.done span { color: #6B8F71; }
+    .step-line { flex: 1; height: 3px; background: #D8D2C8; margin: 0 12px 18px; transition: background .15s; }
+    .step-line.done { background: #6B8F71; }
 
     .type-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 12px; }
-    .type-card { border: 2.5px solid #e2e8f0; border-radius: 20px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .2s; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-    .type-card:hover { border-color: #2563eb; background: #f8fafc; }
-    .type-card.selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 4px rgba(37,99,235,.1); }
+    .type-card { border: 2px solid #D8D2C8; border-radius: 16px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .15s; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .type-card:hover { border-color: #6B8F71; background: #EDE9E2; }
+    .type-card.selected { border-color: #6B8F71; background: #E8F0EB; box-shadow: 0 0 0 4px rgba(107,131,116,.1); }
     .type-icon { font-size: 48px; }
-    .type-card strong { font-size: 18px; font-weight: 800; color: #0f172a; }
-    .type-card small { font-size: 12px; color: #64748b; }
+    .type-card strong { font-size: 18px; font-weight: 800; color: #1A1D1B; }
+    .type-card small { font-size: 12px; color: #A8C5A0; }
 
     .categories-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-    .category-chip { padding: 10px 20px; border: 2px solid #e2e8f0; border-radius: 99px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all .2s; color: #475569; background: #fff; }
-    .category-chip:hover { border-color: #2563eb; color: #2563eb; }
-    .category-chip.selected { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .category-chip { padding: 10px 20px; border: 2px solid #D8D2C8; border-radius: 99px; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: all .15s; color: #4A4D4B; background: #FFFFFF; }
+    .category-chip:hover { border-color: #6B8F71; color: #6B8F71; }
+    .category-chip.selected { background: #6B8F71; color: #fff; border-color: #6B8F71; }
     
     .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; margin-bottom: 12px; }
-    .product-card { border: 2px solid #e2e8f0; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: all .2s; background: #fff; }
-    .product-card.in-cart { border-color: #15803d; background: #f0fdf4; }
+    .product-card { border: 2px solid #D8D2C8; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; transition: all .15s; background: #FFFFFF; }
+    .product-card.in-cart { border-color: #6B8F71; background: #E8F0EB; }
     .product-img { width: 100%; height: 110px; object-fit: cover; }
-    .product-img.placeholder { display: flex; align-items: center; justify-content: center; font-size: 42px; background: #f8fafc; height: 110px; }
+    .product-img.placeholder { display: flex; align-items: center; justify-content: center; font-size: 42px; background: #EDE9E2; height: 110px; }
     .product-info { padding: 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-    .product-info strong { font-size: 13.5px; color: #0f172a; }
-    .btn-add { margin: 8px 12px 12px; padding: 8px 12px; border-radius: 10px; border: none; font-size: 12px; font-weight: bold; cursor: pointer; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; transition: all .2s; }
-    .btn-add:disabled { background: #15803d; cursor: not-allowed; }
+    .product-info strong { font-size: 13.5px; color: #1A1D1B; }
+    .btn-add { margin: 8px 12px 12px; padding: 8px 12px; border-radius: 8px; border: none; font-size: 12px; font-weight: bold; cursor: pointer; background: #6B8F71; color: #fff; transition: all .15s; }
+    .btn-add:hover { background: #5A7263; }
+    .btn-add:disabled { background: #6B8F71; cursor: not-allowed; opacity: .6; }
 
     .cart-list { display: flex; flex-direction: column; gap: 12px; }
-    .cart-item { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border: 1.5px solid #e2e8f0; border-radius: 14px; background: #fff; }
-    .cart-name { flex: 1; font-size: 14.5px; font-weight: 600; color: #0f172a; }
+    .cart-item { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border: 1.5px solid #D8D2C8; border-radius: 14px; background: #FFFFFF; }
+    .cart-name { flex: 1; font-size: 14.5px; font-weight: 600; color: #1A1D1B; }
     .qty-control { display: flex; align-items: center; gap: 8px; }
-    .qty-control button { width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid #cbd5e1; background: #fff; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-    .qty-input { width: 64px; text-align: center; padding: 6px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: bold; }
+    .qty-control button { width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid #D8D2C8; background: #FFFFFF; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .qty-input { width: 64px; text-align: center; padding: 6px; border: 1.5px solid #D8D2C8; border-radius: 8px; font-size: 14px; font-weight: bold; }
 
     .scheduling-block { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
-    .date-input { width: 100%; max-width: 300px; padding: 10px 14px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-size: 14px; outline: none; }
-    .date-input:focus { border-color: #2563eb; }
+    .date-input { width: 100%; max-width: 300px; padding: 10px 14px; border: 1.5px solid #D8D2C8; border-radius: 8px; font-size: 14px; outline: none; }
+    .date-input:focus { border-color: #6B8F71; }
 
-    .transition-controls { display: flex; gap: 8px; align-items: center; flex: 1; font-size: 12px; font-weight: bold; color: #64748b; }
-    .btn-status-yellow { background: #fffbeb; color: #d97706; border: 1.5px solid rgba(217,119,6,.2); }
-    .btn-status-orange { background: #fff7ed; color: #ea580c; border: 1.5px solid rgba(234,88,12,.2); }
-    .btn-status-green { background: #f0fdf4; color: #16a34a; border: 1.5px solid rgba(22,163,74,.2); }
-    .btn-status-red { background: #fef2f2; color: #dc2626; border: 1.5px solid rgba(220,38,38,.2); }
+    .transition-controls { display: flex; gap: 8px; align-items: center; flex: 1; font-size: 12px; font-weight: bold; color: #A8C5A0; }
+    .status-select { padding: 8px 12px; border: 1.5px solid #D8D2C8; border-radius: 8px; font-size: 13px; font-weight: 600; color: #4A4D4B; background: #FFFFFF; outline: none; cursor: pointer; }
+    .status-select:focus { border-color: #6B8F71; box-shadow: 0 0 0 3px rgba(107, 131, 116, 0.12); }
 
-    .order-summary { background: #f8fafc; border-radius: 14px; padding: 18px; border: 1px dashed #cbd5e1; }
-    .order-summary ul { margin: 10px 0 0 20px; padding: 0; font-size: 13.5px; color: #475569; }
-    .empty-hint { color: #94a3b8; font-size: 14px; text-align: center; padding: 32px; }
-    .loading-label { color: #64748b; font-size: 13px; margin: 8px 0; }
-    .error-msg { background: #fef2f2; color: #b91c1c; padding: 12px 16px; border-radius: 10px; font-size: 13.5px; margin-top: 12px; font-weight: 600; }
+    .order-summary { background: #EDE9E2; border-radius: 14px; padding: 18px; border: 1px dashed #D8D2C8; }
+    .order-summary ul { margin: 10px 0 0 20px; padding: 0; font-size: 13.5px; color: #4A4D4B; }
+    .empty-hint { color: #A8C5A0; font-size: 14px; text-align: center; padding: 32px; }
+    .loading-label { color: #A8C5A0; font-size: 13px; margin: 8px 0; }
+    .error-msg { background: #F5E4E4; color: #C0483A; padding: 12px 16px; border-radius: 8px; font-size: 13.5px; margin-top: 12px; font-weight: 600; }
   `]
 })
 export class InternalOrdersComponent implements OnInit {
@@ -720,6 +762,8 @@ export class InternalOrdersComponent implements OnInit {
   comments: any[] = [];
   newComment = '';
   loadingComments = false;
+  editingCommentId: number | null = null;
+  editCommentText = '';
 
   currentUser: any;
   userRole = '';
@@ -795,7 +839,7 @@ export class InternalOrdersComponent implements OnInit {
       next: cats => {
         const typeMap: Record<string, string[]> = {
           food: ['food'],
-          commercial: ['commercial', 'matiere_premiere'],
+          commercial: ['commercial'],
         };
         const allowed = typeMap[this.form.type] || [];
         this.filteredCategories = cats.filter(c => allowed.includes(c.type));
@@ -902,11 +946,11 @@ export class InternalOrdersComponent implements OnInit {
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;';
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:12px;padding:32px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);text-align:center;">
-        <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+        <div style="font-size:48px;margin-bottom:12px"></div>
         <h3 style="margin:0 0 8px;color:#1a1a2e;font-size:18px">Delete supply order?</h3>
         <p style="margin:0 0 24px;color:#666;font-size:14px">This action cannot be undone.</p>
         <div style="display:flex;gap:12px;justify-content:center">
-          <button id="_cancel" style="padding:10px 24px;border:2px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:14px">Cancel</button>
+          <button id="_cancel" style="padding:10px 24px;border:2px solid #D8D2C8;border-radius:8px;background:#fff;cursor:pointer;font-size:14px">Cancel</button>
           <button id="_confirm" style="padding:10px 24px;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;font-size:14px">Delete</button>
         </div>
       </div>`;
@@ -929,6 +973,13 @@ export class InternalOrdersComponent implements OnInit {
         });
       }
     });
+  }
+
+  onStatusChange(event: Event): void {
+    const target = event.target as HTMLSelectElement | null;
+    if (target && this.selectedOrder) {
+      this.updateOrderStatus(this.selectedOrder, target.value);
+    }
   }
 
   updateOrderStatus(order: InternalOrder, status: string): void {
@@ -977,6 +1028,31 @@ export class InternalOrdersComponent implements OnInit {
       body: this.newComment
     }).subscribe(() => {
       this.newComment = '';
+      this.loadComments(orderId);
+    });
+  }
+
+  startEditComment(c: any): void {
+    this.editingCommentId = c.id;
+    this.editCommentText = c.body;
+  }
+
+  cancelEditComment(): void {
+    this.editingCommentId = null;
+    this.editCommentText = '';
+  }
+
+  saveEditComment(commentId: number): void {
+    if (!this.editCommentText.trim()) return;
+    this.api.put<any>(`comments/${commentId}`, { body: this.editCommentText }).subscribe(() => {
+      this.editingCommentId = null;
+      this.editCommentText = '';
+      if (this.selectedOrder) this.loadComments(this.selectedOrder.id);
+    });
+  }
+
+  deleteComment(commentId: number, orderId: number): void {
+    this.api.delete(`comments/${commentId}`).subscribe(() => {
       this.loadComments(orderId);
     });
   }

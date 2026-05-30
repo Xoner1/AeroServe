@@ -1,30 +1,39 @@
 <div class="page">
 
-  <!-- HEADER -->
-  <div class="header">
+  <!-- ================= STATS ================= -->
+  <div class="stats-bar card">
+    <div class="stat-item">
+      <span class="stat-lbl">Total Cashiers</span>
+      <span class="stat-val">{{ caissiers.length }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-lbl">Active</span>
+      <span class="stat-val status-active">{{ activeCount }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-lbl">Pending / Inactive</span>
+      <span class="stat-val status-inactive">{{ inactiveCount }}</span>
+    </div>
+  </div>
 
+  <!-- ================= HEADER ================= -->
+  <div class="header">
     <h2>Cashier Management</h2>
 
     <div class="header-actions">
-
-      <input
-        type="text"
-        placeholder="Search caissiers..."
-        [(ngModel)]="searchTerm">
+      <input type="text"
+             placeholder="Search cashiers..."
+             [(ngModel)]="searchTerm">
 
       <button class="btn-primary" (click)="openCreate()">
-        + Add cashier
+        + Add Cashier
       </button>
-
     </div>
-
   </div>
 
-  <!-- TABLE -->
+  <!-- ================= TABLE ================= -->
   <div class="card">
-
     <table>
-
       <thead>
         <tr>
           <th>Name</th>
@@ -33,170 +42,148 @@
           <th>Age</th>
           <th>Experience</th>
           <th>Status</th>
-          <th>Actions</th>
+          <th>Operations</th>
         </tr>
       </thead>
 
       <tbody>
-
         @for (c of filteredCaissiers(); track c.id) {
           <tr>
-
             <td>
-              {{ c.first_name }} {{ c.last_name }}
+              <div class="user-cell">
+                <span class="avatar-circle">{{ c.first_name[0] }}{{ c.last_name[0] }}</span>
+                <strong>{{ c.first_name }} {{ c.last_name }}</strong>
+              </div>
             </td>
-
+            <td>{{ c.email }}</td>
+            <td>{{ c.phone || '-' }}</td>
+            <td>{{ c.age ?? '-' }}</td>
             <td>
-              {{ c.email }}
-            </td>
-
-            <td>
-              {{ c.phone || '-' }}
-            </td>
-
-            <!-- AGE -->
-            <td>
-              {{ c.age ?? '-' }}
-            </td>
-
-            <!-- EXPERIENCE -->
-            <td>
-              <span class="badge"
-                    [ngClass]="c.experience ? 'status-active' : 'status-inactive'">
+              <span class="badge" [ngClass]="c.experience ? 'status-active' : 'status-inactive'">
                 {{ c.experience ? 'Yes' : 'No' }}
               </span>
             </td>
-
-            <!-- STATUS -->
             <td>
               <span class="badge" [ngClass]="'status-' + (c.status || 'active')">
                 {{ c.status || 'active' }}
               </span>
             </td>
-
             <td class="actions">
-
-              <button class="btn-icon edit" (click)="openEdit(c)">
-                ✏️
-              </button>
-
-              <button class="btn-icon danger" (click)="delete(c.id)">
-                🗑️
-              </button>
-
+              <button class="btn-icon edit" (click)="openEdit(c)"></button>
+              <button class="btn-icon danger" (click)="delete(c.id)"></button>
             </td>
-
           </tr>
         }
 
         @if (filteredCaissiers().length === 0) {
           <tr>
-            <td colspan="7" class="text-center">
-              No cashiers found
+            <td colspan="7" style="text-align:center; padding: 24px; color: #6b7280;">
+              No cashiers found.
             </td>
           </tr>
         }
-
       </tbody>
-
     </table>
-
   </div>
 
-  <!-- MODAL -->
+  <!-- ================= MODAL ================= -->
   @if (showModal) {
     <div class="modal-overlay" (click)="closeModal()">
-
       <div class="modal" (click)="$event.stopPropagation()">
-
-        <h3>
-          {{ editing ? 'Edit Caissier' : 'Add Caissier' }}
-        </h3>
+        
+        <h3>{{ editing ? 'Edit Cashier' : 'Add New Cashier' }}</h3>
 
         @if (formError) {
           <div class="form-error">
-            {{ formError }}
+             {{ formError }}
           </div>
         }
 
         <form (ngSubmit)="save()">
+          <div class="form-section">
+            <h4> Cashier Profile Details</h4>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>First Name *</label>
+                <input [(ngModel)]="form.first_name" name="first_name" required>
+              </div>
 
-          <!-- NAME -->
-          <div class="form-row">
+              <div class="form-group">
+                <label>Last Name *</label>
+                <input [(ngModel)]="form.last_name" name="last_name" required>
+              </div>
+            </div>
 
-            <div class="form-group">
-              <label>First Name</label>
-              <input [(ngModel)]="form.first_name" name="first_name">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Email *</label>
+                <input type="email" [(ngModel)]="form.email" name="email" required>
+              </div>
+
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="tel" [(ngModel)]="form.phone" name="phone">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4> Account & Settings</h4>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label>Age</label>
+                <input type="number" [(ngModel)]="form.age" name="age" min="18" max="70">
+              </div>
+
+              <div class="form-group">
+                <label style="display:flex; align-items:center; gap:8px; margin-top:30px;">
+                  <input type="checkbox" [(ngModel)]="form.experience" name="experience" style="width:20px; height:20px; margin:0;">
+                  <span>Has POS Experience</span>
+                </label>
+              </div>
             </div>
 
             <div class="form-group">
-              <label>Last Name</label>
-              <input [(ngModel)]="form.last_name" name="last_name">
+              <label>Bio</label>
+              <textarea rows="2" [(ngModel)]="form.bio" name="bio" placeholder="Brief cashier description..." style="width:100%; border:1px solid #e5e7eb; border-radius:10px; padding:10px;"></textarea>
             </div>
 
-          </div>
+            <div class="form-row">
+              @if (!editing) {
+                <div class="form-group" style="position:relative;">
+                  <label>Password *</label>
+                  <input [type]="showPassword ? 'text' : 'password'" [(ngModel)]="form.password" name="password" required placeholder="Min 8 characters">
+                  <button type="button" (click)="togglePassword()" style="position:absolute; right:10px; bottom:10px; background:none; border:none; cursor:pointer;">
+                    {{ showPassword ? '' : '' }}
+                  </button>
+                </div>
+              }
 
-          <!-- EMAIL -->
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" [(ngModel)]="form.email" name="email">
-          </div>
-
-          <!-- PASSWORD -->
-          @if (!editing) {
-            <div class="form-group">
-              <label>Password</label>
-              <input type="password" [(ngModel)]="form.password" name="password">
+              @if (editing) {
+                <div class="form-group">
+                  <label>Status *</label>
+                  <select [(ngModel)]="form.status" name="status">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="en_attente">En Attente</option>
+                  </select>
+                </div>
+              }
             </div>
-          }
-          <!-- PHONE -->
-          <div class="form-group">
-            <label>Phone</label>
-            <input [(ngModel)]="form.phone" name="phone">
           </div>
 
-          <!-- AGE -->
-          <div class="form-group">
-            <label>Age</label>
-            <input type="number" [(ngModel)]="form.age" name="age">
-          </div>
-
-          <!-- EXPERIENCE TOGGLE -->
-          <div class="form-group">
-            <label>Experience</label>
-
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="form.experience" name="experience">
-              <span class="slider"></span>
-            </label>
-
-          </div>
-
-          <!-- BIO -->
-          <div class="form-group">
-            <label>Bio</label>
-            <textarea rows="3" [(ngModel)]="form.bio" name="bio"></textarea>
-          </div>
-
-
-          <!-- ACTIONS -->
           <div class="modal-actions">
-
             <button type="button" class="btn-secondary" (click)="closeModal()">
               Cancel
             </button>
-
             <button type="submit" class="btn-primary">
-              {{ editing ? 'Update' : 'Create' }}
+              {{ editing ? 'Update Cashier' : 'Create Cashier' }}
             </button>
-
           </div>
-
         </form>
-
       </div>
-
     </div>
   }
-
 </div>

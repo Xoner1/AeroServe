@@ -27,8 +27,8 @@
             <td>{{ c.code || '-' }}</td>
 
             <td>
-              <button (click)="edit(c)">✏️</button>
-              <button (click)="delete(c.id)">🗑️</button>
+              <button class="btn btn-sm" (click)="edit(c)">✏️</button>
+              <button class="btn btn-sm btn-danger" (click)="delete(c.id)">🗑️</button>
             </td>
           </tr>
         }

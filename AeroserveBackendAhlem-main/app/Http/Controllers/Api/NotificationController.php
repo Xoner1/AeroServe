@@ -11,7 +11,10 @@ class NotificationController extends Controller
 {
     public function index(): JsonResponse
     {
-        $notifications = auth()->user()->notifications()
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        $notifications = $user->notifications()
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -20,14 +23,20 @@ class NotificationController extends Controller
 
     public function unreadCount(): JsonResponse
     {
-        $count = auth()->user()->notifications()->where('is_read', false)->count();
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        $count = $user->notifications()->where('is_read', false)->count();
 
         return response()->json(['unread_count' => $count]);
     }
 
     public function markAsRead(Notification $notification): JsonResponse
     {
-        if ($notification->user_id !== auth()->id()) {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        if ($notification->user_id !== $user->id) {
             return response()->json(['message' => 'Non autorisé.'], 403);
         }
 
@@ -38,7 +47,10 @@ class NotificationController extends Controller
 
     public function markAllAsRead(): JsonResponse
     {
-        auth()->user()->notifications()->where('is_read', false)->update(['is_read' => true]);
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        $user->notifications()->where('is_read', false)->update(['is_read' => true]);
 
         return response()->json(['message' => 'Toutes les notifications marquées comme lues.']);
     }

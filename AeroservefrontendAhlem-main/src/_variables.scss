@@ -1,0 +1,63 @@
+// ========================================
+// AeroServe Design System — Sage & Stone
+// ========================================
+
+// ─── Backgrounds ───
+$bg-primary:     #F5F2ED;
+$bg-secondary:   #EDE9E2;
+$bg-sidebar:     #2C3E35;
+$bg-sidebar-alt: #1A1F1C;
+
+// ─── Sage Scale ───
+$sage-dark:      #2C3E35;
+$sage-mid:       #4A6B58;
+$sage-base:      #6B8F71;
+$sage-light:     #A8C5A0;
+$sage-pale:      #D4E8D0;
+
+// ─── Neutrals / Stone ───
+$stone-dark:     #3D3830;
+$stone-mid:      #6B6459;
+$stone-light:    #C4A882;
+$stone-pale:     #EDE9E2;
+
+// ─── Semantic ───
+$color-accent:   #E8663A;
+$color-warning:  #D4924A;
+$color-error:    #C0483A;
+$color-success:  #6B8F71;
+
+// ─── Text ───
+$text-primary:   #1A1F1C;
+$text-secondary: #4A5045;
+$text-muted:     #7A8078;
+$text-inverse:   #F5F2ED;
+
+// ─── Surfaces ───
+$surface:        #FFFFFF;
+$surface-alt:    #EDE9E2;
+$background:     #F5F2ED;
+$bg-card:        #FFFFFF;
+
+// ─── Borders ───
+$border:         #D8D2C8;
+$border-light:   #E0DAD0;
+
+// ─── Shadows ───
+$shadow-sm: 0 1px 3px rgba(26, 31, 28, 0.08);
+$shadow-md: 0 4px 16px rgba(26, 31, 28, 0.10);
+$shadow-lg: 0 8px 32px rgba(26, 31, 28, 0.12);
+
+// ─── Radii ───
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 16px;
+$radius-full: 9999px;
+
+// ─── Fonts ───
+$font-display: 'Fraunces', Georgia, serif;
+$font-body:    'DM Sans', sans-serif;
+$font-mono:    'JetBrains Mono', 'SF Mono', monospace;
+
+// ─── Transitions ───
+$transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);

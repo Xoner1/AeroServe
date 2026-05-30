@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/app_theme.dart';
+import '../core/app_icons.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
+import '../widgets/status_badge.dart';
+import '../widgets/empty_state_widget.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -13,20 +18,22 @@ class SalesScreen extends StatefulWidget {
 class _SalesScreenState extends State<SalesScreen> {
   List<Sale> _sales = [];
   bool _loading = true;
+  List<Product> _products = [];
 
   @override
   void initState() {
     super.initState();
     _load();
+    _loadProducts();
   }
 
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
       final res = await ApiService.get('/sales');
-      final list = res is List ? res : (res['data'] ?? []);
+      final data = res['data'] ?? res;
       setState(() {
-        _sales = (list as List).map((e) => Sale.fromJson(e)).toList();
+        _sales = (data as List).map((e) => Sale.fromJson(e)).toList();
         _loading = false;
       });
     } catch (_) {
@@ -34,112 +41,97 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
+  Future<void> _loadProducts() async {
+    try {
+      final res = await ApiService.get('/products');
+      final data = res['data'] ?? res;
+      setState(() {
+        _products = (data as List).map((e) => Product.fromJson(e)).toList();
+      });
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFf1f5f9),
+      backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: const Text('Ventes', style: TextStyle(fontWeight: FontWeight.w700)),
-        backgroundColor: const Color(0xFF1a56db),
+        title: Text(
+          'Ventes',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
+        ),
+        backgroundColor: AppTheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _sales.isEmpty
-                  ? ListView(children: const [SizedBox(height: 200), Center(child: Text('Aucune vente'))])
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _sales.length,
-                      itemBuilder: (_, i) => _buildSaleCard(_sales[i]),
-                    ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF1a56db),
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
+          : _sales.isEmpty
+              ? const EmptyStateWidget(
+                  icon: AppIcons.noData,
+                  title: 'Aucune vente',
+                  description: 'Les ventes enregistrées s\'afficheront ici.',
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  color: AppTheme.primary,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(AppTheme.spacingM),
+                    itemCount: _sales.length,
+                    itemBuilder: (ctx, i) => _buildSaleCard(_sales[i]),
+                  ),
+                ),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCreateDialog(),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_shopping_cart, size: 20),
+        label: Text('Nouvelle vente', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
       ),
     );
   }
 
   Widget _buildSaleCard(Sale sale) {
-    final date = DateFormat('dd/MM/yyyy HH:mm').format(sale.saleDate);
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        side: BorderSide(color: AppTheme.divider),
+      ),
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
+        childrenPadding: const EdgeInsets.fromLTRB(AppTheme.spacingM, 0, AppTheme.spacingM, AppTheme.spacingM),
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF1a56db).withOpacity(0.1),
-          child: const Icon(Icons.receipt_long, color: Color(0xFF1a56db), size: 20),
+          backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
+          child: const Icon(AppIcons.sales, color: AppTheme.primary, size: 20),
         ),
-        title: Text('Vente #${sale.id}', style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text('$date · ${sale.totalAmount.toStringAsFixed(0)} DA'),
-        trailing: _paymentBadge(sale.paymentMethod),
-        children: [
-          if (sale.items != null)
-            ...sale.items!.map((item) => ListTile(
-                  dense: true,
-                  title: Text(item.productName ?? 'Produit #${item.productId}'),
-                  trailing: Text('${item.quantity} x ${item.unitPrice.toStringAsFixed(0)} DA'),
-                )),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Total: ${sale.totalAmount.toStringAsFixed(0)} DA',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1a56db))),
-                _statusChip(sale.status),
-              ],
-            ),
+        title: Text(
+          'Vente #${sale.id}',
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+        ),
+        subtitle: Text(
+          '${sale.totalAmount.toStringAsFixed(0)} DA · ${DateFormat('dd/MM HH:mm').format(sale.saleDate)}',
+          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12.5),
+        ),
+        trailing: StatusBadge(status: sale.status),
+        children: sale.items?.map((item) => ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            'Produit #${item.productId}',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13),
           ),
-        ],
+          subtitle: Text(
+            '${item.quantity} x ${item.unitPrice.toStringAsFixed(0)} DA',
+            style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12),
+          ),
+          trailing: Text(
+            '${(item.quantity * item.unitPrice).toStringAsFixed(0)} DA',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.primary, fontSize: 13),
+          ),
+        )).toList() ?? [],
       ),
-    );
-  }
-
-  Widget _paymentBadge(String method) {
-    final isCard = method.toLowerCase().contains('card') || method.toLowerCase().contains('carte');
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: isCard ? const Color(0xFFe0e7ff) : const Color(0xFFdcfce7),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        method,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: isCard ? const Color(0xFF4f46e5) : const Color(0xFF16a34a),
-        ),
-      ),
-    );
-  }
-
-  Widget _statusChip(String status) {
-    Color bg;
-    Color fg;
-    switch (status.toLowerCase()) {
-      case 'completed':
-        bg = const Color(0xFFdcfce7);
-        fg = const Color(0xFF16a34a);
-        break;
-      case 'cancelled':
-        bg = const Color(0xFFfee2e2);
-        fg = const Color(0xFFdc2626);
-        break;
-      default:
-        bg = const Color(0xFFFEF9C3);
-        fg = const Color(0xFFca8a04);
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
-      child: Text(status, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
     );
   }
 
@@ -150,76 +142,220 @@ class _SalesScreenState extends State<SalesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Nouvelle vente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: paymentMethod,
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('Espèces')),
-                  DropdownMenuItem(value: 'card', child: Text('Carte')),
-                ],
-                onChanged: (v) => setModalState(() => paymentMethod = v!),
-                decoration: const InputDecoration(labelText: 'Mode de paiement', border: OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              ...itemRows.asMap().entries.map((e) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: TextField(
-                            controller: e.value.productCtrl,
-                            decoration: const InputDecoration(labelText: 'Produit ID', border: OutlineInputBorder(), isDense: true),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: e.value.qtyCtrl,
-                            decoration: const InputDecoration(labelText: 'Qté', border: OutlineInputBorder(), isDense: true),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          flex: 2,
-                          child: TextField(
-                            controller: e.value.priceCtrl,
-                            decoration: const InputDecoration(labelText: 'Prix', border: OutlineInputBorder(), isDense: true),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
+          padding: EdgeInsets.only(
+            left: AppTheme.spacingL,
+            right: AppTheme.spacingL,
+            top: AppTheme.spacingL,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + AppTheme.spacingL,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Nouvelle vente',
+                      style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
-                  )),
-              TextButton.icon(
-                onPressed: () => setModalState(() => itemRows.add(_ItemRow())),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Ajouter article'),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1a56db), foregroundColor: Colors.white),
-                  onPressed: () => _submitSale(paymentMethod, itemRows, ctx),
-                  child: const Text('Enregistrer'),
+                    IconButton(
+                      icon: const Icon(AppIcons.cancel, color: AppTheme.textSecondary),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: AppTheme.spacingM),
+                DropdownButtonFormField<String>(
+                  initialValue: paymentMethod,
+                  items: const [
+                    DropdownMenuItem(value: 'cash', child: Text('Espèces')),
+                    DropdownMenuItem(value: 'card', child: Text('Carte')),
+                  ],
+                  onChanged: (v) => setModalState(() => paymentMethod = v!),
+                  decoration: const InputDecoration(labelText: 'Mode de paiement'),
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+                Text(
+                  'Articles',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                ),
+                const SizedBox(height: AppTheme.spacingXS),
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.4),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: itemRows.length,
+                    itemBuilder: (context, idx) {
+                      final row = itemRows[idx];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppTheme.spacingS),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Product search/picker
+                            TextFormField(
+                              controller: row.productCtrl,
+                              style: GoogleFonts.inter(fontSize: 14.5),
+                              decoration: InputDecoration(
+                                labelText: 'Rechercher un produit...',
+                                isDense: true,
+                                suffixIcon: const Icon(Icons.search, size: 20),
+                              ),
+                              onTap: () => _showProductPicker(ctx, setModalState, row, itemRows),
+                              readOnly: true,
+                            ),
+                      if (row.selectedProductName != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${row.selectedProductName!} — ${row.selectedProductPrice?.toStringAsFixed(0) ?? '?'} DA',
+                                style: GoogleFonts.inter(fontSize: 11, color: AppTheme.accent, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: row.qtyCtrl,
+                                    style: GoogleFonts.inter(fontSize: 14.5),
+                                    decoration: const InputDecoration(labelText: 'Qté', isDense: true),
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingS),
+                                Expanded(
+                                  child: TextField(
+                                    controller: row.priceCtrl,
+                                    style: GoogleFonts.inter(fontSize: 14.5),
+                                    decoration: const InputDecoration(labelText: 'Prix (DA)', isDense: true),
+                                    keyboardType: TextInputType.number,
+                                  ),
+                                ),
+                                if (itemRows.length > 1) ...[
+                                  const SizedBox(width: AppTheme.spacingXS),
+                                  IconButton(
+                                    icon: const Icon(AppIcons.delete, color: AppTheme.error, size: 20),
+                                    onPressed: () => setModalState(() => itemRows.removeAt(idx)),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => setModalState(() => itemRows.add(_ItemRow())),
+                  icon: const Icon(AppIcons.add, size: 18),
+                  label: const Text('Ajouter article'),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                ),
+                const SizedBox(height: AppTheme.spacingM),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                    ),
+                    onPressed: () => _submitSale(paymentMethod, itemRows, ctx),
+                    child: Text(
+                      'Enregistrer la vente',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showProductPicker(BuildContext ctx, StateSetter setModalState, _ItemRow row, List<_ItemRow> itemRows) {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
+      ),
+      builder: (pickerCtx) => StatefulBuilder(
+        builder: (pickerCtx, setPickerState) {
+          final filtered = _products.where((p) =>
+            p.name.toLowerCase().contains(searchQuery.toLowerCase())
+          ).toList();
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(pickerCtx).viewInsets.bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(AppTheme.spacingM),
+                  child: TextField(
+                    autofocus: true,
+                    style: GoogleFonts.inter(fontSize: 15),
+                    decoration: InputDecoration(
+                      hintText: 'Rechercher...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                      isDense: true,
+                    ),
+                    onChanged: (v) => setPickerState(() => searchQuery = v),
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filtered.length,
+                    itemBuilder: (pickerCtx, i) {
+                      final p = filtered[i];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                          child: Text(
+                            p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
+                            style: GoogleFonts.inter(color: AppTheme.primary, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        title: Text(p.name, style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                        subtitle: Text(
+                          '${p.type} · ${p.price?.toStringAsFixed(0) ?? '?'} DA',
+                          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12),
+                        ),
+                        onTap: () {
+                          Navigator.pop(pickerCtx);
+                          setModalState(() {
+                            row.productCtrl.text = p.id.toString();
+                            row.selectedProductName = p.name;
+                            row.selectedProductPrice = p.price;
+                            row.priceCtrl.text = p.price?.toStringAsFixed(0) ?? '';
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -245,7 +381,12 @@ class _SalesScreenState extends State<SalesScreen> {
       _load();
     } on ApiException catch (e) {
       if (ctx.mounted) {
-        ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(e.message)));
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.error,
+            content: Text(e.message, style: GoogleFonts.inter(color: Colors.white)),
+          ),
+        );
       }
     }
   }
@@ -255,4 +396,6 @@ class _ItemRow {
   final productCtrl = TextEditingController();
   final qtyCtrl = TextEditingController();
   final priceCtrl = TextEditingController();
+  String? selectedProductName;
+  double? selectedProductPrice;
 }

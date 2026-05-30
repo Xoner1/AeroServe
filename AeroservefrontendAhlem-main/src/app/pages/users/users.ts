@@ -36,7 +36,7 @@ export class Users implements OnInit {
   avatarPreview: string | null = null;
   currentUser: any;
 
-  // 🟢 PAGINATION
+  //  PAGINATION
   page = 1;
   pageSize = 5;
 
@@ -64,7 +64,7 @@ export class Users implements OnInit {
       role_id: [null, Validators.required],
       status: [USER_STATUS.ACTIVE, Validators.required],
       phone: ['', Validators.required],
-      avatar: [null] // 🟢 ADD AVATAR FIELD
+      avatar: [null] //  ADD AVATAR FIELD
     });
   }
 
@@ -197,7 +197,7 @@ export class Users implements OnInit {
       text: 'Cette action est irréversible !',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#C0483A',
       cancelButtonColor: '#4b5563',
       confirmButtonText: 'Oui, supprimer !',
       cancelButtonText: 'Annuler'
@@ -209,7 +209,7 @@ export class Users implements OnInit {
               title: 'Supprimé !',
               text: 'L\'utilisateur a été supprimé.',
               icon: 'success',
-              confirmButtonColor: '#b22222'
+              confirmButtonColor: '#6B8F71'
             });
             this.loadUsers();
           },
@@ -218,7 +218,7 @@ export class Users implements OnInit {
               title: 'Erreur',
               text: err.error?.message || 'Erreur lors de la suppression.',
               icon: 'error',
-              confirmButtonColor: '#b22222'
+              confirmButtonColor: '#6B8F71'
             });
           }
         });

@@ -1,10 +1,14 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../core/services/auth.service';
 import { NotificationService } from '../core/services/notification.service';
-import { User } from '../core/models';
+import { WebSocketService } from '../core/services/websocket.service';
+import { ApiService } from '../core/services/api.service';
+import { User, Notification } from '../core/models';
 import { environment } from '../../environments/environment';
+import { AppIconComponent } from '../shared/icon/app-icon.component';
 
 interface NavItem {
   label: string;
@@ -19,169 +23,78 @@ interface NavItem {
   styleUrls: ['./layout.component.scss'],
   templateUrl: './layout.component.html',
 
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, AppIconComponent],
 
 })
-export class LayoutComponent implements OnInit {
+export class LayoutComponent implements OnInit, OnDestroy {
   sidebarCollapsed = false;
   showNotifications = false;
   showUserMenu = false;
   user: User | null = null;
   unreadCount = 0;
+  notifications: Notification[] = [];
+  mobileSidebarOpen = false;
+  wsConnected = false;
+
+  toggleMobileSidebar(): void {
+    this.mobileSidebarOpen = !this.mobileSidebarOpen;
+  }
 
   navItems: NavItem[] = [
 
-  /* =========================
-     SUPER ADMIN
-  ========================= */
-  {
-    label: 'Dashboard',
-    icon: '📊',
-    route: '/dashboard',
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    label: 'Users',
-    icon: '👥',
-    route: '/users',
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    label: 'Caissier Approval',
-    icon: '',
-    route: '/caissiers-approval',
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    label: 'Points of Sales',
-    icon: '🏪',
-    route: '/points-de-vente',
-    roles: ['SUPER_ADMIN']
-  },
-  {
-    label: 'Profile',
-    icon: '👤',
-    route: '/profile',
-    roles: ['SUPER_ADMIN']
-  },
+  /* ─── SUPER_ADMIN ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN'] },
+  { label: 'Users', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
+  { label: 'Caissier Approval', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN'] },
+  { label: 'Points of Sales', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
+  { label: 'Products', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN'] },
+  { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN'] },
+  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN'] },
+  { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN'] },
+  { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN'] },
+  { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN'] },
+  { label: 'Category', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN'] },
+  { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['SUPER_ADMIN'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN'] },
 
-  /* =========================
-     RESPONSABLE FB
-  ========================= */
-  {
-    label: 'Dashboard',
-    icon: '📊',
-    route: '/dashboard',
-    roles: ['RESPONSABLE_FB']
-  },
-  {
-    label: 'Caissier',
-    icon: '💳',
-    route: '/caissier',
-    roles: ['RESPONSABLE_FB']
-  },
-  {
-    label: 'Internal Commands',
-    icon: '📝',
-    route: '/internal-orders',
-    roles: ['RESPONSABLE_FB']
-  },
-  {
-    label: 'Planning',
-    icon: '📅',
-    route: '/plannings',
-    roles: ['RESPONSABLE_FB']
-  },
+  /* ─── RESPONSABLE_FB ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['RESPONSABLE_FB'] },
+  { label: 'Caissier', icon: 'UserCog', route: '/caissier', roles: ['RESPONSABLE_FB'] },
+  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['RESPONSABLE_FB'] },
+  { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['RESPONSABLE_FB'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['RESPONSABLE_FB'] },
 
-  /* =========================
-     CHEF CUISINE
-  ========================= */
-  {
-    label: 'Menus',
-    icon: '🍽️',
-    route: '/menus',
-    roles: ['CHEF_CUISINE']
-  },
-  {
-    label: 'Products',
-    icon: '📦',
-    route: '/products',
-    roles: ['CHEF_CUISINE']
-  },
-  {
-    label: 'Dashboard',
-    icon: '📊',
-    route: '/dashboard',
-    roles: ['CHEF_CUISINE']
-  },
-  {
-    label: 'Internal Commands',
-    icon: '📝',
-    route: '/internal-orders',
-    roles: ['CHEF_CUISINE']
-  },
+  /* ─── CHEF_CUISINE ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['CHEF_CUISINE'] },
+  { label: 'Products', icon: 'Package', route: '/products', roles: ['CHEF_CUISINE'] },
+  { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['CHEF_CUISINE'] },
+  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['CHEF_CUISINE'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['CHEF_CUISINE'] },
 
-  /* =========================
-     CHEF MAGASIN
-  ========================= */
-  {
-    label: 'Products',
-    icon: '📦',
-    route: '/products',
-    roles: ['CHEF_MAGASIN']
-  },
-  {
-    label: 'Stocks',
-    icon: '📋',
-    route: '/stocks',
-    roles: ['CHEF_MAGASIN']
-  },
-  {
-    label: 'Internal Commands',
-    icon: '📝',
-    route: '/internal-orders',
-    roles: ['CHEF_MAGASIN']
-  },
-  {
-    label: 'Dashboard',
-    icon: '📊',
-    route: '/dashboard',
-    roles: ['CHEF_MAGASIN']
-  },
+  /* ─── CHEF_MAGASIN ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['CHEF_MAGASIN'] },
+  { label: 'Products', icon: 'Package', route: '/products', roles: ['CHEF_MAGASIN'] },
+  { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['CHEF_MAGASIN'] },
+  { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['CHEF_MAGASIN'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['CHEF_MAGASIN'] },
 
-  /* =========================
-     RESPONSABLE ACHAT
-  ========================= */
-  {
-    label: 'Dashboard',
-    icon: '📊',
-    route: '/dashboard',
-    roles: ['RESPONSABLE_ACHAT']
-  },
-  {
-    label: 'Category',
-    icon: '📂',
-    route: '/category',
-    roles: ['RESPONSABLE_ACHAT']
-  },
-  {
-    label: 'Products Validation',
-    icon: '✔️',
-    route: '/products-validation',
-    roles: ['RESPONSABLE_ACHAT']
-  },
-  {
-    label: 'Products',
-    icon: '📦',
-    route: '/products',
-    roles: ['RESPONSABLE_ACHAT']
-  },
-  {
-    label: 'Reports',
-    icon: '📑',
-    route: '/reports',
-    roles: ['RESPONSABLE_ACHAT']
-  }
+  /* ─── RESPONSABLE_ACHAT ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['RESPONSABLE_ACHAT'] },
+  { label: 'Category', icon: 'Tag', route: '/category', roles: ['RESPONSABLE_ACHAT'] },
+  { label: 'Products Validation', icon: 'CheckCircle', route: '/products-validation', roles: ['RESPONSABLE_ACHAT'] },
+  { label: 'Products', icon: 'Package', route: '/products', roles: ['RESPONSABLE_ACHAT'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['RESPONSABLE_ACHAT'] },
+
+  /* ─── RESPONSABLE_HYGIENE ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['RESPONSABLE_HYGIENE'] },
+  { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['RESPONSABLE_HYGIENE'] },
+  { label: 'Products', icon: 'Package', route: '/products', roles: ['RESPONSABLE_HYGIENE'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['RESPONSABLE_HYGIENE'] },
+
+  /* ─── CAISSIER ─── */
+  { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['CAISSIER'] },
+  { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['CAISSIER'] },
+  { label: 'Profile', icon: 'User', route: '/profile', roles: ['CAISSIER'] },
 
 ];
 get filteredNavItems(): NavItem[] {
@@ -192,13 +105,46 @@ get filteredNavItems(): NavItem[] {
 }
 
 
-  constructor(private auth: AuthService, private notifService: NotificationService) {}
+  avatarLoadFailed = false;
+
+  private router = inject(Router);
+
+  // ─── Chatbot ─────────────────────────────────────────────────────────────────
+  showChatbot = false;
+  chatbotMessages: { sender: 'user' | 'bot'; text: string }[] = [];
+  chatbotInput = '';
+  chatbotLoading = false;
+
+  constructor(
+    private auth: AuthService,
+    private notifService: NotificationService,
+    private api: ApiService,
+    private ws: WebSocketService
+  ) {}
 
   ngOnInit(): void {
     this.user = this.auth.getCurrentUser();
-    this.auth.currentUser$.subscribe(u => this.user = u);
+    this.auth.currentUser$.subscribe(u => {
+      this.user = u;
+      this.avatarLoadFailed = false;
+    });
     this.notifService.unreadCount$.subscribe(c => this.unreadCount = c);
     this.notifService.loadUnreadCount();
+    this.notifService.connectWebSocket();
+    this.ws.connectionStatus$.subscribe(connected => this.wsConnected = connected);
+    this.notifService.notifications$.subscribe(notifs => {
+      const current = this.notifications;
+      for (const n of notifs) {
+        if (!current.find(ex => ex.id === n.id)) {
+          current.unshift(n);
+        }
+      }
+      this.notifications = current.slice(0, 50);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.notifService.disconnectWebSocket();
   }
 
   getInitials(): string {
@@ -216,8 +162,7 @@ get filteredNavItems(): NavItem[] {
   }
 
   onAvatarError(event: Event): void {
-    const img = event.target as HTMLImageElement;
-    img.style.display = 'none';
+    this.avatarLoadFailed = true;
   }
 
   getPageTitle(): string {
@@ -236,12 +181,45 @@ get filteredNavItems(): NavItem[] {
     '/plannings': 'Planning',
     '/category': 'Category',
     '/reports': 'Reports',
+    '/hygiene-reports': 'Hygiene Reports',
   };
 
   const path = '/' + (window.location.pathname.split('/')[1] || 'dashboard');
 
   return titles[path] || 'AeroServe';
 }
+  toggleChatbot(): void {
+    this.showChatbot = !this.showChatbot;
+    if (this.showChatbot && this.chatbotMessages.length === 0) {
+      this.chatbotMessages = [
+        { sender: 'bot', text: `Bonjour ! Je suis l'assistant AeroServe. Posez-moi vos questions sur les produits, les stocks, les commandes ou tout autre sujet.` }
+      ];
+    }
+  }
+
+  sendChatbotMessage(): void {
+    if (!this.chatbotInput.trim() || this.chatbotLoading) return;
+    const userMsg = this.chatbotInput.trim();
+    this.chatbotMessages.push({ sender: 'user', text: userMsg });
+    this.chatbotInput = '';
+    this.chatbotLoading = true;
+    this.api.post<any>('chatbot/ask', { message: userMsg }).subscribe({
+      next: (res) => {
+        this.chatbotMessages.push({ sender: 'bot', text: res.response });
+        this.chatbotLoading = false;
+      },
+      error: () => {
+        this.chatbotMessages.push({ sender: 'bot', text: "Désolé, je rencontre des difficultés pour me connecter au service pour le moment." });
+        this.chatbotLoading = false;
+      }
+    });
+  }
+
+  askQuickQuestion(question: string): void {
+    this.chatbotInput = question;
+    this.sendChatbotMessage();
+  }
+
   onLogout(): void {
     this.auth.logout();
   }
@@ -254,8 +232,61 @@ get filteredNavItems(): NavItem[] {
     this.showUserMenu = false;
   }
 
+  toggleNotifications(event: Event): void {
+    event.stopPropagation();
+    this.showNotifications = !this.showNotifications;
+    if (this.showNotifications) {
+      this.loadNotifications();
+      this.showUserMenu = false;
+    }
+  }
+
+  loadNotifications(): void {
+    this.notifService.getAll().subscribe((res: any) => {
+      if (res && Array.isArray(res.data)) {
+        this.notifications = res.data;
+      } else if (Array.isArray(res)) {
+        this.notifications = res;
+      } else {
+        this.notifications = [];
+      }
+    });
+  }
+
+  markAsRead(event: Event, notif: Notification): void {
+    event.stopPropagation();
+    if (!notif.is_read) {
+      this.notifService.markAsRead(notif.id).subscribe(() => {
+        notif.is_read = true;
+        this.notifService.loadUnreadCount();
+      });
+    }
+  }
+
+  navigateToNotification(notif: Notification): void {
+    this.showNotifications = false;
+    let route = '/dashboard';
+    if (notif.data?.route) {
+      route = notif.data.route;
+    } else if (notif.data?.order_id) {
+      route = '/internal-orders';
+    } else if (notif.type === 'warning' || notif.type === 'alert') {
+      route = '/stocks';
+    }
+    this.router.navigateByUrl(route);
+  }
+
+  markAllAsRead(event: Event): void {
+    event.stopPropagation();
+    this.notifService.markAllAsRead().subscribe(() => {
+      this.notifications.forEach(n => n.is_read = true);
+      this.notifService.loadUnreadCount();
+    });
+  }
+
   @HostListener('document:click')
   onDocumentClick(): void {
     this.showUserMenu = false;
+    this.showNotifications = false;
   }
 }

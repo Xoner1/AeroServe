@@ -25,13 +25,13 @@
 <!-- ================= FORM MESSAGES ================= -->
 @if (successMessage) {
   <div class="form-success">
-    ✅ {{ successMessage }}
+     {{ successMessage }}
   </div>
 }
 
 @if (formError) {
   <div class="form-error">
-    ❌ {{ formError }}
+     {{ formError }}
   </div>
 }
   <!-- ================= TABLE ================= -->
@@ -78,8 +78,8 @@
             </td>
 
             <td class="actions">
-              <button class="btn-icon edit" (click)="editUser(user)">✏️</button>
-              <button class="btn-icon danger" (click)="deleteUser(user.id)">🗑️</button>
+              <button class="btn-icon edit" (click)="editUser(user)"></button>
+              <button class="btn-icon danger" (click)="deleteUser(user.id)"></button>
             </td>
 
           </tr>
@@ -126,7 +126,7 @@
 
         <div class="wizard-page">
 
-          <h4>👤 User Information</h4>
+          <h4> User Information</h4>
 
           <div class="form-row">
             <div class="form-group">
@@ -152,7 +152,7 @@
 
           <div class="wizard-actions">
             <button type="button" class="btn-primary" (click)="step = 2">
-              Next ➜
+              Next >
             </button>
           </div>
 
@@ -165,7 +165,7 @@
 
         <div class="wizard-page">
 
-          <h4>🔐 Account Settings</h4>
+          <h4> Account Settings</h4>
 
           @if (!editing) {
             <div class="form-group">
@@ -175,7 +175,7 @@
                      formControlName="password">
 
               <button type="button" (click)="togglePassword()">
-                {{ showPassword ? '🙈' : '👁️' }}
+                {{ showPassword ? '' : '' }}
               </button>
             </div>
           }
@@ -211,7 +211,7 @@
             <button type="button"
                     class="btn-secondary"
                     (click)="step = 1">
-              ⬅ Back
+               Back
             </button>
 
             <button type="submit" class="btn-primary">

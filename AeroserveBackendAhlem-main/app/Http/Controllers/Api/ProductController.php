@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -89,16 +90,32 @@ class ProductController extends Controller
         }
 
         // CHECK TYPE vs CATEGORY
-        $category = Category::find($request->category_id);
-        if ($category && $category->type !== $request->type) {
+        if ($request->filled('category_id')) {
+            $category = Category::find($request->category_id);
+            if ($category && $category->type !== $request->type) {
+                return response()->json([
+                    'message' => 'Le type du produit ne correspond pas à la catégorie.'
+                ], 422);
+            }
+        } elseif ($request->type !== 'food') {
             return response()->json([
-                'message' => 'Le type du produit ne correspond pas à la catégorie.'
+                'message' => 'La catégorie est obligatoire pour ce type de produit.'
             ], 422);
         }
 
-        $data = $request->only(['name', 'description', 'type', 'category_id']);
+        $data = $request->only(['name', 'description', 'type']);
         $data['created_by'] = $user->id;
         $data['approval_status'] = 'pending';
+
+        if ($request->filled('category_id')) {
+            $data['category_id'] = $request->category_id;
+        } elseif ($request->type === 'food') {
+            // Auto-assign first food category for food products
+            $foodCategory = Category::where('type', 'food')->first();
+            if ($foodCategory) {
+                $data['category_id'] = $foodCategory->id;
+            }
+        }
 
         // Only add price/allergens/expiration if role allows it
         if (!in_array($role, ['CHEF_MAGASIN', 'CHEF_CUISINE'])) {
@@ -109,6 +126,50 @@ class ProductController extends Controller
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        if ($request->has('ingredients')) {
+            $stockIssues = [];
+            $approvalIssues = [];
+            foreach ($request->ingredients as $ingredient) {
+                $ingredientProduct = Product::with('stock')->find($ingredient['product_id']);
+                if (!$ingredientProduct) {
+                    $stockIssues[] = [
+                        'product' => 'Inconnu (ID: ' . $ingredient['product_id'] . ')',
+                        'reason' => 'Produit introuvable',
+                    ];
+                    continue;
+                }
+
+                // Check that ingredient is APPROVED
+                if ($ingredientProduct->approval_status !== 'approved') {
+                    $approvalIssues[] = $ingredientProduct->name;
+                }
+
+                // Check stock sufficiency
+                $stockQty = $ingredientProduct->stock ? $ingredientProduct->stock->quantity : 0;
+                if ($stockQty < $ingredient['quantity']) {
+                    $stockIssues[] = [
+                        'product' => $ingredientProduct->name,
+                        'required' => $ingredient['quantity'],
+                        'available' => $stockQty,
+                    ];
+                }
+            }
+
+            if (count($approvalIssues) > 0) {
+                return response()->json([
+                    'message' => 'Les ingrédients doivent être approuvés.',
+                    'unapproved_ingredients' => $approvalIssues,
+                ], 422);
+            }
+
+            if (count($stockIssues) > 0) {
+                return response()->json([
+                    'message' => 'Stock insuffisant pour les ingrédients.',
+                    'stock_issues' => $stockIssues,
+                ], 422);
+            }
         }
 
         $product = Product::create($data);
@@ -349,6 +410,39 @@ class ProductController extends Controller
             'ingredients.*.unit' => 'sometimes|string',
         ]);
 
+        // Check stock and approval status for each ingredient
+        $stockIssues = [];
+        $approvalIssues = [];
+        foreach ($request->ingredients as $ingredient) {
+            $ingredientProduct = Product::with('stock')->find($ingredient['product_id']);
+            if ($ingredientProduct && $ingredientProduct->approval_status !== 'approved') {
+                $approvalIssues[] = $ingredientProduct->name;
+            }
+            if ($ingredientProduct && $ingredientProduct->stock) {
+                if ($ingredientProduct->stock->quantity < $ingredient['quantity']) {
+                    $stockIssues[] = [
+                        'product' => $ingredientProduct->name,
+                        'required' => $ingredient['quantity'],
+                        'available' => $ingredientProduct->stock->quantity,
+                    ];
+                }
+            }
+        }
+
+        if (count($approvalIssues) > 0) {
+            return response()->json([
+                'message' => 'Les ingrédients doivent être approuvés.',
+                'unapproved_ingredients' => $approvalIssues,
+            ], 422);
+        }
+
+        if (count($stockIssues) > 0) {
+            return response()->json([
+                'message' => 'Stock insuffisant pour les ingrédients de la recette.',
+                'stock_issues' => $stockIssues,
+            ], 422);
+        }
+
         $syncData = [];
         foreach ($request->ingredients as $ingredient) {
             $syncData[$ingredient['product_id']] = [
@@ -378,10 +472,26 @@ class ProductController extends Controller
             'code' => 'nullable|string|max:50|unique:categories,code',
         ]);
 
+        $code = $request->code;
+        if (empty($code)) {
+            $prefix = match($request->type) {
+                'commercial' => 'COM',
+                'matiere_premiere' => 'MAT',
+                'food' => 'FOOD',
+            };
+            $code = $prefix . '_' . strtoupper(\Illuminate\Support\Str::slug($request->name, '_'));
+            // Ensure unique code
+            $counter = 1;
+            $originalCode = $code;
+            while (Category::where('code', $code)->exists()) {
+                $code = $originalCode . '_' . $counter++;
+            }
+        }
+
         $category = Category::create([
             'name' => $request->name,
             'type' => $request->type,
-            'code' => $request->code,
+            'code' => $code,
         ]);
 
         return response()->json([
@@ -407,6 +517,11 @@ class ProductController extends Controller
 
     public function destroyCategory(Category $category): JsonResponse
     {
+        if ($category->products()->count() > 0) {
+            return response()->json([
+                'message' => 'Impossible de supprimer une catégorie qui contient des produits.'
+            ], 422);
+        }
         $category->delete();
         return response()->json(['message' => 'Catégorie supprimée.']);
     }

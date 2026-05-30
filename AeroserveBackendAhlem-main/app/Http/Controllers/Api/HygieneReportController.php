@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\HygieneReport;
+use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,6 +37,16 @@ class HygieneReportController extends Controller
             'inspected_by' => auth()->id(),
         ]);
 
+        // Notify relevant roles on non-conforme reports
+        if ($request->status === 'non_conforme') {
+            $this->notifyRoles(
+                'Rapport d\'hygiène non conforme',
+                "Le produit #{$request->product_id} a été signalé non conforme.",
+                'alert',
+                ['report_id' => $report->id, 'product_id' => $request->product_id]
+            );
+        }
+
         return response()->json([
             'message' => 'Rapport d\'hygiène créé.',
             'report' => $report->load('product', 'inspector'),
@@ -55,9 +67,20 @@ class HygieneReportController extends Controller
             'remarks' => 'sometimes|nullable|string|max:1000',
         ]);
 
+        $oldStatus = $hygieneReport->status;
         $hygieneReport->update($request->only([
             'allergens_verified', 'expiration_verified', 'status', 'remarks',
         ]));
+
+        // Notify if status changed to non_conforme
+        if ($hygieneReport->status === 'non_conforme' && $oldStatus !== 'non_conforme') {
+            $this->notifyRoles(
+                'Non-conformité hygiène',
+                "Le produit #{$hygieneReport->product_id} est désignalé non conforme.",
+                'alert',
+                ['report_id' => $hygieneReport->id, 'product_id' => $hygieneReport->product_id]
+            );
+        }
 
         return response()->json([
             'message' => 'Rapport mis à jour.',
@@ -70,5 +93,24 @@ class HygieneReportController extends Controller
         $hygieneReport->delete();
 
         return response()->json(['message' => 'Rapport supprimé.']);
+    }
+
+    private function notifyRoles(string $title, string $message, string $type, array $data = []): void
+    {
+        $roles = ['CHEF_MAGASIN', 'CHEF_CUISINE', 'RESPONSABLE_ACHAT'];
+        $users = User::whereHas('role', function ($q) use ($roles) {
+            $q->whereIn('name', $roles);
+        })->get();
+
+        foreach ($users as $user) {
+            Notification::create([
+                'user_id' => $user->id,
+                'title' => $title,
+                'message' => $message,
+                'type' => $type,
+                'is_read' => false,
+                'data' => $data,
+            ]);
+        }
     }
 }

@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 
 import { User } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-profile',
@@ -85,7 +86,11 @@ export class ProfileComponent implements OnInit {
     if (this.previewAvatar) {
       this.avatarUrl = this.previewAvatar;
     } else if (this.user?.avatar_url) {
-      this.avatarUrl = `${this.user.avatar_url}?v=${Date.now()}`;
+      const baseUrl = environment.apiUrl.replace('/api', '');
+      const url = this.user.avatar_url.startsWith('http')
+        ? this.user.avatar_url
+        : `${baseUrl}/${this.user.avatar_url.replace(/^\//, '')}`;
+      this.avatarUrl = `${url}?v=${Date.now()}`;
     } else {
       this.avatarUrl = 'assets/default-avatar.jpg';
     }

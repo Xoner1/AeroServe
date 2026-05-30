@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(find /Users/fakhreddinefarhat/ -maxdepth 4 -name '*AeroServe*' -not -path '*/node_modules/*' -not -path '*/.git/*' 2>/dev/null | head -30)",
-      "Read(//Users/fakhreddinefarhat/**)"
-    ]
-  }
-}

@@ -149,7 +149,7 @@ import { PointDeVente, Airport } from '../../core/models';
       margin: 0; 
       font-size: 26px; 
       font-weight: 700; 
-      color: #0f172a; 
+      color: #1A1D1B; 
     }
     
     .alert {
@@ -162,15 +162,15 @@ import { PointDeVente, Airport } from '../../core/models';
     }
     
     .alert.success {
-      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-      color: #16a34a;
-      border: 1px solid rgba(22, 163, 74, 0.1);
+      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
+      color: #6B8F71;
+      border: 1px solid rgba(107, 131, 116, 0.1);
     }
     
     .alert.error {
-      background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-      color: #dc2626;
-      border: 1px solid rgba(220, 38, 38, 0.1);
+      background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%);
+      color: #C0483A;
+      border: 1px solid rgba(194, 115, 115, 0.1);
     }
     
     @keyframes fadeIn {
@@ -207,8 +207,8 @@ import { PointDeVente, Airport } from '../../core/models';
     
     .pdv-card:hover {
       transform: translateY(-6px);
-      border-color: #b22222;
-      box-shadow: 0 20px 40px rgba(178, 34, 34, 0.15);
+      border-color: #2C3E35;
+      box-shadow: 0 20px 40px rgba(29, 35, 31, 0.15);
     }
     
     .pdv-header {
@@ -228,15 +228,15 @@ import { PointDeVente, Airport } from '../../core/models';
     }
     
     .status.active {
-      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-      color: #16a34a;
-      border: 1px solid rgba(22, 163, 74, 0.1);
+      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
+      color: #6B8F71;
+      border: 1px solid rgba(107, 131, 116, 0.1);
     }
     
     .status.inactive {
-      background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-      color: #dc2626;
-      border: 1px solid rgba(220, 38, 38, 0.1);
+      background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%);
+      color: #C0483A;
+      border: 1px solid rgba(194, 115, 115, 0.1);
     }
     
     .pdv-card h3 {
@@ -249,7 +249,7 @@ import { PointDeVente, Airport } from '../../core/models';
     .responsable {
       font-size: 13px;
       font-weight: 600;
-      color: #b22222;
+      color: #2C3E35;
       margin-top: 8px;
       display: flex;
       align-items: center;
@@ -267,9 +267,9 @@ import { PointDeVente, Airport } from '../../core/models';
       border-radius: 10px;
       font-size: 12px;
       font-weight: 700;
-      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-      color: #16a34a;
-      border: 1px solid rgba(22, 163, 74, 0.1);
+      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
+      color: #6B8F71;
+      border: 1px solid rgba(107, 131, 116, 0.1);
     }
     
     .pdv-actions {
@@ -282,7 +282,7 @@ import { PointDeVente, Airport } from '../../core/models';
       flex: 1;
       padding: 8px 14px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%);
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -293,14 +293,14 @@ import { PointDeVente, Airport } from '../../core/models';
     
     .btn-edit:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(178, 34, 34, 0.2);
+      box-shadow: 0 6px 12px rgba(29, 35, 31, 0.2);
     }
     
     .btn-delete {
       flex: 1;
       padding: 8px 14px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      background: linear-gradient(135deg, #ef4444 0%, #C0483A 100%);
       color: #fff;
       font-size: 13px;
       font-weight: 700;
@@ -311,25 +311,25 @@ import { PointDeVente, Airport } from '../../core/models';
     
     .btn-delete:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(220, 38, 38, 0.2);
+      box-shadow: 0 6px 12px rgba(194, 115, 115, 0.2);
     }
     
     .btn-primary {
       padding: 10px 22px;
       border-radius: 12px;
-      background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%);
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
       color: #fff;
       font-size: 14px;
       font-weight: 700;
       border: none;
       cursor: pointer;
-      box-shadow: 0 8px 16px rgba(178, 34, 34, 0.2);
+      box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2);
       transition: all 0.2s ease;
     }
     
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(178, 34, 34, 0.3);
+      box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3);
     }
     
     .modal-overlay {
@@ -352,7 +352,7 @@ import { PointDeVente, Airport } from '../../core/models';
       max-height: 90vh;
       overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(178, 34, 34, 0.1);
+      border: 1px solid rgba(29, 35, 31, 0.1);
     }
     
     .modal h3 {
@@ -397,9 +397,9 @@ import { PointDeVente, Airport } from '../../core/models';
     }
     
     input:focus, select:focus {
-      border-color: #b22222;
-      box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
-      background: #fff9f9;
+      border-color: #2C3E35;
+      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1);
+      background: #EDE9E2;
       outline: none;
     }
     
@@ -416,7 +416,7 @@ import { PointDeVente, Airport } from '../../core/models';
       padding: 10px 22px;
       border: none;
       background: #f3f4f6;
-      color: #334155;
+      color: #4A4D4B;
       border-radius: 12px;
       font-weight: 700;
       cursor: pointer;
@@ -576,7 +576,7 @@ getResponsableName(pdv: PointDeVente): string {
         <h3 style="margin:0 0 8px;color:#1a1a2e;font-size:18px">Supprimer le point de vente ?</h3>
         <p style="margin:0 0 24px;color:#666;font-size:14px">Cette action est irr&eacute;versible.</p>
         <div style="display:flex;gap:12px;justify-content:center">
-          <button id="_cancel" style="padding:10px 24px;border:2px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:14px">Annuler</button>
+          <button id="_cancel" style="padding:10px 24px;border:2px solid #D8D2C8;border-radius:8px;background:#fff;cursor:pointer;font-size:14px">Annuler</button>
           <button id="_confirm" style="padding:10px 24px;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;font-size:14px">Supprimer</button>
         </div>
       </div>`;

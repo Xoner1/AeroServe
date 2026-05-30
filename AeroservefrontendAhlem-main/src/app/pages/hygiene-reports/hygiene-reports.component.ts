@@ -38,8 +38,8 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
                 <tr>
                   <td>{{ r.product?.name }}</td>
                   <td>{{ r.inspector?.first_name }} {{ r.inspector?.last_name }}</td>
-                  <td>{{ r.allergens_verified ? '✅' : '❌' }}</td>
-                  <td>{{ r.expiration_verified ? '✅' : '❌' }}</td>
+                  <td>{{ r.allergens_verified ? '' : '' }}</td>
+                  <td>{{ r.expiration_verified ? '' : '' }}</td>
                   <td>
                     <span class="badge" [class]="'status-' + r.status">
                       {{ r.status === 'conforme' ? 'Conforme' : r.status === 'non_conforme' ? 'Non conforme' : 'En cours' }}
@@ -47,8 +47,8 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
                   </td>
                   <td>{{ r.created_at | date:'dd/MM/yyyy' }}</td>
                   <td class="actions">
-                    <button class="btn-icon" (click)="editReport(r)">✏️</button>
-                    <button class="btn-icon danger" (click)="deleteReport(r.id)">🗑️</button>
+                    <button class="btn-icon" (click)="editReport(r)"></button>
+                    <button class="btn-icon danger" (click)="deleteReport(r.id)"></button>
                   </td>
                 </tr>
               }
@@ -106,35 +106,35 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
   styles: [`
     .page { display: flex; flex-direction: column; gap: 24px; }
     .page-header { display: flex; justify-content: space-between; align-items: center; padding: 0; }
-    .page-header h2 { margin: 0; font-size: 26px; font-weight: 700; color: #0f172a; }
-    .card { background: #ffffff; border-radius: 22px; padding: 24px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06); border: 1px solid rgba(178, 34, 34, 0.05); }
+    .page-header h2 { margin: 0; font-size: 26px; font-weight: 700; color: #1A1D1B; }
+    .card { background: #ffffff; border-radius: 22px; padding: 24px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06); border: 1px solid rgba(29, 35, 31, 0.05); }
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th { text-align: left; padding: 14px 16px; background: linear-gradient(135deg, #fff8f8 0%, #ffffff 100%); color: #6b7280; font-weight: 700; border-bottom: 2px solid #f1f1f1; text-transform: uppercase; font-size: 12px; letter-spacing: 0.03em; }
-    td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; color: #334155; transition: background 0.2s ease; }
-    tr:hover td { background: rgba(178, 34, 34, 0.02); }
+    td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; color: #4A4D4B; transition: background 0.2s ease; }
+    tr:hover td { background: rgba(29, 35, 31, 0.02); }
     .actions { display: flex; gap: 8px; }
     .badge { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; }
-    .status-conforme { background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.1); }
-    .status-non_conforme { background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%); color: #dc2626; border: 1px solid rgba(220, 38, 38, 0.1); }
-    .status-en_cours { background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.1); }
+    .status-conforme { background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%); color: #6B8F71; border: 1px solid rgba(107,131,116, 0.1); }
+    .status-non_conforme { background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%); color: #C0483A; border: 1px solid rgba(194,115,115, 0.1); }
+    .status-en_cours { background: linear-gradient(135deg, #F5EDE4 0%, #ffffff 100%); color: #D4924A; border: 1px solid rgba(212,163,115, 0.1); }
     .btn-icon { background: none; border: none; cursor: pointer; font-size: 16px; padding: 6px 8px; border-radius: 8px; transition: all 0.2s ease; }
-    .btn-icon:hover { background: rgba(178, 34, 34, 0.1); transform: scale(1.1); }
-    .btn-icon.danger:hover { background: rgba(220, 38, 38, 0.1); }
+    .btn-icon:hover { background: rgba(29, 35, 31, 0.1); transform: scale(1.1); }
+    .btn-icon.danger:hover { background: rgba(194,115,115, 0.1); }
     .btn { padding: 10px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; }
-    .btn-primary { background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%); color: #fff; box-shadow: 0 8px 16px rgba(178, 34, 34, 0.2); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(178, 34, 34, 0.3); }
-    .btn-secondary { background: #f3f4f6; color: #334155; }
+    .btn-primary { background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%); color: #fff; box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3); }
+    .btn-secondary { background: #f3f4f6; color: #4A4D4B; }
     .btn-secondary:hover { background: #e5e7eb; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
-    .modal { background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); border: 1px solid rgba(178, 34, 34, 0.1); }
+    .modal { background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); border: 1px solid rgba(29, 35, 31, 0.1); }
     .modal h3 { margin: 0 0 24px; font-size: 22px; font-weight: 700; color: #111827; }
     .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
     .form-group label { font-size: 14px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 6px; }
     .form-group label input[type="checkbox"] { cursor: pointer; }
     .form-group input[type="number"], .form-group select, .form-group textarea { padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; color: #111827; transition: all 0.2s ease; }
     .form-group input::placeholder, .form-group select::placeholder, .form-group textarea::placeholder { color: #9ca3af; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #b22222; box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1); background: #fff9f9; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #2C3E35; box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1); background: #EDE9E2; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 24px; border-top: 1px solid #f3f4f6; }
   `]

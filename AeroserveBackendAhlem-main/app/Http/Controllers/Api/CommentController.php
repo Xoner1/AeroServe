@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
+use App\Models\InternalOrder;
 use App\Models\Notification;
+use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +25,48 @@ class CommentController extends Controller
             'internal_order' => \App\Models\InternalOrder::class,
             'product' => \App\Models\Product::class,
         ];
+
+        // Strict F&B order comment security checks
+        if ($request->commentable_type === 'internal_order') {
+            $order = \App\Models\InternalOrder::find($request->commentable_id);
+            if (!$order) {
+                return response()->json(['message' => 'Commande introuvable.'], 404);
+            }
+            $userRole = auth()->user()->role?->name;
+            if ($userRole === 'RESPONSABLE_FB') {
+                return response()->json([
+                    'message' => 'Le Responsable F&B n\'est pas autorisé à ajouter des commentaires sur les commandes.'
+                ], 403);
+            }
+            if (!in_array($userRole, ['CHEF_CUISINE', 'CHEF_MAGASIN', 'SUPER_ADMIN'])) {
+                return response()->json([
+                    'message' => 'Seuls le Chef Cuisine et le Chef Magasin concernés sont autorisés à commenter cette commande.'
+                ], 403);
+            }
+            // Participant-based check: user must be creator or assignee of this order
+            $allowedUserIds = array_filter([$order->created_by, $order->assigned_to]);
+            if (!in_array(auth()->id(), $allowedUserIds) && $userRole !== 'SUPER_ADMIN') {
+                return response()->json([
+                    'message' => 'Vous n\'êtes pas un participant à cette commande.'
+                ], 403);
+            }
+        }
+
+        // Product comment security: only admins, responsible_achat, chefs, or product creator can post
+        if ($request->commentable_type === 'product') {
+            $product = \App\Models\Product::find($request->commentable_id);
+            if (!$product) {
+                return response()->json(['message' => 'Produit introuvable.'], 404);
+            }
+            $userRole = auth()->user()->role?->name;
+            $isCreator = $product->created_by === auth()->id();
+            $hasPrivilege = in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_ACHAT', 'CHEF_CUISINE', 'CHEF_MAGASIN']);
+            if (!$isCreator && !$hasPrivilege) {
+                return response()->json([
+                    'message' => 'Vous n\'êtes pas autorisé à commenter ce produit.'
+                ], 403);
+            }
+        }
 
         $comment = Comment::create([
             'user_id' => auth()->id(),
@@ -109,12 +153,37 @@ class CommentController extends Controller
             'product' => \App\Models\Product::class,
         ];
 
+        $user = auth()->user();
+        $role = $user->role?->name;
+
         $comments = Comment::where('commentable_type', $typeMap[$request->commentable_type])
             ->where('commentable_id', $request->commentable_id)
             ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
 
-        return response()->json($comments);
+        // Role-based filtering for internal order comments
+        if ($request->commentable_type === 'internal_order' && $role !== 'SUPER_ADMIN') {
+            $order = InternalOrder::find($request->commentable_id);
+            if ($order) {
+                // Only order participants (creator, assignee) + CHEF_CUISINE/CHEF_MAGASIN can see comments
+                $allowedUserIds = array_filter([$order->created_by, $order->assigned_to]);
+                if (!in_array($user->id, $allowedUserIds)) {
+                    // Return empty - user is not a participant
+                    return response()->json([]);
+                }
+                // Only show comments from participants
+                $comments = $comments->whereIn('user_id', $allowedUserIds);
+            }
+        }
+
+        // Role-based filtering for product comments
+        if ($request->commentable_type === 'product' && !in_array($role, ['SUPER_ADMIN', 'RESPONSABLE_ACHAT', 'CHEF_CUISINE', 'CHEF_MAGASIN'])) {
+            $product = Product::find($request->commentable_id);
+            if ($product && $product->created_by !== $user->id) {
+                return response()->json([]);
+            }
+        }
+
+        return response()->json($comments->get());
     }
 }

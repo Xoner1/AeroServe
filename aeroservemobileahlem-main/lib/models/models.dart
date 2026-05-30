@@ -5,8 +5,9 @@ class User {
   final String email;
   final int? roleId;
   final String? roleName;
+  final String? avatarUrl;
 
-  User({required this.id, required this.firstName, required this.lastName, required this.email, this.roleId, this.roleName});
+  User({required this.id, required this.firstName, required this.lastName, required this.email, this.roleId, this.roleName, this.avatarUrl});
 
   factory User.fromJson(Map<String, dynamic> json) => User(
         id: json['id'],
@@ -15,10 +16,35 @@ class User {
         email: json['email'] ?? '',
         roleId: json['role_id'],
         roleName: json['role'] is Map ? json['role']['name'] : json['role_name'],
+        avatarUrl: json['avatar'] != null
+            ? (json['avatar'].toString().startsWith('http')
+                ? json['avatar']
+                : '${json['avatar']}')
+            : null,
       );
 
   String get fullName => '$firstName $lastName';
   String get initials => '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}'.toUpperCase();
+}
+
+class Product {
+  final int id;
+  final String name;
+  final String type;
+  final double? price;
+  final String? description;
+  final String? approvalStatus;
+
+  Product({required this.id, required this.name, required this.type, this.price, this.description, this.approvalStatus});
+
+  factory Product.fromJson(Map<String, dynamic> json) => Product(
+        id: json['id'],
+        name: json['name'] ?? '',
+        type: json['type'] ?? '',
+        price: json['price'] != null ? (json['price'] as num).toDouble() : null,
+        description: json['description'],
+        approvalStatus: json['approval_status'],
+      );
 }
 
 class Role {
@@ -154,6 +180,10 @@ class DashboardData {
   final int totalUsers;
   final List<Sale> recentSales;
   final List<InternalOrder> recentOrders;
+  final List<dynamic> popularProducts;
+  final List<dynamic> salesByPdv;
+  final double totalSales;
+  final int delayedOrders;
 
   DashboardData({
     required this.todaySales,
@@ -162,6 +192,10 @@ class DashboardData {
     required this.totalUsers,
     required this.recentSales,
     required this.recentOrders,
+    this.popularProducts = const [],
+    this.salesByPdv = const [],
+    this.totalSales = 0,
+    this.delayedOrders = 0,
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> json) => DashboardData(
@@ -171,5 +205,9 @@ class DashboardData {
         totalUsers: json['total_users'] ?? 0,
         recentSales: json['recent_sales'] != null ? (json['recent_sales'] as List).map((e) => Sale.fromJson(e)).toList() : [],
         recentOrders: json['recent_orders'] != null ? (json['recent_orders'] as List).map((e) => InternalOrder.fromJson(e)).toList() : [],
+        popularProducts: json['popular_products'] ?? [],
+        salesByPdv: json['sales_by_pdv'] ?? [],
+        totalSales: (json['total_sales'] ?? 0).toDouble(),
+        delayedOrders: json['delayed_orders'] ?? 0,
       );
 }

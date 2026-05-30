@@ -21,12 +21,27 @@ import { environment } from '../../../environments/environment';
           <h2>Produits</h2>
 
           <div class="header-actions">
-            <select [(ngModel)]="filterType" (ngModelChange)="applyFilter()" class="filter-select">
-              <option value="">Tous les types</option>
-              <option value="commercial">Commercial</option>
-              <option value="matiere_premiere">Matière première</option>
-              <option value="food">Food</option>
-            </select>
+            @if (userRole !== 'CHEF_CUISINE' && userRole !== 'CHEF_MAGASIN') {
+              <select [(ngModel)]="filterType" (ngModelChange)="applyFilter()" class="filter-select">
+                <option value="">Tous les types</option>
+                <option value="commercial">Commercial</option>
+                <option value="matiere_premiere">Matière première</option>
+                <option value="food">Food</option>
+              </select>
+            } @else if (userRole === 'CHEF_CUISINE') {
+              <span class="filter-badge">Food</span>
+            } @else if (userRole === 'CHEF_MAGASIN') {
+              <span class="filter-badge">Commercial + Matière première</span>
+            }
+
+            @if (userRole === 'RESPONSABLE_ACHAT') {
+              <select [(ngModel)]="filterApprovalStatus" (ngModelChange)="applyFilter()" class="filter-select">
+                <option value="">Tous les statuts</option>
+                <option value="EN_ATTENTE">En attente</option>
+                <option value="approved">Approuvé</option>
+                <option value="rejected">Refusé</option>
+              </select>
+            }
 
             <button class="btn btn-primary" (click)="openModal()">+ Ajouter</button>
           </div>
@@ -55,7 +70,7 @@ import { environment } from '../../../environments/environment';
                       @if (p.image) {
                         <img [src]="getImageUrl(p.image)" alt="Product" class="table-product-img" />
                       } @else {
-                        <span class="product-icon">📦</span>
+                        <span class="product-icon"></span>
                       }
                     </td>
                     <td>
@@ -93,8 +108,11 @@ import { environment } from '../../../environments/environment';
                     </td>
 
                     <td class="actions">
-                      <button class="btn-icon" (click)="editProduct(p)">✏️</button>
-                      <button class="btn-icon danger" (click)="deleteProduct(p.id)">🗑️</button>
+                      @if (p.type === 'food') {
+                        <button class="btn-icon assistant-btn" (click)="openChatbot(p)" title="Assistant IA "></button>
+                      }
+                      <button class="btn-icon" (click)="editProduct(p)"></button>
+                      <button class="btn-icon danger" (click)="deleteProduct(p.id)"></button>
                     </td>
                   </tr>
                 }
@@ -122,11 +140,20 @@ import { environment } from '../../../environments/environment';
                   <!-- TYPE -->
                   <div class="form-group">
                     <label>Type</label>
-                    <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type') || isChefCuisine || isChefMagasin">
-                      <option value="commercial">Commercial</option>
-                      <option value="matiere_premiere">Matière première</option>
-                      <option value="food">Food</option>
-                    </select>
+                    @if (isChefCuisine) {
+                      <input value="Food" disabled class="form-input-locked" />
+                    } @else if (isChefMagasin) {
+                      <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
+                        <option value="commercial">Commercial</option>
+                        <option value="matiere_premiere">Matière première</option>
+                      </select>
+                    } @else {
+                      <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
+                        <option value="commercial">Commercial</option>
+                        <option value="matiere_premiere">Matière première</option>
+                        <option value="food">Food</option>
+                      </select>
+                    }
                   </div>
 
                   <!-- PRICE (hidden for Chef Magasin & Chef Cuisine) -->
@@ -139,17 +166,19 @@ import { environment } from '../../../environments/environment';
                 </div>
 
                 <!-- CATEGORY -->
-                <div class="form-group">
-                  <label>Catégorie</label>
-                  <select [(ngModel)]="form.category_id" name="category_id" required [disabled]="isLockedField('category_id')">
-                    <option value="">-- choisir une catégorie --</option>
-                    @for (c of formCategories; track c.id) {
-                      <option [value]="c.id">
-                        {{ c.name }}
-                      </option>
-                    }
-                  </select>
-                </div>
+                @if (form.type !== 'food') {
+                  <div class="form-group">
+                    <label>Catégorie</label>
+                    <select [(ngModel)]="form.category_id" name="category_id" required [disabled]="isLockedField('category_id')">
+                      <option value="">-- choisir une catégorie --</option>
+                      @for (c of formCategories; track c.id) {
+                        <option [value]="c.id">
+                          {{ c.name }}
+                        </option>
+                      }
+                    </select>
+                  </div>
+                }
 
                 <!-- DESCRIPTION (Always editable) -->
                 <div class="form-group">
@@ -227,7 +256,7 @@ import { environment } from '../../../environments/environment';
                           </select>
 
                           <button type="button" class="btn-remove" (click)="removeRecipeIngredient(idx)" [disabled]="isLockedField('recipe')">
-                            ❌
+                            
                           </button>
                         </div>
                       }
@@ -251,6 +280,56 @@ import { environment } from '../../../environments/environment';
             </div>
           </div>
         }
+
+        <!-- CHATBOT DRAWER/DRAWER PANEL -->
+        @if (showChatbot && chatbotProduct) {
+          <div class="chat-overlay" (click)="closeChatbot()">
+            <div class="chat-drawer" (click)="$event.stopPropagation()">
+              <div class="chat-header">
+                <div class="chat-title">
+                  <span class="chat-avatar-icon"></span>
+                  <div>
+                    <h4 style="margin:0; font-size:14px; font-weight:700;">Assistant IA AeroServe</h4>
+                    <span style="font-size:11px; opacity:0.85;">Produit: {{ chatbotProduct.name }}</span>
+                  </div>
+                </div>
+                <button class="chat-close" (click)="closeChatbot()">✕</button>
+              </div>
+
+              <div class="chat-body">
+                <div class="chat-messages">
+                  @for (msg of chatbotMessages; track $index) {
+                    <div class="chat-bubble" [class.self]="msg.sender === 'user'">
+                      <div class="bubble-content">
+                        <p>{{ msg.text }}</p>
+                      </div>
+                    </div>
+                  }
+                  @if (chatbotLoading) {
+                    <div class="chat-bubble">
+                      <div class="bubble-content loading-bubble">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <div class="chat-chips">
+                <button (click)="askQuickQuestion('Quels sont les allergènes présents ? ')">Allergènes ? </button>
+                <button (click)="askQuickQuestion('Quels sont les ingrédients ? ')">Ingrédients ? </button>
+                <button (click)="askQuickQuestion('Est-ce sans gluten ? ')">Sans gluten ? </button>
+              </div>
+
+              <div class="chat-footer">
+                <input type="text" [(ngModel)]="chatbotInput" (keyup.enter)="sendChatbotMessage()" placeholder="Posez une question sur le produit..." [disabled]="chatbotLoading" />
+                <button class="chat-send" (click)="sendChatbotMessage()" [disabled]="chatbotLoading"></button>
+              </div>
+            </div>
+          </div>
+        }
       </div>
     }
   `,
@@ -270,7 +349,7 @@ import { environment } from '../../../environments/environment';
       margin: 0;
       font-size: 26px;
       font-weight: 700;
-      color: #0f172a;
+      color: #1A1D1B;
     }
 
     .header-actions {
@@ -279,28 +358,47 @@ import { environment } from '../../../environments/environment';
       align-items: center;
     }
 
+    .filter-badge {
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #4A4D4B;
+      background: #EDE9E2;
+      border: 1px solid #D8D2C8;
+    }
+
+    .form-input-locked {
+      padding: 12px 14px;
+      border: 1.5px solid #D8D2C8;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #EDE9E2;
+      color: #4A4D4B;
+    }
+
     .filter-select {
       padding: 10px 14px;
       border: 1.5px solid #e5e7eb;
       border-radius: 10px;
       font-size: 14px;
       font-weight: 500;
-      color: #334155;
+      color: #4A4D4B;
       outline: none;
       background: #fff;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .filter-select:hover { border-color: #b22222; }
-    .filter-select:focus { border-color: #b22222; box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1); }
+    .filter-select:hover { border-color: #2C3E35; }
+    .filter-select:focus { border-color: #2C3E35; box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1); }
 
     .card {
       background: #ffffff;
       border-radius: 22px;
       padding: 24px;
       box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
-      border: 1px solid rgba(178, 34, 34, 0.05);
+      border: 1px solid rgba(29, 35, 31, 0.05);
     }
 
     .table-wrap { overflow-x: auto; }
@@ -326,11 +424,11 @@ import { environment } from '../../../environments/environment';
     td {
       padding: 14px 16px;
       border-bottom: 1px solid #f3f4f6;
-      color: #334155;
+      color: #4A4D4B;
       transition: background 0.2s ease;
     }
 
-    tr:hover td { background: rgba(178, 34, 34, 0.02); }
+    tr:hover td { background: rgba(29, 35, 31, 0.02); }
 
     .product-name {
       font-weight: 600;
@@ -365,12 +463,12 @@ import { environment } from '../../../environments/environment';
     }
 
     .btn-icon:hover {
-      background: rgba(178, 34, 34, 0.1);
+      background: rgba(29, 35, 31, 0.1);
       transform: scale(1.1);
     }
 
     .btn-icon.danger:hover {
-      background: rgba(220, 38, 38, 0.1);
+      background: rgba(194,115,115, 0.1);
     }
 
     .badge {
@@ -383,37 +481,37 @@ import { environment } from '../../../environments/environment';
     }
 
     .badge.type {
-      background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
-      color: #b22222;
-      border: 1px solid rgba(178, 34, 34, 0.1);
+      background: linear-gradient(135deg, #EDE9E2 0%, #ffffff 100%);
+      color: #2C3E35;
+      border: 1px solid rgba(29, 35, 31, 0.1);
     }
 
     .status-badge.active {
-      background: #e6f4ea;
+      background: #E8F0EB;
       color: #137333;
     }
 
     .status-badge.inactive {
-      background: #fce8e6;
+      background: #F5E4E4;
       color: #c5221f;
     }
 
     .approval-approved {
-      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
-      color: #16a34a;
-      border: 1px solid rgba(22, 163, 74, 0.1);
+      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
+      color: #6B8F71;
+      border: 1px solid rgba(107,131,116, 0.1);
     }
 
     .approval-pending {
-      background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-      color: #d97706;
-      border: 1px solid rgba(217, 119, 6, 0.1);
+      background: linear-gradient(135deg, #F5EDE4 0%, #ffffff 100%);
+      color: #D4924A;
+      border: 1px solid rgba(212,163,115, 0.1);
     }
 
     .approval-rejected {
-      background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-      color: #dc2626;
-      border: 1px solid rgba(220, 38, 38, 0.1);
+      background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%);
+      color: #C0483A;
+      border: 1px solid rgba(194,115,115, 0.1);
     }
 
     .btn {
@@ -427,19 +525,19 @@ import { environment } from '../../../environments/environment';
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%);
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
       color: #fff;
-      box-shadow: 0 8px 16px rgba(178, 34, 34, 0.2);
+      box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2);
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(178, 34, 34, 0.3);
+      box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3);
     }
 
     .btn-secondary {
       background: #f3f4f6;
-      color: #334155;
+      color: #4A4D4B;
     }
 
     .btn-secondary:hover {
@@ -472,7 +570,7 @@ import { environment } from '../../../environments/environment';
       max-height: 90vh;
       overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(178, 34, 34, 0.1);
+      border: 1px solid rgba(29, 35, 31, 0.1);
     }
 
     .modal h3 {
@@ -524,9 +622,9 @@ import { environment } from '../../../environments/environment';
     .form-group input:focus,
     .form-group select:focus,
     .form-group textarea:focus {
-      border-color: #b22222;
-      box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
-      background: #fff9f9;
+      border-color: #2C3E35;
+      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1);
+      background: #EDE9E2;
     }
 
     .file-input {
@@ -588,9 +686,9 @@ import { environment } from '../../../environments/environment';
     }
 
     .btn-remove {
-      background: #fef2f2;
-      color: #dc2626;
-      border: 1px solid #fee2e2;
+      background: #F5E4E4;
+      color: #C0483A;
+      border: 1px solid #F5E4E4;
       border-radius: 8px;
       cursor: pointer;
       padding: 8px;
@@ -601,7 +699,7 @@ import { environment } from '../../../environments/environment';
     }
 
     .btn-remove:hover {
-      background: #fee2e2;
+      background: #F5E4E4;
       transform: scale(1.05);
     }
 
@@ -618,6 +716,233 @@ import { environment } from '../../../environments/environment';
       padding-top: 24px;
       border-top: 1px solid #f3f4f6;
     }
+
+    /* CHATBOT DRAWER */
+    .chat-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: flex;
+      justify-content: flex-end;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .chat-drawer {
+      width: 100%;
+      max-width: 420px;
+      height: 100%;
+      background: #ffffff;
+      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    .chat-header {
+      padding: 20px;
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 12px rgba(127, 42, 42, 0.15);
+    }
+
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-avatar-icon {
+      font-size: 28px;
+      background: rgba(255, 255, 255, 0.2);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .chat-close:hover {
+      opacity: 1;
+    }
+
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #EDE9E2;
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chat-bubble {
+      display: flex;
+      justify-content: flex-start;
+    }
+
+    .chat-bubble.self {
+      justify-content: flex-end;
+    }
+
+    .bubble-content {
+      max-width: 80%;
+      padding: 12px 16px;
+      border-radius: 16px 16px 16px 4px;
+      background: #ffffff;
+      border: 1px solid #D8D2C8;
+      box-shadow: 0 4px 6px rgba(15, 23, 42, 0.02);
+      color: #4A4D4B;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+
+    .chat-bubble.self .bubble-content {
+      border-radius: 16px 16px 4px 16px;
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 12px rgba(29, 35, 31, 0.15);
+    }
+
+    .bubble-content p {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    /* Typing indicator */
+    .loading-bubble {
+      display: flex;
+      gap: 4px;
+      padding: 12px 20px;
+    }
+
+    .loading-bubble .dot {
+      width: 8px;
+      height: 8px;
+      background: #A8C5A0;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .loading-bubble .dot:nth-child(1) { animation-delay: -0.32s; }
+    .loading-bubble .dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+
+    .chat-chips {
+      padding: 10px 16px;
+      background: #ffffff;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      border-top: 1px solid #EDE9E2;
+      scrollbar-width: none; /* Firefox */
+    }
+
+    .chat-chips::-webkit-scrollbar {
+      display: none; /* Safari & Chrome */
+    }
+
+    .chat-chips button {
+      background: #EDE9E2;
+      border: 1px solid #D8D2C8;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 11.5px;
+      color: #4A4D4B;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .chat-chips button:hover {
+      background: rgba(29, 35, 31, 0.08);
+      color: #2C3E35;
+      border-color: rgba(29, 35, 31, 0.15);
+    }
+
+    .chat-footer {
+      padding: 16px;
+      background: #ffffff;
+      border-top: 1px solid #EDE9E2;
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-footer input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 12px;
+      font-size: 13.5px;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .chat-footer input:focus {
+      border-color: #2C3E35;
+      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.08);
+    }
+
+    .chat-send {
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
+      color: white;
+      border: none;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(29, 35, 31, 0.15);
+    }
+
+    .chat-send:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(29, 35, 31, 0.25);
+    }
+
+    .chat-send:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .assistant-btn:hover {
+      background: rgba(34, 197, 94, 0.1) !important;
+    }
+
   `]
 })
 
@@ -628,7 +953,57 @@ export class ProductsComponent implements OnInit {
   filteredProducts: Product[] = [];
 
   filterType = '';
+  filterApprovalStatus = '';
   loading = true;
+
+  // ================= CHATBOT PROPERTIES =================
+  showChatbot = false;
+  chatbotProduct: Product | null = null;
+  chatbotMessages: { sender: 'user' | 'bot'; text: string }[] = [];
+  chatbotInput = '';
+  chatbotLoading = false;
+
+  openChatbot(p: Product): void {
+    this.chatbotProduct = p;
+    this.chatbotMessages = [
+      { sender: 'bot', text: `Bonjour ! Je suis l'assistant nutritionnel d'AeroServe. Posez-moi vos questions concernant la composition, les ingrédients et les allergènes pour le produit **${p.name}**.` }
+    ];
+    this.showChatbot = true;
+  }
+
+  closeChatbot(): void {
+    this.showChatbot = false;
+    this.chatbotProduct = null;
+  }
+
+  sendChatbotMessage(): void {
+    if (!this.chatbotInput.trim() || !this.chatbotProduct || this.chatbotLoading) return;
+
+    const userMsg = this.chatbotInput.trim();
+    this.chatbotMessages.push({ sender: 'user', text: userMsg });
+    this.chatbotInput = '';
+    this.chatbotLoading = true;
+
+    this.api.post<any>('chatbot/ask', {
+      product_id: this.chatbotProduct.id,
+      message: userMsg
+    }).subscribe({
+      next: (res) => {
+        this.chatbotMessages.push({ sender: 'bot', text: res.response });
+        this.chatbotLoading = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.chatbotMessages.push({ sender: 'bot', text: "Désolé, je rencontre des difficultés pour me connecter au service d'intelligence artificielle pour le moment." });
+        this.chatbotLoading = false;
+      }
+    });
+  }
+
+  askQuickQuestion(question: string): void {
+    this.chatbotInput = question;
+    this.sendChatbotMessage();
+  }
 
   showModal = false;
   editing = false;
@@ -670,6 +1045,16 @@ export class ProductsComponent implements OnInit {
   constructor(private api: ApiService, private auth: AuthService) {}
 
   ngOnInit(): void {
+    // Role-based default type filter
+    if (this.userRole === 'CHEF_CUISINE') {
+      this.filterType = 'food';
+    } else if (this.userRole === 'CHEF_MAGASIN') {
+      this.filterType = 'commercial';
+    }
+    // Default filter EN_ATTENTE for RESPONSABLE_ACHAT
+    if (this.userRole === 'RESPONSABLE_ACHAT') {
+      this.filterApprovalStatus = 'EN_ATTENTE';
+    }
     this.load();
     this.loadCategories();
   }
@@ -695,17 +1080,28 @@ export class ProductsComponent implements OnInit {
   }
 
   get formCategories(): Category[] {
+    const selectedType = this.form?.type;
+    let base = this.categories;
+
     if (this.isChefCuisine) {
-      return this.categories.filter(c => c.type === 'food');
+      base = base.filter(c => c.type === 'food');
+    } else if (this.isChefMagasin) {
+      base = base.filter(c => c.type === 'commercial' || c.type === 'matiere_premiere');
     }
-    if (this.isChefMagasin) {
-      return this.categories.filter(c => c.type === 'commercial' || c.type === 'matiere_premiere');
+
+    // Filter by selected product type
+    if (selectedType) {
+      base = base.filter(c => c.type === selectedType);
     }
-    return this.categories;
+
+    return base;
   }
 
   get availableIngredients(): Product[] {
-    return this.products.filter(p => p.type === 'commercial' || p.type === 'matiere_premiere');
+    return this.products.filter(p =>
+      (p.type === 'commercial' || p.type === 'matiere_premiere') &&
+      p.approval_status === 'approved'
+    );
   }
 
   getImageUrl(path: string): string {
@@ -715,9 +1111,13 @@ export class ProductsComponent implements OnInit {
 
   // ================= FILTER =================
   applyFilter(): void {
-    this.filteredProducts = this.filterType
+    let filtered = this.filterType
       ? this.products.filter(p => p.type === this.filterType)
       : [...this.products];
+    if (this.filterApprovalStatus) {
+      filtered = filtered.filter(p => p.approval_status === this.filterApprovalStatus);
+    }
+    this.filteredProducts = filtered;
   }
 
   // ================= MODAL =================
@@ -740,7 +1140,7 @@ export class ProductsComponent implements OnInit {
           description: fullProduct.description || '',
           allergens_text: fullProduct.allergens?.join(', ') || '',
           expiration_date: fullProduct.expiration_date || '',
-          usage_status: fullProduct.is_active ? 'IN_USE' : 'NOT_IN_USE'
+          usage_status: fullProduct.usage_status || 'IN_USE'
         };
 
         this.selectedProductApprovalStatus = fullProduct.approval_status;
@@ -764,7 +1164,7 @@ export class ProductsComponent implements OnInit {
           title: 'Erreur',
           text: 'Impossible de charger les détails du produit.',
           icon: 'error',
-          confirmButtonColor: '#b22222'
+          confirmButtonColor: '#6B8F71'
         });
       }
     });
@@ -806,11 +1206,9 @@ export class ProductsComponent implements OnInit {
 
   isLockedField(fieldName: string): boolean {
     if (!this.editing) return false;
-    // If the product is approved, lock all fields except description and usage_status for restricted roles
     if (this.selectedProductApprovalStatus === 'approved') {
-      if (this.isRestrictedRole) {
-        return fieldName !== 'description' && fieldName !== 'usage_status' && fieldName !== 'image';
-      }
+      const editableFields = ['description', 'usage_status', 'image', 'allergens'];
+      return !editableFields.includes(fieldName);
     }
     return false;
   }
@@ -824,14 +1222,20 @@ export class ProductsComponent implements OnInit {
     this.recipeIngredients.splice(index, 1);
   }
 
-  // ================= SAVE =================
   save(): void {
+    if (this.form.type === 'food') {
+      const foodCat = this.categories.find(c => c.type === 'food');
+      if (foodCat) {
+        this.form.category_id = foodCat.id;
+      }
+    }
+
     if (!this.form.name || !this.form.type || !this.form.category_id) {
       Swal.fire({
         title: 'Formulaire incomplet',
         text: 'Veuillez remplir tous les champs obligatoires.',
         icon: 'warning',
-        confirmButtonColor: '#b22222'
+        confirmButtonColor: '#6B8F71'
       });
       return;
     }
@@ -841,7 +1245,7 @@ export class ProductsComponent implements OnInit {
         title: 'Recette manquante',
         text: 'Un produit Food doit contenir au moins un ingrédient dans sa recette.',
         icon: 'warning',
-        confirmButtonColor: '#b22222'
+        confirmButtonColor: '#6B8F71'
       });
       return;
     }
@@ -851,9 +1255,30 @@ export class ProductsComponent implements OnInit {
         title: 'Recette incomplète',
         text: 'Veuillez sélectionner un produit valide pour chaque ingrédient.',
         icon: 'warning',
-        confirmButtonColor: '#b22222'
+        confirmButtonColor: '#6B8F71'
       });
       return;
+    }
+
+    // Stock validation for FOOD products
+    if (this.form.type === 'food') {
+      const stockErrors: string[] = [];
+      for (const ing of this.recipeIngredients) {
+        const prod = this.products.find(p => p.id === ing.product_id);
+        const availableQty = prod?.stock?.quantity ?? 0;
+        if (ing.quantity > availableQty) {
+          stockErrors.push(`"${prod?.name || 'Produit'}" : besoin de ${ing.quantity} ${ing.unit}, disponible ${availableQty} ${ing.unit}`);
+        }
+      }
+      if (stockErrors.length > 0) {
+        Swal.fire({
+          title: 'Stock insuffisant',
+          html: `Les ingrédients suivants n'ont pas assez de stock :<br><br>${stockErrors.join('<br>')}`,
+          icon: 'error',
+          confirmButtonColor: '#C0483A'
+        });
+        return;
+      }
     }
 
     const formData = new FormData();
@@ -898,7 +1323,7 @@ export class ProductsComponent implements OnInit {
           title: 'Succès !',
           text: this.editing ? 'Le produit a été modifié.' : 'Le produit a été créé.',
           icon: 'success',
-          confirmButtonColor: '#b22222'
+          confirmButtonColor: '#6B8F71'
         });
         this.closeModal();
         this.load();
@@ -909,7 +1334,7 @@ export class ProductsComponent implements OnInit {
           title: 'Erreur',
           text: err.error?.message || 'Une erreur est survenue lors de la sauvegarde.',
           icon: 'error',
-          confirmButtonColor: '#b22222'
+          confirmButtonColor: '#6B8F71'
         });
       }
     });
@@ -922,7 +1347,7 @@ export class ProductsComponent implements OnInit {
       text: 'Cette action est irréversible !',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#dc2626',
+      confirmButtonColor: '#C0483A',
       cancelButtonColor: '#4b5563',
       confirmButtonText: 'Oui, supprimer !',
       cancelButtonText: 'Annuler'
@@ -934,7 +1359,7 @@ export class ProductsComponent implements OnInit {
               title: 'Supprimé !',
               text: 'Le produit a été supprimé.',
               icon: 'success',
-              confirmButtonColor: '#b22222'
+              confirmButtonColor: '#6B8F71'
             });
             this.load();
           },
@@ -943,7 +1368,7 @@ export class ProductsComponent implements OnInit {
               title: 'Erreur',
               text: err.error?.message || 'Erreur lors de la suppression.',
               icon: 'error',
-              confirmButtonColor: '#b22222'
+              confirmButtonColor: '#6B8F71'
             });
           }
         });

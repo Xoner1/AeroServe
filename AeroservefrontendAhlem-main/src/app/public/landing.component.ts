@@ -114,6 +114,7 @@ import { RouterLink } from '@angular/router';
             <div class="role-card"><strong>Chef Cuisine</strong><span>Food products, menus, recipes, order fulfillment</span></div>
             <div class="role-card"><strong>Chef Magasin</strong><span>Commercial and raw material stock control</span></div>
             <div class="role-card"><strong>Responsable Hygiène</strong><span>Compliance checks, allergens, expiration tracking</span></div>
+            <div class="role-card"><strong>Responsable Achat</strong><span>Procurement validation, categories, stock forecasts</span></div>
             <div class="role-card"><strong>Caissier</strong><span>Sales capture, payments, assigned point of sale</span></div>
           </div>
         </section>
@@ -139,9 +140,9 @@ import { RouterLink } from '@angular/router';
       display: block;
       min-height: 100vh;
       background:
-        radial-gradient(circle at top left, rgba(209, 78, 78, 0.18), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(178, 34, 34, 0.12), transparent 30%),
-        linear-gradient(180deg, #fff8f8 0%, #f7f3f2 100%);
+        radial-gradient(circle at top left, rgba(107, 131, 116, 0.08), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(29, 35, 31, 0.05), transparent 30%),
+        linear-gradient(180deg, #FAFAF8 0%, #EDE9E2 100%);
     }
 
     .landing-shell {
@@ -162,7 +163,7 @@ import { RouterLink } from '@angular/router';
       display: flex;
       align-items: center;
       gap: 14px;
-      color: #1f2937;
+      color: #1A1D1B;
     }
 
     .brand img {
@@ -171,7 +172,7 @@ import { RouterLink } from '@angular/router';
       object-fit: contain;
       border-radius: 14px;
       background: #ffffff;
-      box-shadow: 0 12px 25px rgba(178, 34, 34, 0.08);
+      box-shadow: 0 2px 8px rgba(26, 29, 27, 0.06);
       padding: 8px;
     }
 
@@ -179,11 +180,12 @@ import { RouterLink } from '@angular/router';
       display: block;
       font-size: 18px;
       letter-spacing: 0.02em;
+      color: #1A1D1B;
     }
 
     .brand span {
       display: block;
-      color: #6b7280;
+      color: #A8C5A0;
       font-size: 12px;
     }
 
@@ -191,16 +193,31 @@ import { RouterLink } from '@angular/router';
       display: flex;
       align-items: center;
       gap: 18px;
-      color: #4b5563;
+      color: #4A4D4B;
       font-size: 14px;
+    }
+
+    .landing-nav a {
+      color: #4A4D4B;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .landing-nav a:hover {
+      color: #1A1D1B;
     }
 
     .nav-cta {
       padding: 10px 16px;
-      border-radius: 999px;
-      background: #b22222;
-      color: #ffffff;
-      box-shadow: 0 10px 20px rgba(178, 34, 34, 0.18);
+      border-radius: 10px;
+      background: #6B8F71;
+      color: #ffffff !important;
+      font-weight: 600;
+      transition: background 0.15s ease;
+    }
+
+    .nav-cta:hover {
+      background: #5A7263;
     }
 
     .landing-main {
@@ -221,14 +238,13 @@ import { RouterLink } from '@angular/router';
     .feature-card,
     .roles-section,
     .workflow-band {
-      background: rgba(255, 255, 255, 0.84);
-      border: 1px solid rgba(178, 34, 34, 0.08);
-      box-shadow: 0 18px 45px rgba(102, 34, 34, 0.08);
-      backdrop-filter: blur(12px);
+      background: #FFFFFF;
+      border: 1px solid #D8D2C8;
+      box-shadow: 0 2px 12px rgba(26, 29, 27, 0.04);
     }
 
     .hero-copy {
-      border-radius: 30px;
+      border-radius: 20px;
       padding: 42px;
       display: flex;
       flex-direction: column;
@@ -244,11 +260,11 @@ import { RouterLink } from '@angular/router';
       display: inline-flex;
       align-items: center;
       width: fit-content;
-      padding: 7px 12px;
-      border-radius: 999px;
-      background: rgba(209, 78, 78, 0.12);
-      color: #9f1d1d;
-      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: #E8F0EB;
+      color: #3D5A45;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -258,13 +274,13 @@ import { RouterLink } from '@angular/router';
       margin: 0;
       font-size: clamp(38px, 4vw, 62px);
       line-height: 1.02;
-      color: #111827;
+      color: #1A1D1B;
       max-width: 10ch;
     }
 
     .hero-copy p {
       margin: 0;
-      color: #4b5563;
+      color: #A8C5A0;
       font-size: 16px;
       max-width: 60ch;
     }
@@ -282,25 +298,30 @@ import { RouterLink } from '@angular/router';
       justify-content: center;
       min-height: 48px;
       padding: 0 20px;
-      border-radius: 14px;
+      border-radius: 10px;
       font-weight: 700;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
     }
 
     .primary-btn {
-      background: linear-gradient(135deg, #d14e4e 0%, #b22222 100%);
+      background: #6B8F71;
       color: #ffffff;
-      box-shadow: 0 14px 24px rgba(178, 34, 34, 0.24);
+    }
+
+    .primary-btn:hover {
+      background: #5A7263;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(107, 131, 116, 0.2);
     }
 
     .secondary-btn {
       background: #ffffff;
-      color: #7f2a2a;
-      border: 1px solid rgba(178, 34, 34, 0.16);
+      color: #1A1D1B;
+      border: 1px solid #D8D2C8;
     }
 
-    .primary-btn:hover,
     .secondary-btn:hover {
+      background: #EDE9E2;
       transform: translateY(-2px);
     }
 
@@ -312,37 +333,37 @@ import { RouterLink } from '@angular/router';
 
     .metric-card {
       padding: 16px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(250, 233, 233, 0.85));
-      border: 1px solid rgba(178, 34, 34, 0.08);
+      border-radius: 14px;
+      background: #EDE9E2;
+      border: 1px solid #D8D2C8;
     }
 
     .metric-card strong {
       display: block;
       font-size: 28px;
-      color: #7f2a2a;
+      color: #1A1D1B;
       margin-bottom: 4px;
     }
 
     .metric-card span {
       display: block;
       font-size: 13px;
-      color: #6b7280;
+      color: #A8C5A0;
     }
 
     .hero-visual {
-      border-radius: 30px;
+      border-radius: 20px;
       padding: 22px;
       display: grid;
       gap: 18px;
-      background: linear-gradient(180deg, rgba(127, 42, 42, 0.98), rgba(178, 34, 34, 0.92));
-      color: #fff7f7;
+      background: linear-gradient(180deg, #2C3E35 0%, #2A332D 100%);
+      color: #EDE9E2;
     }
 
     .visual-card {
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       overflow: hidden;
     }
 
@@ -353,6 +374,7 @@ import { RouterLink } from '@angular/router';
     .command-card h3 {
       margin: 14px 0 18px;
       font-size: 24px;
+      color: #FFFFFF;
     }
 
     .pulse-list {
@@ -366,7 +388,7 @@ import { RouterLink } from '@angular/router';
       justify-content: space-between;
       gap: 12px;
       padding-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .pulse-list div:last-child {
@@ -375,12 +397,13 @@ import { RouterLink } from '@angular/router';
     }
 
     .pulse-list label {
-      color: rgba(255, 255, 255, 0.72);
+      color: #A8C5A0;
       font-size: 13px;
     }
 
     .pulse-list strong {
       font-size: 18px;
+      color: #FFFFFF;
     }
 
     .route-card {
@@ -388,7 +411,7 @@ import { RouterLink } from '@angular/router';
       align-items: center;
       justify-content: center;
       min-height: 280px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04));
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
     }
 
     .route-card img {
@@ -406,7 +429,7 @@ import { RouterLink } from '@angular/router';
     .feature-card,
     .roles-section,
     .workflow-band {
-      border-radius: 24px;
+      border-radius: 16px;
       padding: 26px;
     }
 
@@ -414,19 +437,19 @@ import { RouterLink } from '@angular/router';
     .section-heading h2,
     .workflow-band h2 {
       margin: 14px 0 10px;
-      color: #111827;
-      font-size: 24px;
+      color: #1A1D1B;
+      font-size: 22px;
       line-height: 1.15;
     }
 
     .feature-card p {
       margin: 0;
-      color: #6b7280;
+      color: #A8C5A0;
       font-size: 14px;
     }
 
     .feature-card.accent {
-      background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255, 236, 236, 0.94));
+      background: linear-gradient(180deg, #FFFFFF 0%, #EDE9E2 100%);
     }
 
     .roles-section {
@@ -436,26 +459,31 @@ import { RouterLink } from '@angular/router';
 
     .roles-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 14px;
     }
 
     .role-card {
       padding: 18px;
-      border-radius: 18px;
-      background: #fffafa;
-      border: 1px solid rgba(178, 34, 34, 0.08);
+      border-radius: 14px;
+      background: #FFFFFF;
+      border: 1px solid #D8D2C8;
+      transition: border-color 0.15s ease;
+    }
+
+    .role-card:hover {
+      border-color: #6B8F71;
     }
 
     .role-card strong {
       display: block;
-      color: #7f2a2a;
+      color: #1A1D1B;
       margin-bottom: 6px;
       font-size: 15px;
     }
 
     .role-card span {
-      color: #6b7280;
+      color: #A8C5A0;
       font-size: 13px;
     }
 
@@ -465,17 +493,17 @@ import { RouterLink } from '@angular/router';
       gap: 20px;
       align-items: center;
       margin-bottom: 28px;
-      background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%);
-      color: #ffffff;
+      background: #2C3E35;
+      color: #FFFFFF;
     }
 
     .workflow-band .band-label {
-      background: rgba(255,255,255,0.14);
-      color: #fff6f6;
+      background: rgba(107, 131, 116, 0.2);
+      color: #E8F0EB;
     }
 
     .workflow-band h2 {
-      color: #fffdfd;
+      color: #FFFFFF;
       max-width: 18ch;
     }
 
@@ -487,19 +515,20 @@ import { RouterLink } from '@angular/router';
 
     .workflow-steps div {
       padding: 18px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .workflow-steps strong {
       display: block;
       font-size: 26px;
       margin-bottom: 10px;
+      color: #6B8F71;
     }
 
     .workflow-steps span {
-      color: rgba(255,255,255,0.82);
+      color: #A8C5A0;
       font-size: 14px;
     }
 
@@ -537,7 +566,7 @@ import { RouterLink } from '@angular/router';
       .roles-section,
       .workflow-band {
         padding: 20px;
-        border-radius: 22px;
+        border-radius: 16px;
       }
 
       .landing-nav {

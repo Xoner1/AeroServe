@@ -99,6 +99,13 @@ class ApiService {
       );
     }
   }
+
+  static Future<dynamic> askChatbot(int productId, String message) async {
+    return await post('chatbot/ask', {
+      'product_id': productId,
+      'message': message,
+    });
+  }
 }
 
 class ApiException implements Exception {

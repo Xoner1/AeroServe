@@ -124,7 +124,7 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
   styles: [`
     .page { display: flex; flex-direction: column; gap: 24px; }
     .page-header { display: flex; justify-content: space-between; align-items: center; padding: 0; }
-    .page-header h2 { margin: 0; font-size: 26px; font-weight: 700; color: #0f172a; }
+    .page-header h2 { margin: 0; font-size: 26px; font-weight: 700; color: #1A1D1B; }
     
     .stats-row { 
       display: grid;
@@ -139,13 +139,13 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
       box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
       display: flex; 
       flex-direction: column;
-      border: 1px solid rgba(178, 34, 34, 0.08);
+      border: 1px solid rgba(29, 35, 31, 0.08);
     }
     
     .stat-val { 
       font-size: 24px; 
       font-weight: 700; 
-      color: #b22222;
+      color: #2C3E35;
       margin-bottom: 4px;
     }
     
@@ -161,7 +161,7 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
       border-radius: 22px; 
       padding: 24px; 
       box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
-      border: 1px solid rgba(178, 34, 34, 0.05);
+      border: 1px solid rgba(29, 35, 31, 0.05);
     }
     
     .table-wrap { overflow-x: auto; }
@@ -187,15 +187,15 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
     td { 
       padding: 14px 16px; 
       border-bottom: 1px solid #f3f4f6; 
-      color: #334155;
+      color: #4A4D4B;
       transition: background 0.2s ease;
     }
     
-    tr:hover td { background: rgba(178, 34, 34, 0.02); }
+    tr:hover td { background: rgba(29, 35, 31, 0.02); }
     
     .amount { 
       font-weight: 700; 
-      color: #b22222;
+      color: #2C3E35;
     }
     
     .actions { 
@@ -204,13 +204,13 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
     }
     
     .badge.payment { 
-      background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
-      color: #b22222;
+      background: linear-gradient(135deg, #EDE9E2 0%, #ffffff 100%);
+      color: #2C3E35;
       padding: 6px 12px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 700;
-      border: 1px solid rgba(178, 34, 34, 0.1);
+      border: 1px solid rgba(29, 35, 31, 0.1);
     }
     
     .btn-sm { 
@@ -220,14 +220,14 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
       font-weight: 700; 
       cursor: pointer; 
       border: none;
-      background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%);
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
       color: #fff;
       transition: all 0.2s ease;
     }
     
     .btn-sm:hover { 
       transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(178, 34, 34, 0.2);
+      box-shadow: 0 6px 12px rgba(29, 35, 31, 0.2);
     }
     
     .btn { 
@@ -241,19 +241,19 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
     }
     
     .btn-primary { 
-      background: linear-gradient(135deg, #b22222 0%, #7f2a2a 100%);
+      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
       color: #fff;
-      box-shadow: 0 8px 16px rgba(178, 34, 34, 0.2);
+      box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2);
     }
     
     .btn-primary:hover { 
       transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(178, 34, 34, 0.3);
+      box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3);
     }
     
     .btn-secondary { 
       background: #f3f4f6; 
-      color: #334155; 
+      color: #4A4D4B; 
     }
     
     .btn-secondary:hover { 
@@ -294,7 +294,7 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
       max-height: 90vh; 
       overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(178, 34, 34, 0.1);
+      border: 1px solid rgba(29, 35, 31, 0.1);
     }
     
     .modal h3 { 
@@ -343,9 +343,9 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
     
     .form-group input:focus, 
     .form-group select:focus { 
-      border-color: #b22222;
-      box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
-      background: #fff9f9;
+      border-color: #2C3E35;
+      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1);
+      background: #EDE9E2;
     }
     
     .item-row { 
@@ -367,15 +367,15 @@ import { PageLoadingComponent } from '../../shared/page-loading/page-loading.com
     }
     
     .item-row input:focus {
-      border-color: #b22222;
-      box-shadow: 0 0 0 3px rgba(178, 34, 34, 0.1);
+      border-color: #2C3E35;
+      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1);
     }
     
     .total-row { 
       text-align: right; 
       font-size: 18px; 
       font-weight: 700; 
-      color: #b22222;
+      color: #2C3E35;
       margin-top: 16px; 
       padding-top: 14px; 
       border-top: 2px solid #f3f4f6; 

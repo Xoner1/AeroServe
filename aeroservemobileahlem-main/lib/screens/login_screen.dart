@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../core/app_theme.dart';
+import '../core/app_icons.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 
@@ -22,6 +25,98 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showServerConfigDialog() async {
+    await ApiService.init();
+    final controller = TextEditingController(text: ApiService.baseUrl);
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.primary,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          side: const BorderSide(color: AppTheme.primaryLight, width: 1),
+        ),
+        title: Text(
+          'Configuration Serveur', 
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 18.0,
+          )
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Saisissez l\'adresse IP locale ou l\'URL de votre serveur Laravel (ex: http://192.168.1.50:8000).',
+              style: GoogleFonts.inter(fontSize: 13.0, color: Colors.white.withValues(alpha: 0.7)),
+            ),
+            const SizedBox(height: AppTheme.spacingM),
+            TextField(
+              controller: controller,
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 14.0),
+              decoration: InputDecoration(
+                labelText: 'URL de l\'API',
+                labelStyle: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7)),
+                hintText: 'http://192.168.1.50:8000',
+                hintStyle: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.3)),
+                filled: true,
+                fillColor: AppTheme.primaryLight.withValues(alpha: 0.5),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                  borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Annuler',
+              style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newUrl = controller.text.trim();
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+              if (newUrl.isNotEmpty) {
+                await ApiService.setBaseUrl(newUrl);
+                messenger.showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppTheme.accent,
+                    content: Text(
+                      'Serveur configuré : ${ApiService.baseUrl}',
+                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                );
+              }
+              navigator.pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXS),
+            ),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _login() async {
@@ -49,76 +144,130 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0f172a),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 400),
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
-                  blurRadius: 25,
-                  offset: const Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/logo.png', width: 80, height: 80),
-                const SizedBox(height: 16),
-                const Text(
-                  'AeroServe',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1a56db),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Gestion de restauration aéroportuaire',
-                  style: TextStyle(fontSize: 13, color: Color(0xFF64748b)),
-                ),
-                const SizedBox(height: 32),
-                _buildField('Email', _emailController, false, TextInputType.emailAddress),
-                const SizedBox(height: 16),
-                _buildPasswordField(),
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFfef2f2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(_error!, style: const TextStyle(color: Color(0xFFdc2626), fontSize: 13)),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(AppIcons.settings, color: Colors.white, size: 24),
+            tooltip: 'Configuration Serveur',
+            onPressed: _showServerConfigDialog,
+          ),
+          const SizedBox(width: AppTheme.spacingS),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppTheme.primary, AppTheme.primaryLight],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppTheme.spacingL),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              padding: const EdgeInsets.all(AppTheme.spacingXL),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.25),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
                   ),
                 ],
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1a56db),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset('assets/logo.png', width: 72, height: 72),
+                  const SizedBox(height: AppTheme.spacingM),
+                  Text(
+                    'AeroServe',
+                    style: GoogleFonts.inter(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.primary,
+                      letterSpacing: -0.5,
                     ),
-                    child: _loading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Text('Se connecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    'Gestion de restauration aéroportuaire',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppTheme.spacingXL),
+                  _buildField('Email', _emailController, false, TextInputType.emailAddress),
+                  const SizedBox(height: AppTheme.spacingM),
+                  _buildPasswordField(),
+                  if (_error != null) ...[
+                    const SizedBox(height: AppTheme.spacingM),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppTheme.spacingS),
+                      decoration: BoxDecoration(
+                        color: AppTheme.error.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                        border: Border.all(color: AppTheme.error.withValues(alpha: 0.2), width: 1.0),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(AppIcons.error, color: AppTheme.error, size: 18),
+                          const SizedBox(width: AppTheme.spacingXS),
+                          Expanded(
+                            child: Text(
+                              _error!, 
+                              style: GoogleFonts.inter(
+                                color: AppTheme.error, 
+                                fontSize: 13, 
+                                fontWeight: FontWeight.w500,
+                              )
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppTheme.spacingXL),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: _loading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accent,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                        elevation: 0,
+                      ),
+                      child: _loading
+                          ? const SizedBox(
+                              width: 20, 
+                              height: 20, 
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(
+                              'Se connecter', 
+                              style: GoogleFonts.inter(
+                                fontSize: 15, 
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -130,30 +279,38 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-        const SizedBox(height: 6),
+        Text(
+          label, 
+          style: GoogleFonts.inter(
+            fontSize: 13, 
+            fontWeight: FontWeight.w600, 
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingXS),
         TextField(
           controller: controller,
           obscureText: obscure,
           keyboardType: type,
+          style: GoogleFonts.inter(fontSize: 14.5, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             hintText: label == 'Email' ? 'admin@aeroserve.com' : '••••••••',
-            hintStyle: const TextStyle(color: Color(0xFF94a3b8)),
+            hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.6)),
             filled: true,
-            fillColor: const Color(0xFFf1f5f9),
+            fillColor: AppTheme.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF1a56db), width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingM),
           ),
         ),
       ],
@@ -164,31 +321,43 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Mot de passe', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
-        const SizedBox(height: 6),
+        Text(
+          'Mot de passe', 
+          style: GoogleFonts.inter(
+            fontSize: 13, 
+            fontWeight: FontWeight.w600, 
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppTheme.spacingXS),
         TextField(
           controller: _passwordController,
           obscureText: _obscure,
+          style: GoogleFonts.inter(fontSize: 14.5, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            hintStyle: const TextStyle(color: Color(0xFF94a3b8)),
+            hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.6)),
             filled: true,
-            fillColor: const Color(0xFFf1f5f9),
+            fillColor: AppTheme.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFFe2e8f0), width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Color(0xFF1a56db), width: 1.5),
+              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingM),
             suffixIcon: IconButton(
-              icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF94a3b8)),
+              icon: Icon(
+                _obscure ? Icons.visibility_off : Icons.visibility, 
+                color: AppTheme.textSecondary,
+                size: 20,
+              ),
               onPressed: () => setState(() => _obscure = !_obscure),
             ),
           ),

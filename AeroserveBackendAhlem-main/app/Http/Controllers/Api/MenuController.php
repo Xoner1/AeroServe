@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\Notification;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Stock;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,29 +30,50 @@ class MenuController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'items.*.meal_type' => 'sometimes|in:breakfast,lunch,dinner,snack',
+            'portion_size' => 'sometimes|integer|min:1',
         ]);
 
-        // Check stock availability for each item
+        // Check stock availability for each item (through recipe ingredients)
         $insufficientStock = [];
+        $portionSize = $request->portion_size ?? 50; // Default 50 portions per menu item
         if ($request->has('items')) {
             foreach ($request->items as $item) {
-                $product = Product::with('stock')->find($item['product_id']);
-                if (!$product || !$product->stock) {
+                $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
+                if (!$product) {
                     $insufficientStock[] = [
-                        'product' => $product?->name ?? 'Unknown',
-                        'reason' => 'No stock available'
+                        'product' => 'Unknown',
+                        'reason' => 'Produit introuvable'
                     ];
                     continue;
                 }
 
-                $requiredQty = $item['quantity'] ?? 1;
-                if ($product->stock->quantity < $requiredQty) {
-                    $insufficientStock[] = [
-                        'product' => $product->name,
-                        'required' => $requiredQty,
-                        'available' => $product->stock->quantity,
-                        'reason' => 'Insufficient stock'
-                    ];
+                // For food products: check recipe ingredients' stock
+                if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                    foreach ($product->ingredients as $ingredient) {
+                        $ingredientQty = $ingredient->pivot->quantity * $portionSize;
+                        $ingredientStock = $ingredient->stock?->quantity ?? 0;
+                        if ($ingredientStock < $ingredientQty) {
+                            $insufficientStock[] = [
+                                'product' => $product->name . ' > ' . $ingredient->name,
+                                'required' => $ingredientQty,
+                                'available' => $ingredientStock,
+                                'unit' => $ingredient->pivot->unit ?? 'piece',
+                                'reason' => 'Ingrédient insuffisant'
+                            ];
+                        }
+                    }
+                } else {
+                    // Non-food products: check product's own stock
+                    $requiredQty = $item['quantity'] ?? 1;
+                    $productStock = $product->stock?->quantity ?? 0;
+                    if ($productStock < $requiredQty) {
+                        $insufficientStock[] = [
+                            'product' => $product->name,
+                            'required' => $requiredQty,
+                            'available' => $productStock,
+                            'reason' => 'Stock insuffisant'
+                        ];
+                    }
                 }
             }
         }
@@ -76,11 +98,21 @@ class MenuController extends Controller
             foreach ($request->items as $item) {
                 $menu->items()->create($item);
 
-                // Update stock using FIFO
-                $product = Product::with('stock')->find($item['product_id']);
-                if ($product && $product->stock) {
-                    $requiredQty = $item['quantity'] ?? 1;
-                    $this->fifoDeduction($product->stock, $requiredQty);
+                // Deduct stock using FIFO (through recipe ingredients for food products)
+                $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
+                if ($product) {
+                    $portionSize = $request->portion_size ?? 50;
+                    if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                        foreach ($product->ingredients as $ingredient) {
+                            $ingredientQty = $ingredient->pivot->quantity * $portionSize;
+                            if ($ingredient->stock) {
+                                $this->fifoDeduction($ingredient->stock, $ingredientQty);
+                            }
+                        }
+                    } elseif ($product->stock) {
+                        $requiredQty = $item['quantity'] ?? 1;
+                        $this->fifoDeduction($product->stock, $requiredQty);
+                    }
                 }
             }
         }
@@ -107,14 +139,62 @@ class MenuController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
             'items.*.meal_type' => 'sometimes|in:breakfast,lunch,dinner,snack',
+            'portion_size' => 'sometimes|integer|min:1',
         ]);
 
         $menu->update($request->only(['name', 'week_start', 'week_end', 'is_active']));
 
         if ($request->has('items')) {
+            // Re-check stock for new items before updating
+            $insufficientStock = [];
+            $portionSize = $request->portion_size ?? 50;
+            foreach ($request->items as $item) {
+                $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
+                if (!$product) {
+                    $insufficientStock[] = ['product' => 'Unknown', 'reason' => 'Produit introuvable'];
+                    continue;
+                }
+                if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                    foreach ($product->ingredients as $ingredient) {
+                        $ingredientQty = $ingredient->pivot->quantity * $portionSize;
+                        if (($ingredient->stock?->quantity ?? 0) < $ingredientQty) {
+                            $insufficientStock[] = [
+                                'product' => $product->name . ' > ' . $ingredient->name,
+                                'required' => $ingredientQty,
+                                'available' => $ingredient->stock?->quantity ?? 0,
+                            ];
+                        }
+                    }
+                }
+            }
+
+            if (count($insufficientStock) > 0) {
+                return response()->json([
+                    'message' => 'Stock insuffisant pour mettre à jour le menu.',
+                    'details' => $insufficientStock,
+                ], 422);
+            }
+
             $menu->items()->delete();
             foreach ($request->items as $item) {
                 $menu->items()->create($item);
+
+                // Deduct stock using FIFO (through recipe ingredients for food products)
+                $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
+                if ($product) {
+                    $portionSize = $request->portion_size ?? 50;
+                    if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                        foreach ($product->ingredients as $ingredient) {
+                            $ingredientQty = $ingredient->pivot->quantity * $portionSize;
+                            if ($ingredient->stock) {
+                                $this->fifoDeduction($ingredient->stock, $ingredientQty);
+                            }
+                        }
+                    } elseif ($product->stock) {
+                        $requiredQty = $item['quantity'] ?? 1;
+                        $this->fifoDeduction($product->stock, $requiredQty);
+                    }
+                }
             }
         }
 
@@ -126,6 +206,7 @@ class MenuController extends Controller
 
     public function destroy(Menu $menu): JsonResponse
     {
+        // Note: stock is not restored on deletion (business decision - consumed goods)
         $menu->delete();
 
         return response()->json(['message' => 'Menu supprimé.']);
