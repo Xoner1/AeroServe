@@ -294,7 +294,7 @@ export class DashboardComponent implements OnInit {
 
         const orderData = {
           type: r.type === 'food' ? 'food' : 'commercial',
-          notes: `Commande de réapprovisionnement automatique générée par l'Assistant IA ( النفاد المتوقع: ${r.days_left} يوم).`,
+          notes: `Commande de réapprovisionnement automatique générée par l'Assistant IA (épuisement prévu: ${r.days_left} jours).`,
           delivery_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           items: [
             {

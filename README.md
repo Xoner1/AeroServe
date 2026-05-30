@@ -25,15 +25,15 @@ aeroservemobileahlem-main/      → Flutter mobile app (Caissier, F&B, Hygiène)
 
 ## The 7 User Roles
 
-| Role | Arabic | Access |
-|------|--------|--------|
-| Super Admin | مدير النظام | Full access, global KPIs, user management |
-| Responsable F&B | مسؤول الأغذية | Internal orders, planning, kitchen/warehouse load |
-| Chef de Cuisine | رئيس الطهاة | FOOD products, recipes, weekly menu |
-| Chef Magasin | رئيس المخزن | Stock FIFO, product tracking, alerts |
-| Responsable Achat | مسؤول المشتريات | Product approval, pricing, AI predictions |
-| Responsable Hygiène | مسؤول النظافة | Hygiene reports, allergen control, QR inspections |
-| Caissier | أمين الصندوق | POS sales only, assigned point of sale |
+| Role | Access |
+|------|--------|
+| Super Admin | Full access, global KPIs, user management |
+| Responsable F&B | Internal orders, planning, kitchen/warehouse load |
+| Chef de Cuisine | FOOD products, recipes, weekly menu |
+| Chef Magasin | Stock FIFO, product tracking, alerts |
+| Responsable Achat | Product approval, pricing, AI predictions |
+| Responsable Hygiène | Hygiene reports, allergen control, QR inspections |
+| Caissier | POS sales only, assigned point of sale |
 
 ## Quick Start — Frontend
 
