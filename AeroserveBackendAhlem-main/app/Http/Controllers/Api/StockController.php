@@ -8,6 +8,7 @@ use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Traits\FifoStockTrait;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -74,24 +75,26 @@ class StockController extends Controller
             'expiration_date' => 'nullable|date',
         ]);
 
-        if ($request->type === 'out') {
-            // FIFO: deduct from oldest/soonest-expiring batches first
-            $this->fifoDeduction($stock, (float) $request->quantity, $request->reason);
-        } else {
-            $stock->movements()->create([
-                'type' => $request->type,
-                'quantity' => $request->quantity,
-                'reason' => $request->reason,
-                'expiration_date' => $request->expiration_date,
-                'user_id' => auth()->id(),
-            ]);
+        DB::transaction(function () use ($stock, $request) {
+            if ($request->type === 'out') {
+                // FIFO: deduct from oldest/soonest-expiring batches first
+                $this->fifoDeduction($stock, (float) $request->quantity, $request->reason);
+            } else {
+                $stock->movements()->create([
+                    'type' => $request->type,
+                    'quantity' => $request->quantity,
+                    'reason' => $request->reason,
+                    'expiration_date' => $request->expiration_date,
+                    'user_id' => auth()->id(),
+                ]);
 
-            match ($request->type) {
-                'in' => $stock->increment('quantity', $request->quantity),
-                'adjustment' => $stock->update(['quantity' => $request->quantity]),
-                default => null,
-            };
-        }
+                match ($request->type) {
+                    'in' => $stock->increment('quantity', $request->quantity),
+                    'adjustment' => $stock->update(['quantity' => $request->quantity]),
+                    default => null,
+                };
+            }
+        });
 
         $stock->refresh();
 

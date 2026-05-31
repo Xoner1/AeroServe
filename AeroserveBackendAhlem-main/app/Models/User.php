@@ -30,6 +30,10 @@ class User extends Authenticatable implements JWTSubject
         'age',
         'experience',
         'avatar',
+        'point_de_vente_id',
+        'caissier_status',
+        'role',
+        'username',
     ];
 
     protected $hidden = [
@@ -43,6 +47,7 @@ class User extends Authenticatable implements JWTSubject
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'experience' => 'boolean',
+            'caissier_status' => 'string',
         ];
     }
 
@@ -65,7 +70,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function pointDeVente(): BelongsTo
     {
-        return $this->belongsTo(PointDeVente::class, 'pdv_id');
+        return $this->belongsTo(PointDeVente::class, 'point_de_vente_id');
     }
 public function pdvsResponsable()
 {
@@ -84,6 +89,21 @@ public function pdvsResponsable()
     public function plannings(): HasMany
     {
         return $this->hasMany(Planning::class, 'caissier_id');
+    }
+
+    public function sales(): HasMany
+    {
+        return $this->hasMany(Sale::class, 'user_id');
+    }
+
+    public function shifts(): HasMany
+    {
+        return $this->hasMany(Planning::class, 'user_id');
+    }
+
+    public function scopeCaissiers($query)
+    {
+        return $query->where('role', 'CAISSIER');
     }
 
     public function getFullNameAttribute(): string

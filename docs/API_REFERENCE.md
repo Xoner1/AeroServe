@@ -56,9 +56,16 @@ this.api.get<Product[]>('products')
 | Stocks | `stock-predictions` | GET/POST | AI consumption predictions |
 | Points de Vente | `points-de-vente` | GET/POST | |
 | Points de Vente | `points-de-vente/{id}` | GET/PUT/DELETE | |
-| Caissiers | `caissier` | GET/POST | |
-| Caissiers | `caissiers/{id}` | GET/PUT/DELETE | |
-| Caissiers | `caissiers/{id}/status` | PUT | Kanban status change |
+| Caissiers | `caissiers` | GET | List active cashiers |
+| Caissiers | `users/{id}/assign-pdv` | PUT | Assign point de vente to cashier |
+| Caissiers | `caissiers/pending` | GET | List pending cashiers (Super Admin) |
+| Caissiers | `users/{id}/approve` | PUT | Approve cashier user (Super Admin) |
+| Caissiers | `users/{id}/reject` | PUT | Reject cashier user (Super Admin) |
+| Caissiers | `caissiers` | POST | Create cashier user (Responsable F&B) |
+| Caissiers | `caissier` | GET | List all cashiers (Responsable F&B) |
+| Caissiers | `caissiers/{id}/status` | PUT | Kanban status change (Responsable F&B) |
+| Caissiers | `users/{id}/caissier` | PUT | Update cashier user details (Responsable F&B) |
+| Caissiers | `users/{id}/caissier` | DELETE | Delete cashier user (Responsable F&B) |
 | Sales | `sales` | GET | |
 | Sales | `sales/{id}` | GET | detail with items |
 | Sales | `sales/dashboard` | GET | daily cashier KPI |

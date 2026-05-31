@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\Stock;
 use App\Traits\FifoStockTrait;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,7 +49,8 @@ class SaleController extends Controller
             return response()->json(['message' => 'Le point de vente est requis.'], 422);
         }
 
-        // 1. Verify stock sufficiency for all items BEFORE proceeding
+        // 1. Verify stock sufficiency and price availability for all items BEFORE proceeding
+        $itemsWithPrice = [];
         foreach ($request->items as $item) {
             $stock = Stock::where('product_id', $item['product_id'])->first();
             $product = Product::find($item['product_id']);
@@ -60,41 +62,51 @@ class SaleController extends Controller
                     'message' => "Stock insuffisant pour \"{$productName}\". Quantité demandée : {$item['quantity']}, Quantité disponible : {$available}."
                 ], 422);
             }
-        }
 
-        // 2. Create the sale
-        $sale = Sale::create([
-            'caissier_id' => auth()->id(),
-            'pdv_id' => $pdvId,
-            'payment_method' => $request->payment_method ?? 'cash',
-            'total_amount' => 0,
-        ]);
-
-        $total = 0;
-        foreach ($request->items as $item) {
-            $unitPrice = $item['unit_price'] ?? Product::find($item['product_id'])?->price;
+            $unitPrice = $item['unit_price'] ?? $product?->price;
             if ($unitPrice === null) {
-                return response()->json(['message' => 'Prix unitaire introuvable pour un article.'], 422);
+                return response()->json(['message' => "Prix unitaire introuvable pour \"{$productName}\"."], 422);
             }
 
-            $subtotal = $item['quantity'] * $unitPrice;
-            $total += $subtotal;
-
-            $sale->items()->create([
+            $itemsWithPrice[] = [
                 'product_id' => $item['product_id'],
                 'quantity' => $item['quantity'],
                 'unit_price' => $unitPrice,
-                'subtotal' => $subtotal,
-            ]);
-
-            // 3. Deduct from stock using unified FIFO trait
-            $stock = Stock::where('product_id', $item['product_id'])->first();
-            if ($stock) {
-                $this->fifoDeduction($stock, (float) $item['quantity'], 'Vente #' . $sale->id);
-            }
+            ];
         }
 
-        $sale->update(['total_amount' => $total]);
+        // 2. Create the sale inside transaction
+        $sale = DB::transaction(function () use ($pdvId, $request, $itemsWithPrice) {
+            $sale = Sale::create([
+                'user_id' => auth()->id(),
+                'pdv_id' => $pdvId,
+                'payment_method' => $request->payment_method ?? 'cash',
+                'total_amount' => 0,
+            ]);
+
+            $total = 0;
+            foreach ($itemsWithPrice as $item) {
+                $subtotal = $item['quantity'] * $item['unit_price'];
+                $total += $subtotal;
+
+                $sale->items()->create([
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['unit_price'],
+                    'subtotal' => $subtotal,
+                ]);
+
+                // 3. Deduct from stock using unified FIFO trait
+                $stock = Stock::where('product_id', $item['product_id'])->first();
+                if ($stock) {
+                    $this->fifoDeduction($stock, (float) $item['quantity'], 'Vente #' . $sale->id);
+                }
+            }
+
+            $sale->update(['total_amount' => $total]);
+
+            return $sale;
+        });
 
         return response()->json([
             'message' => 'Vente enregistrée avec succès.',

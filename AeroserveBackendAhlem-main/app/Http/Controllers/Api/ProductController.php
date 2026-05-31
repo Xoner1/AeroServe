@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -172,26 +173,30 @@ class ProductController extends Controller
             }
         }
 
-        $product = Product::create($data);
+        $product = DB::transaction(function () use ($data, $request) {
+            $product = Product::create($data);
 
-        // Sync ingredients recipe if provided
-        if ($request->has('ingredients')) {
-            $syncData = [];
-            foreach ($request->ingredients as $ingredient) {
-                $syncData[$ingredient['product_id']] = [
-                    'quantity' => $ingredient['quantity'],
-                    'unit' => $ingredient['unit'] ?? 'piece',
-                ];
+            // Sync ingredients recipe if provided
+            if ($request->has('ingredients')) {
+                $syncData = [];
+                foreach ($request->ingredients as $ingredient) {
+                    $syncData[$ingredient['product_id']] = [
+                        'quantity' => $ingredient['quantity'],
+                        'unit' => $ingredient['unit'] ?? 'piece',
+                    ];
+                }
+                $product->ingredients()->sync($syncData);
             }
-            $product->ingredients()->sync($syncData);
-        }
 
-        // Auto-create stock with threshold 15
-        $product->stock()->create([
-            'quantity' => 0,
-            'min_threshold' => 15,
-            'unit' => 'piece',
-        ]);
+            // Auto-create stock with threshold 15
+            $product->stock()->create([
+                'quantity' => 0,
+                'min_threshold' => 15,
+                'unit' => 'piece',
+            ]);
+
+            return $product;
+        });
 
         return response()->json([
             'message' => 'Produit créé.',

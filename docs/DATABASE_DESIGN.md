@@ -23,6 +23,8 @@ Cette table stocke les comptes des employés et détermine leurs habilitations v
   | `is_active` | BOOLEAN | Statut d'activation du compte (actif/inactif). |
   | `phone` | VARCHAR(20) | Numéro de téléphone (optionnel). |
   | `avatar` | VARCHAR(255) | Chemin de l'image de profil sur le serveur. |
+  | `point_de_vente_id` | INT (FK) | Référence vers le point de vente associé (optionnel, pour rôle CAISSIER). |
+  | `caissier_status` | ENUM | Statut de validation du caissier (`en_attente`, `active`, `inactive`). |
 
 ---
 
@@ -72,8 +74,8 @@ Ces tables gèrent le niveau réel des stocks en entrepôt en appliquant la mét
 
 ---
 
-### D. Points de Vente (`points_de_vente`) & Caissiers (`caissiers`)
-Ces tables gèrent la structure géographique des différents points de vente au sein de l'aéroport.
+### D. Points de Vente (`points_de_vente`)
+Cette table gère la structure géographique des différents points de vente au sein de l'aéroport.
 * **Table `points_de_vente`** :
   | Attribut | Type | Description |
   | :--- | :--- | :--- |
@@ -83,17 +85,6 @@ Ces tables gèrent la structure géographique des différents points de vente au
   | `type` | ENUM | Zone aéroportuaire (`airside` sous douane / `landside` zone publique). |
   | `is_active` | BOOLEAN | Statut d'ouverture ou d'activité de la boutique. |
 
-* **Table `caissiers`** :
-  | Attribut | Type | Description |
-  | :--- | :--- | :--- |
-  | `id` | INT (PK) | Identifiant du caissier. |
-  | `first_name` | VARCHAR(100) | Prénom. |
-  | `last_name` | VARCHAR(100) | Nom de famille. |
-  | `email` | VARCHAR(191) | Email du caissier. |
-  | `phone` | VARCHAR(20) | Numéro de téléphone. |
-  | `status` | ENUM | Statut d'affectation (`en_attente`, `active`, `inactive`). |
-  | `point_de_vente_id` | INT (FK) | Référence vers le point de vente d'affectation par défaut. |
-
 ---
 
 ### E. Ventes (`sales`) & Lignes de Ventes (`sale_items`)
@@ -102,7 +93,7 @@ Elles modélisent les transactions financières réalisées aux caisses de l'aé
   | Attribut | Type | Description |
   | :--- | :--- | :--- |
   | `id` | INT (PK) | Identifiant unique de la transaction. |
-  | `caissier_id` | INT (FK) | Référence vers le caissier ayant enregistré la vente. |
+  | `user_id` | INT (FK) | Référence vers l'utilisateur (rôle CAISSIER) ayant enregistré la vente (anciennement `caissier_id`). |
   | `point_de_vente_id` | INT (FK) | Référence vers le point de vente associé. |
   | `total_amount` | DECIMAL(10,2) | Montant total payé par le client. |
   | `payment_method` | VARCHAR(50) | Méthode de paiement (Cash, Carte Bleue, etc.). |
@@ -157,7 +148,7 @@ Ces tables permettent la planification des noptions de garde et de travail hebdo
   | `planning_id` | INT (FK) | Référence vers le planning hebdomadaire associé. |
   | `day` | DATE | Date exacte de la garde. |
   | `shift_type` | ENUM | Type de shift (`Matin`, `Après-midi`, `Nuit`). |
-  | `caissier_id` | INT (FK) | Référence vers le caissier affecté à ce shift. |
+  | `user_id` | INT (FK) | Référence vers l'utilisateur (rôle CAISSIER) affecté à ce shift (anciennement `caissier_id`). |
   | `start_time` | TIME | Heure de début de prise de poste. |
   | `end_time` | TIME | Heure de fin de poste. |
 
@@ -203,11 +194,11 @@ erDiagram
     PRODUCTS ||--o{ SALE_ITEMS : "détaille"
     PRODUCTS ||--o{ ORDER_ITEMS : "détaille"
     STOCKS ||--o{ STOCK_MOVEMENTS : "subit"
-    POINTS_DE_VENTE ||--o{ CAISSIERS : "affecte"
+    POINTS_DE_VENTE ||--o{ USERS : "affecte"
     POINTS_DE_VENTE ||--o{ INTERNAL_ORDERS : "demande"
     POINTS_DE_VENTE ||--o{ SALES : "réalise"
-    CAISSIERS ||--o{ SALES : "effectue"
-    CAISSIERS ||--o{ SHIFTS : "travaille"
+    USERS ||--o{ SALES : "effectue"
+    USERS ||--o{ SHIFTS : "travaille"
     PLANNINGS ||--o{ SHIFTS : "contient"
     SALES ||--o{ SALE_ITEMS : "contient"
     INTERNAL_ORDERS ||--o{ ORDER_ITEMS : "contient"
@@ -224,6 +215,8 @@ erDiagram
         boolean is_active
         string phone
         string avatar
+        int point_de_vente_id FK
+        string caissier_status
     }
 
     CATEGORIES {
@@ -268,19 +261,9 @@ erDiagram
         boolean is_active
     }
 
-    CAISSIERS {
-        int id PK
-        string first_name
-        string last_name
-        string email
-        string phone
-        string status
-        int point_de_vente_id FK
-    }
-
     SALES {
         int id PK
-        int caissier_id FK
+        int user_id FK
         int point_de_vente_id FK
         decimal total_amount
         string payment_method
@@ -330,7 +313,7 @@ erDiagram
         int planning_id FK
         date day
         string shift_type
-        int caissier_id FK
+        int user_id FK
         time start_time
         time end_time
     }
@@ -371,7 +354,7 @@ Afin de garantir la cohérence des données stockées dans le système, plusieur
 
 1. **Intégrité de Domaine (Contraintes de Clé)** :
    * Chaque table possède une clé primaire unique (`PK`) en auto-incrémentation.
-   * L'unicité des adresses mails (`users.email` et `caissiers.email`) et des numéros de commande (`internal_orders.order_number`) est renforcée par des contraintes uniques (`UNIQUE`).
+   * L'unicité des adresses mails (`users.email`) et des numéros de commande (`internal_orders.order_number`) est renforcée par des contraintes uniques (`UNIQUE`).
 
 2. **Intégrité Référentielle (Clés Étrangères)** :
    * La suppression d'un produit (`products`) est bloquée s'il existe des transactions de vente associées (`sale_items`), ou s'il fait partie d'une strate de stock en cours (`stocks`) afin d'éviter les orphelins de données (`ON DELETE RESTRICT`).

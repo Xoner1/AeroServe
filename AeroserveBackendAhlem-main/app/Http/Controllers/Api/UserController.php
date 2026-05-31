@@ -330,4 +330,22 @@ if ($role->name === 'CAISSIER') {
 
         return response()->json(['message' => 'Caissier supprimé avec succès.']);
     }
+
+    public function getCaissiers(): JsonResponse
+    {
+        return response()->json(
+            User::caissiers()
+                ->with('pointDeVente')
+                ->get()
+        );
+    }
+
+    public function assignPointDeVente(Request $request, User $user): JsonResponse
+    {
+        $user->update([
+            'point_de_vente_id' => $request->point_de_vente_id,
+            'caissier_status'   => $request->status ?? 'active',
+        ]);
+        return response()->json($user->load('pointDeVente'));
+    }
 }

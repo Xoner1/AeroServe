@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends Model
 {
-    protected $fillable = ['caissier_id', 'pdv_id', 'total_amount', 'payment_method'];
+    protected $fillable = ['user_id', 'pdv_id', 'total_amount', 'payment_method'];
 
     protected function casts(): array
     {
@@ -19,7 +19,7 @@ class Sale extends Model
 
     public function caissier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'caissier_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function pointDeVente(): BelongsTo

@@ -2,7 +2,7 @@
 
 ## Interfaces (`core/models/index.ts`)
 
-### User
+### User (Consolidated with Cashier)
 ```ts
 interface User {
   id: number;
@@ -16,22 +16,15 @@ interface User {
   phone?: string;
   bio?: string;
   age?: number;
+  experience?: boolean;
+  point_de_vente_id?: number; // Added for CAISSIER role consolidation
+  caissier_status?: 'en_attente' | 'active' | 'inactive'; // Added for CAISSIER role consolidation
 }
 ```
 
-### Caissier
-```ts
-interface Caissier {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  status: 'en_attente' | 'active' | 'inactive';
-  point_de_vente?: PointDeVente;
-  hire_date: string;
-}
-```
+### Caissier (Deprecated & Merged)
+> [!NOTE]
+> The separate `Caissier` model/interface has been deprecated and merged directly into the `User` model with `role = 'CAISSIER'`. All relations now point to `User`.
 
 ### PointDeVente
 ```ts
@@ -107,7 +100,7 @@ interface StockMovement {
 ```ts
 interface Sale {
   id: number;
-  caissier: Caissier;
+  caissier: User;
   point_de_vente: PointDeVente;
   total_amount: number;
   payment_method: string;
@@ -200,7 +193,7 @@ interface Shift {
   id: number;
   day: string;          // ISO date
   shift_type: 'Matin' | 'Après-midi' | 'Nuit';
-  caissier: Caissier;
+  caissier: User;
   start_time: string;
   end_time: string;
 }

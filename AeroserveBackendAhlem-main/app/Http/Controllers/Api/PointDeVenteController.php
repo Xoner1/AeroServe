@@ -73,9 +73,11 @@ public function store(Request $request): JsonResponse
             'message' => $e->getMessage()
         ]);
 
+        $status = ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface) ? $e->getStatusCode() : 500;
+
         return response()->json([
             'error' => $e->getMessage()
-        ], 500);
+        ], $status);
     }
 }
     public function show(PointDeVente $pointDeVente): JsonResponse

@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Stock;
 use App\Traits\FifoStockTrait;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -91,33 +92,37 @@ class MenuController extends Controller
         }
 
         // If stock is sufficient, accept menu and update stock (FIFO)
-        $menu = Menu::create([
-            ...$request->only(['name', 'week_start', 'week_end']),
-            'created_by' => auth()->id(),
-        ]);
+        $menu = DB::transaction(function () use ($request) {
+            $menu = Menu::create([
+                ...$request->only(['name', 'week_start', 'week_end']),
+                'created_by' => auth()->id(),
+            ]);
 
-        if ($request->has('items')) {
-            foreach ($request->items as $item) {
-                $menu->items()->create($item);
+            if ($request->has('items')) {
+                foreach ($request->items as $item) {
+                    $menu->items()->create($item);
 
-                // Deduct stock using FIFO (through recipe ingredients for food products)
-                $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
-                if ($product) {
-                    $portionSize = $request->portion_size ?? 50;
-                    if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
-                        foreach ($product->ingredients as $ingredient) {
-                            $ingredientQty = $ingredient->pivot->quantity * $portionSize;
-                            if ($ingredient->stock) {
-                                $this->fifoDeduction($ingredient->stock, $ingredientQty);
+                    // Deduct stock using FIFO (through recipe ingredients for food products)
+                    $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
+                    if ($product) {
+                        $portionSize = $request->portion_size ?? 50;
+                        if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                            foreach ($product->ingredients as $ingredient) {
+                                $ingredientQty = $ingredient->pivot->quantity * $portionSize;
+                                if ($ingredient->stock) {
+                                    $this->fifoDeduction($ingredient->stock, $ingredientQty);
+                                }
                             }
+                        } elseif ($product->stock) {
+                            $requiredQty = $item['quantity'] ?? 1;
+                            $this->fifoDeduction($product->stock, $requiredQty);
                         }
-                    } elseif ($product->stock) {
-                        $requiredQty = $item['quantity'] ?? 1;
-                        $this->fifoDeduction($product->stock, $requiredQty);
                     }
                 }
             }
-        }
+
+            return $menu;
+        });
 
         return response()->json([
             'message' => 'Menu créé et stock mis à jour.',
@@ -143,8 +148,6 @@ class MenuController extends Controller
             'items.*.meal_type' => 'sometimes|in:breakfast,lunch,dinner,snack',
             'portion_size' => 'sometimes|integer|min:1',
         ]);
-
-        $menu->update($request->only(['name', 'week_start', 'week_end', 'is_active']));
 
         if ($request->has('items')) {
             // Re-check stock for new items before updating
@@ -176,29 +179,35 @@ class MenuController extends Controller
                     'details' => $insufficientStock,
                 ], 422);
             }
+        }
 
-            $menu->items()->delete();
-            foreach ($request->items as $item) {
-                $menu->items()->create($item);
+        DB::transaction(function () use ($menu, $request) {
+            $menu->update($request->only(['name', 'week_start', 'week_end', 'is_active']));
 
-                // Deduct stock using FIFO (through recipe ingredients for food products)
-                $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
-                if ($product) {
-                    $portionSize = $request->portion_size ?? 50;
-                    if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
-                        foreach ($product->ingredients as $ingredient) {
-                            $ingredientQty = $ingredient->pivot->quantity * $portionSize;
-                            if ($ingredient->stock) {
-                                $this->fifoDeduction($ingredient->stock, $ingredientQty);
+            if ($request->has('items')) {
+                $menu->items()->delete();
+                foreach ($request->items as $item) {
+                    $menu->items()->create($item);
+
+                    // Deduct stock using FIFO (through recipe ingredients for food products)
+                    $product = Product::with('stock', 'ingredients.stock')->find($item['product_id']);
+                    if ($product) {
+                        $portionSize = $request->portion_size ?? 50;
+                        if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                            foreach ($product->ingredients as $ingredient) {
+                                $ingredientQty = $ingredient->pivot->quantity * $portionSize;
+                                if ($ingredient->stock) {
+                                    $this->fifoDeduction($ingredient->stock, $ingredientQty);
+                                }
                             }
+                        } elseif ($product->stock) {
+                            $requiredQty = $item['quantity'] ?? 1;
+                            $this->fifoDeduction($product->stock, $requiredQty);
                         }
-                    } elseif ($product->stock) {
-                        $requiredQty = $item['quantity'] ?? 1;
-                        $this->fifoDeduction($product->stock, $requiredQty);
                     }
                 }
             }
-        }
+        });
 
         return response()->json([
             'message' => 'Menu mis à jour.',

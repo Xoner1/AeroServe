@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Planning extends Model
 {
-    protected $fillable = ['caissier_id', 'pdv_id', 'date', 'is_day_off', 'start_time', 'end_time', 'created_by', 'shift', 'day_status'];
+    protected $fillable = ['user_id', 'pdv_id', 'date', 'is_day_off', 'start_time', 'end_time', 'created_by', 'shift', 'day_status'];
 
     protected function casts(): array
     {
@@ -19,7 +19,7 @@ class Planning extends Model
 
     public function caissier(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'caissier_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function pointDeVente(): BelongsTo

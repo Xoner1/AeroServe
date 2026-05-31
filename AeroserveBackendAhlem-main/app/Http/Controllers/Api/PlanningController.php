@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Planning;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +23,7 @@ class PlanningController extends Controller
         }
 
         if ($request->has('caissier_id')) {
-            $query->where('caissier_id', $request->caissier_id);
+            $query->where('user_id', $request->caissier_id);
         }
 
         if ($request->has('pdv_id')) {
@@ -57,7 +58,7 @@ class PlanningController extends Controller
             }
             
             // Get existing shifts for the day and shift
-            $existingShifts = Planning::where('caissier_id', $caissierId)
+            $existingShifts = Planning::where('user_id', $caissierId)
                 ->where('date', $date)
                 ->where('shift', $shift)
                 ->where('is_day_off', false)
@@ -87,11 +88,11 @@ class PlanningController extends Controller
             }
         } else {
             // Delete active shifts on the same day if setting as rest day
-            Planning::where('caissier_id', $caissierId)->where('date', $date)->delete();
+            Planning::where('user_id', $caissierId)->where('date', $date)->delete();
         }
 
         $planning = Planning::create([
-            'caissier_id' => $request->caissier_id,
+            'user_id' => $request->caissier_id,
             'pdv_id' => $isDayOff ? null : $request->pdv_id,
             'date' => $request->date,
             'is_day_off' => $isDayOff,
@@ -121,7 +122,7 @@ class PlanningController extends Controller
         ]);
 
         $date = $request->date ?? $planning->date;
-        $caissierId = $planning->caissier_id;
+        $caissierId = $planning->user_id;
         $dayStatus = $request->day_status ?? ($request->has('is_day_off') ? ($request->boolean('is_day_off') ? 'OFF' : 'ON') : $planning->day_status);
         $isDayOff = ($dayStatus === 'OFF' || $dayStatus === 'CONGE');
         $shift = $request->shift ?? $planning->shift;
@@ -135,7 +136,7 @@ class PlanningController extends Controller
             }
             
             // Get other shifts for the day and shift
-            $existingShifts = Planning::where('caissier_id', $caissierId)
+            $existingShifts = Planning::where('user_id', $caissierId)
                 ->where('date', $date)
                 ->where('shift', $shift)
                 ->where('id', '!=', $planning->id)
@@ -273,32 +274,38 @@ class PlanningController extends Controller
                     }
                 }
             }
-
-            // Standard clean rewrite: delete pre-existing plannings for these cashiers in this target week
-            Planning::where('caissier_id', $cashierId)
-                ->whereBetween('date', [$startOfWeekStr, $endOfWeekStr])
-                ->delete();
         }
 
-        // Perform bulk insertions
-        $created = [];
-        foreach ($incoming as $plan) {
-            $dayStatus = $plan['day_status'] ?? (!empty($plan['is_day_off']) ? 'OFF' : 'ON');
-            $isDayOff = ($dayStatus === 'OFF' || $dayStatus === 'CONGE');
-            $shift = $plan['shift'] ?? 'MATIN';
+        $created = DB::transaction(function () use ($byCashier, $startOfWeekStr, $endOfWeekStr, $incoming) {
+            foreach ($byCashier as $cashierId => $plans) {
+                // Standard clean rewrite: delete pre-existing plannings for these cashiers in this target week
+                Planning::where('user_id', $cashierId)
+                    ->whereBetween('date', [$startOfWeekStr, $endOfWeekStr])
+                    ->delete();
+            }
 
-            $created[] = Planning::create([
-                'caissier_id' => $plan['caissier_id'],
-                'pdv_id' => $isDayOff ? null : ($plan['pdv_id'] ?? null),
-                'date' => $plan['date'],
-                'is_day_off' => $isDayOff,
-                'shift' => $shift,
-                'day_status' => $dayStatus,
-                'start_time' => $isDayOff ? null : ($plan['start_time'] ?? null),
-                'end_time' => $isDayOff ? null : ($plan['end_time'] ?? null),
-                'created_by' => auth()->id(),
-            ]);
-        }
+            // Perform bulk insertions
+            $created = [];
+            foreach ($incoming as $plan) {
+                $dayStatus = $plan['day_status'] ?? (!empty($plan['is_day_off']) ? 'OFF' : 'ON');
+                $isDayOff = ($dayStatus === 'OFF' || $dayStatus === 'CONGE');
+                $shift = $plan['shift'] ?? 'MATIN';
+
+                $created[] = Planning::create([
+                    'user_id' => $plan['caissier_id'],
+                    'pdv_id' => $isDayOff ? null : ($plan['pdv_id'] ?? null),
+                    'date' => $plan['date'],
+                    'is_day_off' => $isDayOff,
+                    'shift' => $shift,
+                    'day_status' => $dayStatus,
+                    'start_time' => $isDayOff ? null : ($plan['start_time'] ?? null),
+                    'end_time' => $isDayOff ? null : ($plan['end_time'] ?? null),
+                    'created_by' => auth()->id(),
+                ]);
+            }
+
+            return $created;
+        });
 
         return response()->json([
             'message' => count($created) . ' affectations enregistrées pour la semaine.',

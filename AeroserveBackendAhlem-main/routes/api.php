@@ -44,6 +44,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::post('/chatbot/ask', [ChatbotController::class, 'ask']);
 
     Route::get('/roles', [UserController::class, 'roles']);
+    Route::get('/caissiers', [UserController::class, 'getCaissiers']);
+    Route::put('/users/{user}/assign-pdv', [UserController::class, 'assignPointDeVente']);
 
     // Shared dashboard for authenticated users
     Route::get('/dashboard', [DashboardController::class, 'index']);
