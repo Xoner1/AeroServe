@@ -2,145 +2,184 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
-import { HygieneReport } from '../../core/models';
+import { HygieneReport, Product } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
+import { AppIconComponent } from '../../shared/icon/app-icon.component';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-hygiene-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageLoadingComponent],
+  imports: [CommonModule, FormsModule, PageLoadingComponent, AppIconComponent],
   template: `
     @if (loading) {
       <app-page-loading variant="table" [rows]="8" />
     } @else {
-    <div class="page">
-      <div class="page-header">
-        <h2>Rapports d'hygiène</h2>
-        <button class="btn btn-primary" (click)="openModal()">+ Nouveau rapport</button>
-      </div>
+      <div class="page">
+        <!-- ─── HEADER ─── -->
+        <div class="page-header">
+          <div>
+            <h2>Rapports de Contrôle d'Hygiène</h2>
+            <p class="subtitle">Enregistrement et suivi de la conformité sanitaire des produits et préparations</p>
+          </div>
+          <button class="btn btn-primary" (click)="openModal()">
+            <app-icon name="ShieldCheck" [size]="16"></app-icon> Nouveau Rapport
+          </button>
+        </div>
 
-      <div class="card">
-        <div class="table-wrap">
-          <table>
+        <!-- ─── REPORTS TABLE ─── -->
+        <div class="table-container">
+          <table class="premium-table">
             <thead>
               <tr>
                 <th>Produit</th>
                 <th>Inspecteur</th>
-                <th>Allergènes</th>
-                <th>Expiration</th>
+                <th>Vérifications</th>
                 <th>Statut</th>
-                <th>Date</th>
-                <th>Actions</th>
+                <th>Date d'inspection</th>
+                <th style="text-align: right;">Actions</th>
               </tr>
             </thead>
             <tbody>
               @for (r of reports; track r.id) {
                 <tr>
-                  <td>{{ r.product?.name }}</td>
-                  <td>{{ r.inspector?.first_name }} {{ r.inspector?.last_name }}</td>
-                  <td>{{ r.allergens_verified ? '' : '' }}</td>
-                  <td>{{ r.expiration_verified ? '' : '' }}</td>
                   <td>
-                    <span class="badge" [class]="'status-' + r.status">
+                    <strong style="color: var(--text-primary);">{{ r.product?.name || 'Produit inconnu' }}</strong>
+                  </td>
+                  <td>{{ r.inspector?.first_name }} {{ r.inspector?.last_name }}</td>
+                  <td>
+                    <div style="display: flex; gap: 8px;">
+                      <span class="badge" [class.badge-success]="r.allergens_verified" [class.badge-neutral]="!r.allergens_verified">
+                        {{ r.allergens_verified ? 'Allergènes ✓' : 'Allergènes ✗' }}
+                      </span>
+                      <span class="badge" [class.badge-success]="r.expiration_verified" [class.badge-neutral]="!r.expiration_verified">
+                        {{ r.expiration_verified ? 'DLC ✓' : 'DLC ✗' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge" 
+                          [class.badge-success]="r.status === 'conforme'" 
+                          [class.badge-error]="r.status === 'non_conforme'"
+                          [class.badge-warning]="r.status === 'en_cours'">
                       {{ r.status === 'conforme' ? 'Conforme' : r.status === 'non_conforme' ? 'Non conforme' : 'En cours' }}
                     </span>
                   </td>
                   <td>{{ r.created_at | date:'dd/MM/yyyy' }}</td>
-                  <td class="actions">
-                    <button class="btn-icon" (click)="editReport(r)"></button>
-                    <button class="btn-icon danger" (click)="deleteReport(r.id)"></button>
+                  <td style="text-align: right;">
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                      <button class="btn btn-secondary" style="height: 28px; padding: 0 10px; font-size: 11px;" (click)="editReport(r)">
+                        Modifier
+                      </button>
+                      <button class="btn btn-danger" style="height: 28px; padding: 0 10px; font-size: 11px;" (click)="deleteReport(r.id)">
+                        Supprimer
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (reports.length === 0) {
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                    Aucun rapport d'hygiène enregistré.
                   </td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
-      </div>
 
-      @if (showModal) {
-        <div class="modal-overlay" (click)="closeModal()">
-          <div class="modal" (click)="$event.stopPropagation()">
-            <h3>{{ editing ? 'Modifier' : 'Nouveau' }} rapport</h3>
-            <form (ngSubmit)="save()">
-              <div class="form-group">
-                <label>Produit (ID)</label>
-                <input type="number" [(ngModel)]="form.product_id" name="product_id" required />
+        <!-- ─── ADD / EDIT REPORT MODAL ─── -->
+        @if (showModal) {
+          <div class="modal-overlay" (click)="closeModal()">
+            <div class="modal-card" (click)="$event.stopPropagation()">
+              <div class="modal-header">
+                <h3>{{ editing ? 'Modifier' : 'Nouveau' }} Rapport d'Hygiène</h3>
+                <button (click)="closeModal()" style="font-size: 16px;">✕</button>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>
-                    <input type="checkbox" [(ngModel)]="form.allergens_verified" name="allergens_verified" />
-                    Allergènes vérifiés
-                  </label>
+
+              <form (ngSubmit)="save()">
+                <div class="modal-body">
+                  <div class="form-group">
+                    <label>Produit à Inspecter *</label>
+                    <select [(ngModel)]="form.product_id" name="product_id" required class="pd-select">
+                      <option [ngValue]="null" disabled>-- Choisir un produit alimentaire --</option>
+                      @for (p of foodProducts; track p.id) {
+                        <option [ngValue]="p.id">{{ p.name }} ({{ p.type === 'food' ? 'Aliment' : 'Boisson' }})</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="form-row" style="margin-top: 12px; margin-bottom: 12px;">
+                    <div class="form-group-checkbox">
+                      <input type="checkbox" id="allergens_verified" [(ngModel)]="form.allergens_verified" name="allergens_verified" />
+                      <label for="allergens_verified" class="chk-label">Allergènes vérifiés</label>
+                    </div>
+                    <div class="form-group-checkbox">
+                      <input type="checkbox" id="expiration_verified" [(ngModel)]="form.expiration_verified" name="expiration_verified" />
+                      <label for="expiration_verified" class="chk-label">Expiration vérifiée</label>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Statut de Conformité *</label>
+                    <select [(ngModel)]="form.status" name="status" required>
+                      <option value="conforme">Conforme</option>
+                      <option value="non_conforme">Non conforme</option>
+                      <option value="en_cours">En cours de vérification</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Remarques & Observations</label>
+                    <textarea [(ngModel)]="form.remarks" name="remarks" rows="3" placeholder="Saisissez vos observations..."></textarea>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>
-                    <input type="checkbox" [(ngModel)]="form.expiration_verified" name="expiration_verified" />
-                    Expiration vérifiée
-                  </label>
+
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+                  <button type="submit" class="btn btn-primary">{{ editing ? 'Modifier' : 'Enregistrer' }}</button>
                 </div>
-              </div>
-              <div class="form-group">
-                <label>Statut</label>
-                <select [(ngModel)]="form.status" name="status" required>
-                  <option value="conforme">Conforme</option>
-                  <option value="non_conforme">Non conforme</option>
-                  <option value="en_cours">En cours</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Remarques</label>
-                <textarea [(ngModel)]="form.remarks" name="remarks" rows="3"></textarea>
-              </div>
-              <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-                <button type="submit" class="btn btn-primary">{{ editing ? 'Modifier' : 'Créer' }}</button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      }
-    </div>
+        }
+      </div>
     }
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 24px; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; padding: 0; }
-    .page-header h2 { margin: 0; font-size: 26px; font-weight: 700; color: #1A1D1B; }
-    .card { background: #ffffff; border-radius: 22px; padding: 24px; box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06); border: 1px solid rgba(29, 35, 31, 0.05); }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    th { text-align: left; padding: 14px 16px; background: linear-gradient(135deg, #fff8f8 0%, #ffffff 100%); color: #6b7280; font-weight: 700; border-bottom: 2px solid #f1f1f1; text-transform: uppercase; font-size: 12px; letter-spacing: 0.03em; }
-    td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; color: #4A4D4B; transition: background 0.2s ease; }
-    tr:hover td { background: rgba(29, 35, 31, 0.02); }
-    .actions { display: flex; gap: 8px; }
-    .badge { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; }
-    .status-conforme { background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%); color: #6B8F71; border: 1px solid rgba(107,131,116, 0.1); }
-    .status-non_conforme { background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%); color: #C0483A; border: 1px solid rgba(194,115,115, 0.1); }
-    .status-en_cours { background: linear-gradient(135deg, #F5EDE4 0%, #ffffff 100%); color: #D4924A; border: 1px solid rgba(212,163,115, 0.1); }
-    .btn-icon { background: none; border: none; cursor: pointer; font-size: 16px; padding: 6px 8px; border-radius: 8px; transition: all 0.2s ease; }
-    .btn-icon:hover { background: rgba(29, 35, 31, 0.1); transform: scale(1.1); }
-    .btn-icon.danger:hover { background: rgba(194,115,115, 0.1); }
-    .btn { padding: 10px 22px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s ease; }
-    .btn-primary { background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%); color: #fff; box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2); }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3); }
-    .btn-secondary { background: #f3f4f6; color: #4A4D4B; }
-    .btn-secondary:hover { background: #e5e7eb; }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
-    .modal { background: #ffffff; border-radius: 24px; padding: 32px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); border: 1px solid rgba(29, 35, 31, 0.1); }
-    .modal h3 { margin: 0 0 24px; font-size: 22px; font-weight: 700; color: #111827; }
-    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
-    .form-group label { font-size: 14px; font-weight: 700; color: #374151; display: flex; align-items: center; gap: 6px; }
-    .form-group label input[type="checkbox"] { cursor: pointer; }
-    .form-group input[type="number"], .form-group select, .form-group textarea { padding: 12px 14px; border: 1.5px solid #e5e7eb; border-radius: 10px; font-size: 14px; outline: none; font-family: inherit; color: #111827; transition: all 0.2s ease; }
-    .form-group input::placeholder, .form-group select::placeholder, .form-group textarea::placeholder { color: #9ca3af; }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #2C3E35; box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1); background: #EDE9E2; }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; padding-top: 24px; border-top: 1px solid #f3f4f6; }
+    .page { display: flex; flex-direction: column; gap: 20px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+    .page-header h2 { margin: 0; font-size: 24px; font-weight: 600; color: var(--text-primary); }
+    .subtitle { margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary); }
+
+    .form-group-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group-checkbox input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .chk-label {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .pd-select {
+      width: 100%;
+    }
   `]
 })
 export class HygieneReportsComponent implements OnInit {
   reports: HygieneReport[] = [];
+  foodProducts: Product[] = [];
   loading = true;
   showModal = false;
   editing = false;
@@ -149,14 +188,30 @@ export class HygieneReportsComponent implements OnInit {
 
   constructor(private api: ApiService) {}
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+    this.loadProducts();
+  }
 
   load(): void {
     this.loading = true;
     this.api.get<any>('hygiene-reports').subscribe({
-      next: res => this.reports = res.data || res,
-      error: () => { this.loading = false; },
-      complete: () => { this.loading = false; }
+      next: res => {
+        this.reports = res.data || res;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+      }
+    });
+  }
+
+  loadProducts(): void {
+    this.api.get<any>('products').subscribe({
+      next: res => {
+        const list = res.data || res;
+        this.foodProducts = list.filter((p: Product) => p.approval_status === 'approved' && p.type !== 'matiere_premiere');
+      }
     });
   }
 
@@ -173,18 +228,74 @@ export class HygieneReportsComponent implements OnInit {
     this.showModal = true;
   }
 
-  closeModal(): void { this.showModal = false; }
+  closeModal(): void {
+    this.showModal = false;
+  }
 
   save(): void {
+    if (!this.form.product_id) {
+      Swal.fire('Erreur', 'Veuillez sélectionner un produit.', 'warning');
+      return;
+    }
+
     const req = this.editing
       ? this.api.put(`hygiene-reports/${this.editId}`, this.form)
       : this.api.post('hygiene-reports', this.form);
-    req.subscribe({ next: () => { this.closeModal(); this.load(); } });
+
+    req.subscribe({
+      next: () => {
+        Swal.fire({
+          title: 'Succès !',
+          text: this.editing ? 'Rapport mis à jour avec succès.' : 'Nouveau rapport d\'hygiène enregistré.',
+          icon: 'success',
+          confirmButtonColor: '#0D9488'
+        });
+        this.closeModal();
+        this.load();
+      },
+      error: (err) => {
+        Swal.fire({
+          title: 'Erreur',
+          text: err.error?.message || 'Impossible d\'enregistrer le rapport.',
+          icon: 'error',
+          confirmButtonColor: '#EF4444'
+        });
+      }
+    });
   }
 
   deleteReport(id: number): void {
-    if (confirm('Supprimer ce rapport ?')) {
-      this.api.delete(`hygiene-reports/${id}`).subscribe(() => this.load());
-    }
+    Swal.fire({
+      title: 'Supprimer ce rapport ?',
+      text: 'Cette action effacera définitivement le rapport d’hygiène.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#64748B',
+      confirmButtonText: 'Oui, supprimer !',
+      cancelButtonText: 'Annuler'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.api.delete(`hygiene-reports/${id}`).subscribe({
+          next: () => {
+            Swal.fire({
+              title: 'Supprimé !',
+              text: 'Le rapport a été supprimé.',
+              icon: 'success',
+              confirmButtonColor: '#0D9488'
+            });
+            this.load();
+          },
+          error: (err) => {
+            Swal.fire({
+              title: 'Erreur',
+              text: err.error?.message || 'Impossible d’effacer le rapport.',
+              icon: 'error',
+              confirmButtonColor: '#EF4444'
+            });
+          }
+        });
+      }
+    });
   }
 }

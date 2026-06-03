@@ -210,14 +210,14 @@ import { RouterLink } from '@angular/router';
     .nav-cta {
       padding: 10px 16px;
       border-radius: 10px;
-      background: #6B8F71;
+      background: var(--accent);
       color: #ffffff !important;
       font-weight: 600;
       transition: background 0.15s ease;
     }
 
     .nav-cta:hover {
-      background: #5A7263;
+      background: #0F766E;
     }
 
     .landing-main {
@@ -304,14 +304,14 @@ import { RouterLink } from '@angular/router';
     }
 
     .primary-btn {
-      background: #6B8F71;
+      background: var(--accent);
       color: #ffffff;
     }
 
     .primary-btn:hover {
-      background: #5A7263;
+      background: #0F766E;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(107, 131, 116, 0.2);
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
     }
 
     .secondary-btn {
@@ -472,7 +472,7 @@ import { RouterLink } from '@angular/router';
     }
 
     .role-card:hover {
-      border-color: #6B8F71;
+      border-color: var(--accent);
     }
 
     .role-card strong {
@@ -524,7 +524,7 @@ import { RouterLink } from '@angular/router';
       display: block;
       font-size: 26px;
       margin-bottom: 10px;
-      color: #6B8F71;
+      color: var(--accent);
     }
 
     .workflow-steps span {

@@ -163,7 +163,7 @@ import { PointDeVente, Airport } from '../../core/models';
     
     .alert.success {
       background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: #6B8F71;
+      color: var(--accent);
       border: 1px solid rgba(107, 131, 116, 0.1);
     }
     
@@ -229,7 +229,7 @@ import { PointDeVente, Airport } from '../../core/models';
     
     .status.active {
       background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: #6B8F71;
+      color: var(--accent);
       border: 1px solid rgba(107, 131, 116, 0.1);
     }
     
@@ -268,7 +268,7 @@ import { PointDeVente, Airport } from '../../core/models';
       font-size: 12px;
       font-weight: 700;
       background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: #6B8F71;
+      color: var(--accent);
       border: 1px solid rgba(107, 131, 116, 0.1);
     }
     

@@ -15,6 +15,7 @@ class Product extends Model
         'name', 'description', 'type', 'category_id', 'price',
         'image', 'is_active', 'allergens', 'expiration_date',
         'approval_status', 'created_by', 'usage_status',
+        'quantity_per_batch',
     ];
 
     protected function casts(): array

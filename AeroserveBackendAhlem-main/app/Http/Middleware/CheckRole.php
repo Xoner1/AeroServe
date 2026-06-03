@@ -12,7 +12,9 @@ class CheckRole
     {
         $user = $request->user();
 
-        if (!$user || !$user->role || !in_array($user->role->name, $roles)) {
+        $roleName = $user->role?->name ?? $user->caissier_role;
+
+        if (!$user || !$roleName || !in_array($roleName, $roles)) {
             return response()->json(['message' => 'Accès non autorisé.'], 403);
         }
 

@@ -1,233 +1,265 @@
 <div class="page">
-
-  <!-- ================= STATS ================= -->
-  <div class="card" style="display:flex; gap:12px; margin-top:15px;">
-    <div class="badge role">Total: {{ users.length }}</div>
-    <div class="badge role">Active: {{ activeUsersCount }}</div>
-    <div class="badge role">Inactive: {{ pendingUsersCount }}</div>
+  <!-- ─── HEADER ─── -->
+  <div class="page-header">
+    <div>
+      <h2>Gestion du Personnel</h2>
+      <p class="subtitle">Créez et administrez les comptes des employés et gérez leurs permissions d'accès</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">
+      + Recruter un employé
+    </button>
   </div>
 
-  <!-- ================= HEADER ================= -->
-  <div class="header">
-<h2>Employees management</h2>
-
-    <div class="header-actions">
-      <input type="text"
-             placeholder="Search..."
-             [ngModel]="searchTerm"
-             (ngModelChange)="onSearch($event)">
-
-      <button class="btn-primary" (click)="openModal()">
-        + Add New employee
-      </button>
+  <!-- ─── STATS SUMMARY BAR ─── -->
+  <div class="stat-summary-bar">
+    <div class="stat-card">
+      <span class="stat-label">Total Employés</span>
+      <span class="stat-value">{{ users.length }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Comptes Actifs</span>
+      <span class="stat-value">{{ activeUsersCount }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">En attente / Inactifs</span>
+      <span class="stat-value">{{ pendingUsersCount }}</span>
     </div>
   </div>
-<!-- ================= FORM MESSAGES ================= -->
-@if (successMessage) {
-  <div class="form-success">
-     {{ successMessage }}
+
+  <!-- ─── CONTROL BAR ─── -->
+  <div class="control-bar">
+    <div class="search-box">
+      <input type="text"
+             placeholder="Rechercher par nom, email, rôle..."
+             [ngModel]="searchTerm"
+             (ngModelChange)="onSearch($event)" />
+    </div>
   </div>
-}
 
-@if (formError) {
-  <div class="form-error">
-     {{ formError }}
-  </div>
-}
-  <!-- ================= TABLE ================= -->
-  <div class="card">
+  <!-- ─── FORM MESSAGES ─── -->
+  @if (successMessage) {
+    <div class="alert alert-success" style="margin-top: 16px;">
+      {{ successMessage }}
+    </div>
+  }
 
-    <table>
+  @if (formError) {
+    <div class="alert alert-error" style="margin-top: 16px;">
+      {{ formError }}
+    </div>
+  }
 
+  <!-- ─── TABLE GRID ─── -->
+  <div class="table-container">
+    <table class="premium-table">
       <thead>
         <tr>
-          <th>Photo</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Operations</th>
+          <th style="width: 60px;">Photo</th>
+          <th>Nom Complet</th>
+          <th>Adresse Email</th>
+          <th>Rôle assigné</th>
+          <th>Statut</th>
+          <th style="text-align: right;">Opérations</th>
         </tr>
       </thead>
-
       <tbody>
-
         @for (user of paginatedUsers; track user.id) {
           <tr>
-
             <td>
-              <img class="avatar"
-                   [src]="getAvatar(user)"
-                   (error)="onImageError($event)" />
+              <div class="avatar-wrap">
+                <img class="avatar"
+                     [src]="getAvatar(user)"
+                     (error)="onImageError($event)" />
+              </div>
             </td>
-
-            <td>{{ user.first_name }} {{ user.last_name }}</td>
-
+            <td>
+              <strong style="color: var(--text-primary);">{{ user.first_name }} {{ user.last_name }}</strong>
+            </td>
             <td>{{ user.email }}</td>
-
             <td>
-              <span class="badge role">
-                {{ user.role?.display_name }}
+              <span class="badge badge-neutral">
+                {{ user.role?.display_name || 'Sans Rôle' }}
               </span>
             </td>
-
             <td>
-              <span class="badge" [ngClass]="'status-' + user.status">
-                {{ user.status }}
+              <span class="badge" 
+                    [class.badge-success]="user.status === 'active'" 
+                    [class.badge-warning]="user.status === 'en_attente'"
+                    [class.badge-error]="user.status === 'inactive'">
+                {{ user.status === 'active' ? 'Actif' : user.status === 'en_attente' ? 'En attente' : 'Inactif' }}
               </span>
             </td>
-
-            <td class="actions">
-              <button class="btn-icon edit" (click)="editUser(user)"></button>
-              <button class="btn-icon danger" (click)="deleteUser(user.id)"></button>
+            <td style="text-align: right;">
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary" style="height: 28px; padding: 0 10px; font-size: 11px;" (click)="editUser(user)">
+                  Modifier
+                </button>
+                <button class="btn btn-danger" style="height: 28px; padding: 0 10px; font-size: 11px;" (click)="deleteUser(user.id)">
+                  Supprimer
+                </button>
+              </div>
             </td>
-
           </tr>
         }
-
         @if (paginatedUsers.length === 0) {
           <tr>
-            <td colspan="6" style="text-align:center;">
-              No users found
+            <td colspan="6" style="text-align: center; padding: 48px; color: var(--text-muted);">
+              Aucun employé trouvé.
             </td>
           </tr>
         }
-
       </tbody>
-
     </table>
-
   </div>
 
+  <!-- ─── PAGINATION ─── -->
+  @if (totalPages > 1) {
+    <div class="pagination">
+      <button class="page-btn" [disabled]="page === 1" (click)="page = page - 1">
+        Précédent
+      </button>
+      <span class="page-info">Page {{ page }} sur {{ totalPages }}</span>
+      <button class="page-btn" [disabled]="page === totalPages" (click)="page = page + 1">
+        Suivant
+      </button>
+    </div>
+  }
 </div>
 
-<!-- ================= MODAL (FIXED) ================= -->
+<!-- ─── ADD / EDIT USER WIZARD MODAL ─── -->
 @if (showModal) {
-
-<div class="modal-overlay" (click)="closeModal()">
-
-  <div class="modal" (click)="$event.stopPropagation()">
-
-    <h3>
-      {{ editing ? 'Edit User' : 'Add New User' }}
-    </h3>
-
-    <form [formGroup]="form" (ngSubmit)="saveUser()">
-
-      <!-- PROGRESS -->
-      <div class="progress">
-        <div class="step" [class.active]="step === 1">1</div>
-        <div class="line"></div>
-        <div class="step" [class.active]="step === 2">2</div>
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ editing ? 'Modifier le compte' : 'Créer un nouveau compte' }}</h3>
+        <button (click)="closeModal()" style="font-size: 16px;">✕</button>
       </div>
 
-      <!-- STEP 1 -->
-      @if (step === 1) {
-
-        <div class="wizard-page">
-
-          <h4> User Information</h4>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>First Name *</label>
-              <input formControlName="first_name">
+      <form [formGroup]="form" (ngSubmit)="saveUser()">
+        <div class="modal-body">
+          <!-- Wizard steps progress indicator -->
+          <div class="wizard-steps-header">
+            <div class="wizard-step-node" [class.active]="step === 1" [class.done]="step > 1">
+              <span class="wizard-node-circle">1</span>
+              <span class="wizard-node-label">Infos</span>
             </div>
-
-            <div class="form-group">
-              <label>Last Name *</label>
-              <input formControlName="last_name">
+            <div class="wizard-step-line" [class.done]="step > 1"></div>
+            <div class="wizard-step-node" [class.active]="step === 2" [class.done]="step > 2">
+              <span class="wizard-node-circle">2</span>
+              <span class="wizard-node-label">Compte</span>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Email *</label>
-            <input formControlName="email" type="email">
-          </div>
+          <!-- STEP 1: Infos -->
+          @if (step === 1) {
+            <div class="wizard-page">
+              <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Informations Générales</h4>
+              
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Prénom *</label>
+                  <input formControlName="first_name" placeholder="Ex: Ahmed" />
+                </div>
+                <div class="form-group">
+                  <label>Nom de famille *</label>
+                  <input formControlName="last_name" placeholder="Ex: Ben Ali" />
+                </div>
+              </div>
 
-          <div class="form-group">
-            <label>Phone *</label>
-            <input formControlName="phone" type="tel">
-          </div>
+              <div class="form-group">
+                <label>Adresse E-mail *</label>
+                <input formControlName="email" type="email" placeholder="ahmed.benali@aeroserve.tn" />
+                @if (emailChecking) {
+                  <small class="form-hintchecking">Vérification de la disponibilité...</small>
+                }
+                @if (emailExists) {
+                  <small class="form-hinterror">Cette adresse email est déjà prise.</small>
+                }
+              </div>
 
-          <div class="wizard-actions">
-            <button type="button" class="btn-primary" (click)="step = 2">
-              Next >
-            </button>
-          </div>
+              <div class="form-group">
+                <label>Téléphone *</label>
+                <input formControlName="phone" type="tel" placeholder="+216 22 123 456" />
+              </div>
 
-        </div>
-
-      }
-
-      <!-- STEP 2 -->
-      @if (step === 2) {
-
-        <div class="wizard-page">
-
-          <h4> Account Settings</h4>
-
-          @if (!editing) {
-            <div class="form-group">
-              <label>Password *</label>
-
-              <input [type]="showPassword ? 'text' : 'password'"
-                     formControlName="password">
-
-              <button type="button" (click)="togglePassword()">
-                {{ showPassword ? '' : '' }}
-              </button>
+              <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" (click)="step = 2">
+                  Suivant >
+                </button>
+              </div>
             </div>
           }
 
-          <div class="form-group">
-            <label>Role *</label>
-            <select formControlName="role_id" [disabled]="editing">
-              @for (role of roles; track role.id) {
-                <option [value]="role.id">
-                  {{ role.display_name }}
-                </option>
+          <!-- STEP 2: Settings -->
+          @if (step === 2) {
+            <div class="wizard-page">
+              <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Paramètres de Connexion</h4>
+
+              @if (!editing) {
+                <div class="form-group">
+                  <label>Mot de passe temporaire *</label>
+                  <div style="position: relative;">
+                    <input [type]="showPassword ? 'text' : 'password'"
+                           formControlName="password"
+                           placeholder="Mot de passe sécurisé" />
+                    <button type="button" class="btn-toggle-eye" (click)="togglePassword()">
+                      {{ showPassword ? 'Masquer' : 'Afficher' }}
+                    </button>
+                  </div>
+                </div>
               }
-            </select>
-          </div>
 
-          @if (editing) {
-            <div class="form-group">
-              <label>Status *</label>
-              <select formControlName="status">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+              <div class="form-group">
+                <label>Rôle Professionnel *</label>
+                <select formControlName="role_id">
+                  <option [ngValue]="null" disabled selected>-- Choisir un rôle --</option>
+                  @for (role of roles; track role.id) {
+                    <option [value]="role.id">
+                      {{ role.display_name }}
+                    </option>
+                  }
+                </select>
+              </div>
+
+              @if (editing) {
+                <div class="form-group">
+                  <label>Statut du compte *</label>
+                  <select formControlName="status">
+                    <option value="active">Actif</option>
+                    <option value="inactive">Inactif / Suspendu</option>
+                  </select>
+                </div>
+              }
+
+              <!-- Photo avatar picker -->
+              <div class="form-group">
+                <label>Photo de Profil (Avatar)</label>
+                <div class="avatar-picker-wrap">
+                  <label class="avatar-picker-label">
+                    <input type="file" style="display: none;" (change)="onFileSelected($event)" accept="image/*" />
+                    <div class="avatar-picker-preview">
+                      @if (avatarPreview) {
+                        <img [src]="avatarPreview" alt="Avatar preview" class="avatar-preview-img" />
+                      } @else {
+                        <span class="avatar-preview-placeholder">📷 Ajouter</span>
+                      }
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" (click)="step = 1">
+                  Retour
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="emailExists || emailChecking">
+                  {{ editing ? 'Mettre à jour' : 'Créer l’employé' }}
+                </button>
+              </div>
             </div>
           }
-
-          <div class="form-group">
-            <label>Photo</label>
-            <input type="file" (change)="onFileSelected($event)">
-          </div>
-
-          <div class="wizard-actions">
-
-            <button type="button"
-                    class="btn-secondary"
-                    (click)="step = 1">
-               Back
-            </button>
-
-            <button type="submit" class="btn-primary">
-              {{ editing ? 'Update' : 'Create' }}
-            </button>
-
-          </div>
-
         </div>
-
-      }
-
-    </form>
-
+      </form>
+    </div>
   </div>
-
-</div>
-
 }

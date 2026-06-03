@@ -1,3 +1,5 @@
+// NOTE: Requires Laravel Reverb or Pusher to be configured
+// and running. Real-time notifications inactive in local dev.
 import { Injectable } from '@angular/core';
 import { Observable, Subject, BehaviorSubject, timer, Subscription } from 'rxjs';
 import { AuthService } from './auth.service';

@@ -186,4 +186,33 @@ class CommentController extends Controller
 
         return response()->json($comments->get());
     }
+
+    public function update(Request $request, Comment $comment): JsonResponse
+    {
+        if ($comment->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Vous ne pouvez modifier que vos propres commentaires.'], 403);
+        }
+
+        $request->validate([
+            'body' => 'required|string|max:1000',
+        ]);
+
+        $comment->update(['body' => $request->body]);
+
+        return response()->json([
+            'message' => 'Commentaire modifié.',
+            'comment' => $comment->fresh()->load('user'),
+        ]);
+    }
+
+    public function destroy(Comment $comment): JsonResponse
+    {
+        if ($comment->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Vous ne pouvez supprimer que vos propres commentaires.'], 403);
+        }
+
+        $comment->delete();
+
+        return response()->json(['message' => 'Commentaire supprimé.']);
+    }
 }

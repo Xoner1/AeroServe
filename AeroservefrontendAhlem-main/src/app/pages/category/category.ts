@@ -45,7 +45,7 @@ export class CategoryComponent implements OnInit {
           title: 'Erreur',
           text: 'Impossible de charger les catégories.',
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       }
     });
@@ -85,7 +85,7 @@ export class CategoryComponent implements OnInit {
           title: 'Succès !',
           text: 'Catégorie enregistrée avec succès.',
           icon: 'success',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       },
       error: (err: any) => {
@@ -102,7 +102,7 @@ export class CategoryComponent implements OnInit {
           title: 'Erreur de validation',
           html: text,
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       }
     });
@@ -123,11 +123,11 @@ export class CategoryComponent implements OnInit {
       if (result.isConfirmed) {
         this.api.delete(`categories/${id}`).subscribe({
           next: () => {
-            Swal.fire({
+             Swal.fire({
               title: 'Supprimé !',
               text: 'La catégorie a été supprimée.',
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.load();
           },
@@ -136,7 +136,7 @@ export class CategoryComponent implements OnInit {
               title: 'Erreur',
               text: err.error?.message || 'Impossible de supprimer cette catégorie.',
               icon: 'error',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
           }
         });

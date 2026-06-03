@@ -32,7 +32,7 @@ class User extends Authenticatable implements JWTSubject
         'avatar',
         'point_de_vente_id',
         'caissier_status',
-        'role',
+        'caissier_role',
         'username',
     ];
 
@@ -59,7 +59,7 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims(): array
     {
         return [
-            'role' => $this->role?->name,
+            'role' => $this->role?->name ?? $this->caissier_role,
         ];
     }
 
@@ -88,7 +88,7 @@ public function pdvsResponsable()
 
     public function plannings(): HasMany
     {
-        return $this->hasMany(Planning::class, 'caissier_id');
+        return $this->hasMany(Planning::class, 'user_id');
     }
 
     public function sales(): HasMany
@@ -103,7 +103,7 @@ public function pdvsResponsable()
 
     public function scopeCaissiers($query)
     {
-        return $query->where('role', 'CAISSIER');
+        return $query->where('caissier_role', 'CAISSIER');
     }
 
     public function getFullNameAttribute(): string

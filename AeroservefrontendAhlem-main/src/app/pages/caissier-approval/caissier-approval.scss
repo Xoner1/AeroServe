@@ -2,7 +2,7 @@
   display: flex;
   gap: 18px;
   padding: 20px;
-  background: #f3f1f1;
+  background: var(--bg-secondary);
   min-height: 100vh;
   font-family: 'Inter', Arial, sans-serif;
 }
@@ -10,13 +10,13 @@
 /* ================= COLUMN ================= */
 .column {
   flex: 1;
-  background: #fffdfd;
+  background: var(--surface);
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.06);
   display: flex;
   flex-direction: column;
-  border: 1px solid #eef2f7;
+  border: 1px solid var(--border);
   transition: 0.2s ease;
 }
 
@@ -38,13 +38,13 @@
   font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #4A4D4B;
+  color: var(--text-secondary);
   font-weight: 700;
 }
 
 .count {
-  background: rgb(207, 43, 2);
-  color: #fff;
+  background: var(--accent);
+  color: var(--text-inverse);
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -61,12 +61,12 @@
 }
 
 .dropzone:hover {
-  background: #EDE9E2;
+  background: var(--bg-secondary);
 }
 
 .dropzone.cdk-drop-list-dragging {
-  background: #F5EDE4;
-  border: 2px dashed #ece3e3;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border);
 }
 
 //* ================= CARD (CAISSIER PRO UI) ================= */
@@ -75,9 +75,9 @@
   align-items: flex-start;
   gap: 14px;
 
-  background: linear-gradient(145deg, #ffffff, #fff8f5);
-  border: 1px solid #EDE9E2;
-  border-left: 4px solid #cf6f02;
+  background: linear-gradient(145deg, var(--surface), var(--bg-secondary));
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
 
   padding: 14px;
   margin-bottom: 12px;
@@ -109,7 +109,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(207, 111, 2, 0.08),
+    rgba(13, 148, 136, 0.08),
     transparent
   );
   transition: 0.6s;
@@ -131,11 +131,11 @@
 
   font-weight: 800;
   font-size: 13px;
-  color: #fff;
+  color: var(--text-inverse);
 
-  background: linear-gradient(135deg, #cf6f02, #2C3E35);
+  background: var(--accent);
 
-  box-shadow: 0 6px 12px rgba(207, 111, 2, 0.25);
+  box-shadow: 0 6px 12px rgba(13, 148, 136, 0.25);
   flex-shrink: 0;
 
   position: relative;
@@ -150,8 +150,8 @@
 
   width: 10px;
   height: 10px;
-  background: #22c55e;
-  border: 2px solid white;
+  background: var(--color-success);
+  border: 2px solid var(--surface);
   border-radius: 50%;
 }
 
@@ -167,7 +167,7 @@
 .name {
   font-size: 14px;
   font-weight: 700;
-  color: #1A1D1B;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -176,13 +176,13 @@
 /* email */
 .email {
   font-size: 12px;
-  color: #A8C5A0;
+  color: var(--text-muted);
 }
 
 /* meta row */
 .meta {
   font-size: 12px;
-  color: #4A4D4B;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -201,26 +201,26 @@
 
 /* experience */
 .exp-yes {
-  background: #E8F0EB;
-  color: #166534;
+  background: var(--bg-secondary);
+  color: var(--color-success);
 }
 
 .exp-no {
-  background: #ffe4e6;
-  color: #cf6f02;
+  background: var(--bg-secondary);
+  color: var(--accent);
 }
 
 /* ================= BIO ================= */
 .bio {
   margin-top: 6px;
   font-size: 12px;
-  color: #4A4D4B;
+  color: var(--text-secondary);
 
-  background: #EDE9E2;
+  background: var(--bg-secondary);
   padding: 8px 10px;
   border-radius: 10px;
 
-  border-left: 3px solid #cf6f02;
+  border-left: 3px solid var(--accent);
 }
 
 /* ================= ACTION HINT (OPTIONAL) ================= */
@@ -240,13 +240,13 @@
 }
 
 .card-btn.edit {
-  background: #e0f2fe;
-  color: #075985;
+  background: var(--bg-secondary);
+  color: var(--color-info);
 }
 
 .card-btn.delete {
-  background: #ffe4e6;
-  color: #cf6f02;
+  background: var(--bg-secondary);
+  color: var(--color-error);
 }
 
 .card-btn:hover {
@@ -255,7 +255,7 @@
 .name {
   font-weight: 700;
   font-size: 14px;
-  color: #1A1D1B;
+  color: var(--text-primary);
 }
 
 
@@ -264,11 +264,11 @@
 /* ================= EMPTY ================= */
 .empty {
   text-align: center;
-  color: #A8C5A0;
+  color: var(--text-muted);
   font-size: 13px;
   margin-top: 20px;
   padding: 20px;
-  border: 1px dashed #D8D2C8;
+  border: 1px dashed var(--border);
   border-radius: 10px;
 }
 

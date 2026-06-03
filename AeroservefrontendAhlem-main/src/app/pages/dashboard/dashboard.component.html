@@ -94,20 +94,20 @@
               <svg viewBox="0 0 500 200" class="svg-chart">
                 <defs>
                   <linearGradient id="salesGradNew" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#6B8F71" stop-opacity="0.2"/>
-                    <stop offset="100%" stop-color="#6B8F71" stop-opacity="0.0"/>
+                    <stop offset="0%" stop-color="#0D9488" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="#0D9488" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
                 <!-- Grid -->
-                <line x1="40" y1="30" x2="470" y2="30" stroke="#E0DAD0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="70" x2="470" y2="70" stroke="#E0DAD0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="110" x2="470" y2="110" stroke="#E0DAD0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="150" x2="470" y2="150" stroke="#D8D2C8" stroke-width="1.5" />
+                <line x1="40" y1="30" x2="470" y2="30" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
+                <line x1="40" y1="70" x2="470" y2="70" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
+                <line x1="40" y1="110" x2="470" y2="110" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
+                <line x1="40" y1="150" x2="470" y2="150" stroke="#CBD5E1" stroke-width="1.5" />
                 <path [attr.d]="getSalesAreaPath()" fill="url(#salesGradNew)" />
-                <path [attr.d]="getSalesLinePath()" fill="none" stroke="#6B8F71" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <path [attr.d]="getSalesLinePath()" fill="none" stroke="#0D9488" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
                 <!-- Dots -->
                 @for (d of data?.daily_sales || []; track d.date; let idx = $index) {
-                  <circle [attr.cx]="getSalesX(idx)" [attr.cy]="getSalesY(d.total)" r="4" fill="#FFFFFF" stroke="#6B8F71" stroke-width="2.5" />
+                  <circle [attr.cx]="getSalesX(idx)" [attr.cy]="getSalesY(d.total)" r="4" fill="#FFFFFF" stroke="#0D9488" stroke-width="2.5" />
                 }
               </svg>
             </div>
@@ -616,6 +616,49 @@
           </div>
         </div>
       </div>
+
+      <!-- Expired Batches Section -->
+      <div class="analytics-deck" style="margin-top: 20px;">
+        <div class="deck-card" style="grid-column: 1 / -1;">
+          <div class="deck-card-header">
+            <div>
+              <h3>Lots Expirés</h3>
+              <span>Lots de stock dont la date de consommation est dépassée</span>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th>Date d'expiration</th>
+                  <th>Numéro de Lot</th>
+                  <th>Quantité</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (batch of data?.role_specific?.expired_batches_list || []; track batch.id) {
+                  <tr>
+                    <td><strong>{{ batch.stock?.product?.name || 'Produit' }}</strong></td>
+                    <td class="td-mono" style="color: #dc2626; font-weight: bold;">
+                      {{ batch.expiration_date | date:'dd/MM/yyyy' }}
+                    </td>
+                    <td class="td-mono">Lot #{{ batch.id }}</td>
+                    <td class="td-mono">{{ batch.quantity }}</td>
+                  </tr>
+                }
+                @if (!data?.role_specific?.expired_batches_list?.length) {
+                  <tr>
+                    <td colspan="4" class="empty-cell" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                      Aucun produit expiré
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     }
 
     <!-- ═══════════════════════════════════════════════════════
@@ -866,81 +909,253 @@
     }
 
     <!-- ═══════════════════════════════════════════════════════
-         6. CHEF CUISINE DASHBOARD
+         6. CHEF CUISINE DASHBOARD (Feature 4)
          ═══════════════════════════════════════════════════════ -->
     @if (userRole === 'CHEF_CUISINE') {
+      <!-- ─── Planning Reminder Banner (Widget D2) ─── -->
+      @if (!data?.role_specific?.next_week_menu_planned) {
+        <div class="planning-banner">
+          <div class="pb-icon">⏰</div>
+          <div class="pb-content">
+            <strong>Rappel Planification</strong>
+            <p>Le menu de la semaine prochaine n'a pas encore été soumis. Veuillez le créer avant vendredi.</p>
+          </div>
+          <button class="btn btn-primary btn-sm" routerLink="/menus">Créer le menu</button>
+        </div>
+      }
+
       <div class="flight-strip theme-kitchen">
         <div class="fs-badge">CHEF CUISINE</div>
         <div class="fs-mission">
           <h1 class="fs-callsign">Chef {{ userName }}</h1>
-          <p class="fs-briefing">Planifiez les menus de la semaine, suivez vos fiches recettes et gérez la consommation des ingrédients culinaires.</p>
+          <p class="fs-briefing">Planifiez les menus de la semaine, suivez la disponibilité des ingrédients et gérez les réapprovisionnements.</p>
         </div>
         <div class="fs-instruments">
           <div class="instrument">
-            <span class="instrument-label">Recettes Validées</span>
+            <span class="instrument-label">Recettes</span>
             <span class="instrument-value">{{ data?.role_specific?.recipes_count || 0 }}</span>
-            <span class="instrument-unit">plats</span>
+            <span class="instrument-unit">plats validés</span>
           </div>
           <div class="instrument">
-            <span class="instrument-label">Menu Actif</span>
-            <span class="instrument-value" style="font-size:14px;">{{ data?.role_specific?.active_menu?.name || 'Aucun' }}</span>
+            <span class="instrument-label">Menu semaine</span>
+            <span class="instrument-value" style="font-size:13px; white-space:nowrap;">
+              <span class="badge" [class.badge-success]="data?.role_specific?.current_menu_status === 'VALIDE'"
+                    [class.badge-warning]="data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK'"
+                    [class.badge-neutral]="data?.role_specific?.current_menu_status === 'NON_PLANIFIE'">
+                {{ data?.role_specific?.current_menu_status === 'VALIDE' ? 'Validé' : data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK' ? 'En attente' : 'Non planifié' }}
+              </span>
+            </span>
           </div>
-          <div class="instrument" [class.status-alert]="(data?.role_specific?.critical_ingredients?.length || 0) > 0">
-            <span class="instrument-label">Alertes Ingrédients</span>
-            <span class="instrument-value">{{ data?.role_specific?.critical_ingredients?.length || 0 }}</span>
-            <span class="instrument-unit">alertes</span>
+          <div class="instrument" [class.status-alert]="(data?.role_specific?.sous_seuil_ingredients?.length || 0) > 0">
+            <span class="instrument-label">Sous-seuil</span>
+            <span class="instrument-value">{{ data?.role_specific?.sous_seuil_ingredients?.length || 0 }}</span>
+            <span class="instrument-unit">ingrédients</span>
           </div>
         </div>
       </div>
 
+      <!-- ─── Row 1: Widget A (Availability Gauge) + Widget B (Menu Status Card) ─── -->
       <div class="analytics-deck">
+        <!-- Widget A: Ingredient Availability Rate -->
         <div class="deck-card">
           <div class="deck-card-header">
-            <div><h3>Menu de la Semaine</h3><span>Composition réglementaire</span></div>
+            <div><h3>Taux de Disponibilité des Ingrédients</h3><span>Matières premières en stock positif</span></div>
           </div>
-          <div class="table-scroll">
-            <table class="dash-table">
-              <thead>
-                <tr><th>Jour</th><th>Petit-déj</th><th>Collation</th><th>Déjeuner</th><th>Dîner</th></tr>
-              </thead>
-              <tbody>
-                @for (day of ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']; track day) {
-                  <tr>
-                    <td><strong>{{ getDayLabelFrench(day) }}</strong></td>
-                    <td>{{ getMenuDishName(day, 'breakfast') }}</td>
-                    <td>{{ getMenuDishName(day, 'snack') }}</td>
-                    <td>{{ getMenuDishName(day, 'lunch') }}</td>
-                    <td>{{ getMenuDishName(day, 'dinner') }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="gauge-wrap">
+            <div class="gauge-container">
+              <svg viewBox="0 0 120 120" class="gauge-svg">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="#E2E8F0" stroke-width="10" />
+                <circle cx="60" cy="60" r="52" fill="none"
+                        [attr.stroke]="getGaugeColor(data?.role_specific?.availability_rate)"
+                        stroke-width="10" stroke-linecap="round"
+                        [attr.stroke-dasharray]="getGaugeDashArray(data?.role_specific?.availability_rate)"
+                        transform="rotate(-90, 60, 60)" />
+              </svg>
+              <div class="gauge-center">
+                <span class="gauge-value">{{ data?.role_specific?.availability_rate || 0 }}<small>%</small></span>
+                <span class="gauge-label">disponibles</span>
+              </div>
+            </div>
+            <div class="gauge-meta">
+              <span>{{ data?.role_specific?.available_ingredients || 0 }} / {{ data?.role_specific?.total_ingredients || 0 }} ingrédients</span>
+            </div>
           </div>
         </div>
 
+        <!-- Widget B: Weekly Menu Status -->
         <div class="deck-card">
           <div class="deck-card-header">
-            <div><h3>Ingrédients Bas</h3><span>Matières premières sous le seuil</span></div>
+            <div><h3>Statut du Menu Hebdomadaire</h3><span>Semaine en cours</span></div>
           </div>
-          <div class="recos-list">
-            @for (c of data?.role_specific?.critical_ingredients || []; track c.id) {
-              <div class="reco-item">
-                <div class="reco-meta">
-                  <strong>{{ c.product?.name }}</strong>
-                  <span>Matière Première</span>
+          <div class="menu-status-card">
+            <div class="msc-badge-wrapper">
+              <span class="msc-badge"
+                    [class.msc-valid]="data?.role_specific?.current_menu_status === 'VALIDE'"
+                    [class.msc-pending]="data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK'"
+                    [class.msc-none]="data?.role_specific?.current_menu_status === 'NON_PLANIFIE'">
+                @if (data?.role_specific?.current_menu_status === 'VALIDE') {
+                  <span>✓ Validé</span>
+                } @else if (data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK') {
+                  <span>⏳ En attente de validation</span>
+                } @else {
+                  <span>✕ Non planifié</span>
+                }
+              </span>
+            </div>
+            @if (data?.role_specific?.current_menu_name) {
+              <p class="msc-name">{{ data?.role_specific?.current_menu_name }}</p>
+            }
+            @if (data?.role_specific?.current_menu_status === 'NON_PLANIFIE') {
+              <button class="btn btn-primary" routerLink="/menus" style="margin-top:auto;">Créer un menu</button>
+            }
+            @if (data?.role_specific?.active_menu?.items?.length) {
+              <div style="margin-top:auto;">
+                <div class="msc-table-scroll">
+                  <table class="dash-table msc-table">
+                    <thead>
+                      <tr><th>Jour</th><th>Pt-déj</th><th>Coll.</th><th>Déj.</th><th>Dîner</th></tr>
+                    </thead>
+                    <tbody>
+                      @for (day of daysList; track day.key) {
+                        <tr>
+                          <td><strong>{{ day.label.substring(0,3) }}.</strong></td>
+                          <td>{{ getMenuDishName(day.key, 'breakfast') }}</td>
+                          <td>{{ getMenuDishName(day.key, 'snack') }}</td>
+                          <td>{{ getMenuDishName(day.key, 'lunch') }}</td>
+                          <td>{{ getMenuDishName(day.key, 'dinner') }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
                 </div>
-                <div class="reco-bar-shell">
-                  <div class="reco-bar-fill warn" [style.width.%]="(c.quantity / c.min_threshold) * 100"></div>
-                </div>
-                <span class="reco-qty warn">{{ c.quantity }} / {{ c.min_threshold }} {{ c.unit }}</span>
               </div>
             }
-            @if (!data?.role_specific?.critical_ingredients?.length) {
-              <div class="empty-cell">Tous les ingrédients sont optimaux.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Row 2: Widget C (Order Volume) + Widget D1 (Sous-Seuil Alerts) ─── -->
+      <div class="analytics-deck">
+        <!-- Widget C: Order Volume -->
+        <div class="deck-card">
+          <div class="deck-card-header">
+            <div><h3>Volume des Commandes</h3><span>Activité du jour</span></div>
+          </div>
+          <div class="order-volume-grid">
+            <div class="ov-card ov-pending">
+              <span class="ov-label">En attente</span>
+              <span class="ov-value">{{ data?.role_specific?.pending_orders_today || 0 }}</span>
+              <span class="ov-unit">commandes aujourd'hui</span>
+            </div>
+            <div class="ov-card ov-completed">
+              <span class="ov-label">Traitées</span>
+              <span class="ov-value">{{ data?.role_specific?.completed_orders_today || 0 }}</span>
+              <span class="ov-unit">commandes aujourd'hui</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Widget D1: Sous-Seuil Alert -->
+        <div class="deck-card">
+          <div class="deck-card-header">
+            <div><h3>Alertes Sous-Seuil</h3><span>Ingrédients des menus cette semaine</span></div>
+          </div>
+          <div class="recos-list">
+            @for (ing of data?.role_specific?.sous_seuil_ingredients || []; track ing.ingredient_name) {
+              <div class="reco-item">
+                <div class="reco-meta">
+                  <strong>{{ ing.ingredient_name }}</strong>
+                  <span>Stock actuel: {{ ing.current_stock }} {{ ing.unit }} / Seuil: {{ ing.min_threshold }} {{ ing.unit }}</span>
+                </div>
+                <div class="reco-bar-shell">
+                  <div class="reco-bar-fill danger" [style.width.%]="(ing.current_stock / ing.min_threshold) * 100"></div>
+                </div>
+                <span class="reco-qty danger" style="white-space:nowrap;">{{ ing.current_stock }} / {{ ing.min_threshold }}</span>
+              </div>
+            }
+            @if (!data?.role_specific?.sous_seuil_ingredients?.length) {
+              <div class="empty-cell">Aucun ingrédient sous le seuil pour les menus de cette semaine.</div>
             }
           </div>
         </div>
       </div>
+
+      <!-- ─── Feature 6: Purchase Needs Summary ─── -->
+      @if (data?.role_specific?.latest_purchase_need) {
+        <div class="deck-card" style="border-left:4px solid #F59E0B;">
+          <div class="deck-card-header">
+            <div>
+              <h3>📋 Analyse des Besoins en Réapprovisionnement</h3>
+              <span>Générée le {{ data?.role_specific?.latest_purchase_need?.generated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+          </div>
+          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+            <div style="padding:12px 20px; background:#FFFBEB; border-radius:var(--radius-md); text-align:center; min-width:120px;">
+              <span style="font-size:28px; font-weight:700; color:#B45309; display:block;">{{ data?.role_specific?.latest_purchase_need?.items_requiring_restock || 0 }}</span>
+              <span style="font-size:11px; color:#92400E; font-weight:500;">ingrédients à réapprovisionner</span>
+            </div>
+            <div style="padding:12px 20px; background:#F0FDF4; border-radius:var(--radius-md); text-align:center; min-width:120px;">
+              <span style="font-size:28px; font-weight:700; color:#15803D; display:block;">{{ data?.role_specific?.latest_purchase_need?.total_items || 0 }}</span>
+              <span style="font-size:11px; color:#166534; font-weight:500;">ingrédients analysés</span>
+            </div>
+            <p style="flex:1; font-size:13px; color:var(--text-secondary); margin:0;">
+              {{ data?.role_specific?.latest_purchase_need?.items_requiring_restock }} ingrédients nécessitent un réapprovisionnement — liste envoyée au Chef Magasin.
+            </p>
+          </div>
+        </div>
+      }
+
+      <!-- ─── Existing Menu Table + Critical Ingredients (kept for reference) ─── -->
+      @if (data?.role_specific?.active_menu) {
+        <div class="analytics-deck">
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div><h3>Menu de la Semaine</h3><span>Composition complète</span></div>
+            </div>
+            <div class="table-scroll">
+              <table class="dash-table">
+                <thead>
+                  <tr><th>Jour</th><th>Petit-déj</th><th>Collation</th><th>Déjeuner</th><th>Dîner</th></tr>
+                </thead>
+                <tbody>
+                  @for (day of daysList; track day.key) {
+                    <tr>
+                      <td><strong>{{ day.label }}</strong></td>
+                      <td>{{ getMenuDishName(day.key, 'breakfast') }}</td>
+                      <td>{{ getMenuDishName(day.key, 'snack') }}</td>
+                      <td>{{ getMenuDishName(day.key, 'lunch') }}</td>
+                      <td>{{ getMenuDishName(day.key, 'dinner') }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div><h3>Ingrédients Bas (Global)</h3><span>Toutes matières premières sous le seuil</span></div>
+            </div>
+            <div class="recos-list">
+              @for (c of data?.role_specific?.critical_ingredients || []; track c.id) {
+                <div class="reco-item">
+                  <div class="reco-meta">
+                    <strong>{{ c.product?.name }}</strong>
+                    <span>Matière Première</span>
+                  </div>
+                  <div class="reco-bar-shell">
+                    <div class="reco-bar-fill warn" [style.width.%]="(c.quantity / c.min_threshold) * 100"></div>
+                  </div>
+                  <span class="reco-qty warn">{{ c.quantity }} / {{ c.min_threshold }} {{ c.unit }}</span>
+                </div>
+              }
+              @if (!data?.role_specific?.critical_ingredients?.length) {
+                <div class="empty-cell">Tous les ingrédients sont optimaux.</div>
+              }
+            </div>
+          </div>
+        </div>
+      }
     }
 
     <!-- ═══════════════════════════════════════════════════════
@@ -1013,7 +1228,7 @@
                     <span>{{ getPaymentShare(p.total) | number:'1.0-0' }}% des encaissements</span>
                   </div>
                   <div class="reco-bar-shell">
-                    <div class="reco-bar-fill" style="background:linear-gradient(90deg, #6B8F71, #A8C5A0);" [style.width.%]="getPaymentShare(p.total)"></div>
+                    <div class="reco-bar-fill" style="background:linear-gradient(90deg, #0D9488, #2DD4BF);" [style.width.%]="getPaymentShare(p.total)"></div>
                   </div>
                   <span class="reco-qty">{{ p.total | number:'1.2-2' }} TND</span>
                 </div>
@@ -1038,7 +1253,7 @@
                   <tr>
                     <td class="td-mono">#{{ s.id }}</td>
                     <td>{{ s.point_de_vente?.name || 'POS' }}</td>
-                    <td><strong style="color:#6B8F71;">{{ s.total_amount | number:'1.2-2' }} TND</strong></td>
+                    <td><strong style="color:#0D9488;">{{ s.total_amount | number:'1.2-2' }} TND</strong></td>
                     <td><span class="status-tag">{{ s.payment_method | uppercase }}</span></td>
                     <td class="td-mono">{{ s.created_at | date:'HH:mm' }}</td>
                   </tr>

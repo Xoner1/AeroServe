@@ -20,8 +20,8 @@ return new class extends Migration
             if (!Schema::hasColumn('users', 'caissier_status')) {
                 $table->enum('caissier_status', ['en_attente', 'active', 'inactive'])->nullable();
             }
-            if (!Schema::hasColumn('users', 'role')) {
-                $table->string('role')->nullable();
+            if (!Schema::hasColumn('users', 'caissier_role')) {
+                $table->string('caissier_role')->nullable();
             }
             if (!Schema::hasColumn('users', 'username')) {
                 $table->string('username')->nullable();
@@ -40,7 +40,7 @@ return new class extends Migration
                     'username'           => Str::slug($c->first_name.'.'.$c->last_name),
                     'phone'              => $c->phone,
                     'password'           => Hash::make('password'),
-                    'role'               => 'CAISSIER',
+                    'caissier_role'      => 'CAISSIER',
                     'is_active'          => ($c->status === 'active') ? 1 : 0,
                     'point_de_vente_id'  => $c->point_de_vente_id,
                     'caissier_status'    => $c->status,
@@ -98,6 +98,7 @@ return new class extends Migration
     public function down(): void
     {
         // 1. Re-create caissiers table
+        Schema::dropIfExists('caissiers');
         Schema::create('caissiers', function (Blueprint $table) {
             $table->id();
             $table->string('first_name');
@@ -111,72 +112,76 @@ return new class extends Migration
             $table->foreign('point_de_vente_id')->references('id')->on('points_de_vente')->onDelete('set null');
         });
 
-        // 2. Re-populate caissiers from users WHERE role = 'CAISSIER'
-        $cashiers = DB::table('users')->where('role', 'CAISSIER')->get();
-        $map = [];
-        foreach ($cashiers as $u) {
-            $oldCaissierId = DB::table('caissiers')->insertGetId([
-                'first_name' => $u->first_name,
-                'last_name' => $u->last_name,
-                'email' => $u->email,
-                'phone' => $u->phone,
-                'status' => $u->caissier_status ?? 'en_attente',
-                'point_de_vente_id' => $u->point_de_vente_id,
-                'created_at' => $u->created_at,
-                'updated_at' => $u->updated_at,
-            ]);
-            $map[$u->id] = $oldCaissierId;
+        $col = Schema::hasColumn('users', 'caissier_role') ? 'caissier_role' : (Schema::hasColumn('users', 'role') ? 'role' : null);
+
+        if ($col) {
+            // 2. Re-populate caissiers from users WHERE role/caissier_role = 'CAISSIER'
+            $cashiers = DB::table('users')->where($col, 'CAISSIER')->get();
+            $map = [];
+            foreach ($cashiers as $u) {
+                $oldCaissierId = DB::table('caissiers')->insertGetId([
+                    'first_name' => $u->first_name,
+                    'last_name' => $u->last_name,
+                    'email' => $u->email,
+                    'phone' => $u->phone,
+                    'status' => $u->caissier_status ?? 'en_attente',
+                    'point_de_vente_id' => $u->point_de_vente_id,
+                    'created_at' => $u->created_at,
+                    'updated_at' => $u->updated_at,
+                ]);
+                $map[$u->id] = $oldCaissierId;
+            }
+
+            // 3. Restore caissier_id FK in sales
+            Schema::table('sales', function (Blueprint $table) {
+                try {
+                    $table->dropForeign(['user_id']);
+                } catch (\Exception $e) {
+                    // Ignore if foreign key doesn't exist
+                }
+                $table->renameColumn('user_id', 'caissier_id');
+            });
+
+            if (!empty($map)) {
+                foreach ($map as $newId => $oldId) {
+                    DB::table('sales')->where('caissier_id', $newId)->update(['caissier_id' => $oldId]);
+                }
+            }
+
+            Schema::table('sales', function (Blueprint $table) {
+                $table->foreign('caissier_id')->references('id')->on('users')->onDelete('cascade');
+            });
+
+            // 4. Restore caissier_id FK in plannings
+            Schema::table('plannings', function (Blueprint $table) {
+                try {
+                    $table->dropForeign(['user_id']);
+                } catch (\Exception $e) {
+                    // Ignore if foreign key doesn't exist
+                }
+                $table->renameColumn('user_id', 'caissier_id');
+            });
+
+            if (!empty($map)) {
+                foreach ($map as $newId => $oldId) {
+                    DB::table('plannings')->where('caissier_id', $newId)->update(['caissier_id' => $oldId]);
+                }
+            }
+
+            Schema::table('plannings', function (Blueprint $table) {
+                $table->foreign('caissier_id')->references('id')->on('users')->onDelete('cascade');
+            });
+
+            // Delete migrated CAISSIER rows from users
+            DB::table('users')->where($col, 'CAISSIER')->delete();
+
+            // 5. Remove columns from users
+            Schema::table('users', function (Blueprint $table) use ($col) {
+                try {
+                    $table->dropForeign(['point_de_vente_id']);
+                } catch (\Exception $e) {}
+                $table->dropColumn(['point_de_vente_id', 'caissier_status', $col, 'username']);
+            });
         }
-
-        // 3. Restore caissier_id FK in sales
-        Schema::table('sales', function (Blueprint $table) {
-            try {
-                $table->dropForeign(['user_id']);
-            } catch (\Exception $e) {
-                // Ignore if foreign key doesn't exist
-            }
-            $table->renameColumn('user_id', 'caissier_id');
-        });
-
-        if (!empty($map)) {
-            foreach ($map as $newId => $oldId) {
-                DB::table('sales')->where('caissier_id', $newId)->update(['caissier_id' => $oldId]);
-            }
-        }
-
-        Schema::table('sales', function (Blueprint $table) {
-            $table->foreign('caissier_id')->references('id')->on('users')->onDelete('cascade');
-        });
-
-        // 4. Restore caissier_id FK in plannings
-        Schema::table('plannings', function (Blueprint $table) {
-            try {
-                $table->dropForeign(['user_id']);
-            } catch (\Exception $e) {
-                // Ignore if foreign key doesn't exist
-            }
-            $table->renameColumn('user_id', 'caissier_id');
-        });
-
-        if (!empty($map)) {
-            foreach ($map as $newId => $oldId) {
-                DB::table('plannings')->where('caissier_id', $newId)->update(['caissier_id' => $oldId]);
-            }
-        }
-
-        Schema::table('plannings', function (Blueprint $table) {
-            $table->foreign('caissier_id')->references('id')->on('users')->onDelete('cascade');
-        });
-
-        // 5. Remove columns from users
-        Schema::table('users', function (Blueprint $table) {
-            try {
-                $table->dropForeign(['point_de_vente_id']);
-            } catch (\Exception $e) {}
-            $table->dropColumn(['point_de_vente_id', 'caissier_status', 'role', 'username']);
-        });
-
-        // Delete migrated CAISSIER rows from users
-        DB::table('users')->where('role', 'CAISSIER')->delete();
     }
 };

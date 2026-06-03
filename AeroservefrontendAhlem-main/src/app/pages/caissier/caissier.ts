@@ -65,7 +65,7 @@ export class CaissierComponent implements OnInit {
           title: 'Erreur',
           text: 'Impossible de charger la liste des caissiers.',
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       }
     });
@@ -156,7 +156,7 @@ export class CaissierComponent implements OnInit {
               title: 'Mis à jour !',
               text: 'Le caissier a été mis à jour avec succès.',
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.afterSave('updated');
           },
@@ -181,7 +181,7 @@ export class CaissierComponent implements OnInit {
               title: 'Créé !',
               text: 'Le caissier a été créé avec succès.',
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.afterSave('created');
           },
@@ -210,7 +210,7 @@ export class CaissierComponent implements OnInit {
                 title: 'Supprimé !',
                 text: 'Le caissier a été supprimé.',
                 icon: 'success',
-                confirmButtonColor: '#6B8F71'
+                confirmButtonColor: '#0D9488'
               });
               this.loadCaissiers();
             },
@@ -235,7 +235,7 @@ export class CaissierComponent implements OnInit {
       title: 'Erreur',
       text: this.formError,
       icon: 'error',
-      confirmButtonColor: '#6B8F71'
+      confirmButtonColor: '#0D9488'
     });
   }
 

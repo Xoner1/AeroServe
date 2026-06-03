@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import Swal from 'sweetalert2';
@@ -8,11 +10,12 @@ import { QrScannerComponent } from '../../shared/qr-scanner/qr-scanner.component
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, QrScannerComponent],
+  imports: [CommonModule, RouterModule, QrScannerComponent],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
 })
 export class DashboardComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
   data: any = null;
   userName = '';
   userRole = '';
@@ -52,7 +55,7 @@ export class DashboardComponent implements OnInit {
 
   loadDashboard(): void {
     const { dateFrom, dateTo } = this.getDateRange();
-    this.api.get<any>('dashboard', { date_from: dateFrom, date_to: dateTo }).subscribe({
+    this.api.get<any>('dashboard', { date_from: dateFrom, date_to: dateTo }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (d) => {
         this.data = d;
         if (d.daily_sales?.length) {
@@ -96,13 +99,13 @@ export class DashboardComponent implements OnInit {
 
   loadIAData(): void {
     this.loadingIA = true;
-    this.api.get<any[]>('stock-forecast').subscribe({
+    this.api.get<any[]>('stock-forecast').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => this.forecasts = res
     });
-    this.api.get<any[]>('stock-anomalies').subscribe({
+    this.api.get<any[]>('stock-anomalies').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => this.anomalies = res
     });
-    this.api.get<any[]>('stock-recommendations').subscribe({
+    this.api.get<any[]>('stock-recommendations').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: res => {
         this.recommendations = res;
         this.loadingIA = false;
@@ -202,7 +205,7 @@ export class DashboardComponent implements OnInit {
     const pdvSales = this.data?.sales_by_pdv || [];
     if (pdvSales.length === 0) return '#E5E4E0 0% 100%';
     
-    const colors = ['#6B8F71', '#D4924A', '#C4A882', '#C0483A', '#D4E8D0', '#EDE9E2'];
+    const colors = ['#0D9488', '#D4924A', '#C4A882', '#C0483A', '#D4E8D0', '#EDE9E2'];
     let accumulatedPercent = 0;
     
     const slices = pdvSales.map((s: any, idx: number) => {
@@ -217,7 +220,7 @@ export class DashboardComponent implements OnInit {
   }
 
   getDonutColor(idx: number): string {
-    const colors = ['#6B8F71', '#D4924A', '#C4A882', '#C0483A', '#D4E8D0', '#EDE9E2'];
+    const colors = ['#0D9488', '#D4924A', '#C4A882', '#C0483A', '#D4E8D0', '#EDE9E2'];
     return colors[idx % colors.length];
   }
 
@@ -237,7 +240,19 @@ export class DashboardComponent implements OnInit {
     return totalLoad > 0 ? (Number(this.data?.warehouse_load || 0) / totalLoad) * 100 : 50;
   }
 
-  // ─── CHEF CUISINE HELPERS ───
+  // ─── CHEF CUISINE HELPERS (Feature 4) ───
+  getGaugeColor(rate: number): string {
+    if (rate >= 80) return '#15803D';
+    if (rate >= 50) return '#D97706';
+    return '#DC2626';
+  }
+
+  getGaugeDashArray(rate: number): string {
+    const circumference = 2 * Math.PI * 52;
+    const filled = (rate / 100) * circumference;
+    return `${filled} ${circumference - filled}`;
+  }
+
   getDayLabelFrench(key: string): string {
     const found = this.daysList.find(d => d.key === key);
     return found ? found.label : key;
@@ -278,10 +293,10 @@ export class DashboardComponent implements OnInit {
       showCancelButton: true,
       confirmButtonText: 'Oui, Commander',
       cancelButtonText: 'Annuler',
-      confirmButtonColor: '#6B8F71',
-      cancelButtonColor: '#C0483A',
+      confirmButtonColor: '#0D9488',
+      cancelButtonColor: '#EF4444',
       background: '#FFFFFF',
-      color: '#2C3E35'
+      color: '#1E293B'
     }).then((result) => {
       if (result.isConfirmed) {
         Swal.fire({
@@ -310,7 +325,7 @@ export class DashboardComponent implements OnInit {
               title: 'Commande validée !',
               text: `La commande a été transmise avec succès au responsable concerné.`,
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.loadIAData();
           },
@@ -319,7 +334,7 @@ export class DashboardComponent implements OnInit {
               title: 'Erreur',
               text: err.error?.message || 'Impossible de créer la commande.',
               icon: 'error',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
           }
         });
@@ -339,10 +354,10 @@ export class DashboardComponent implements OnInit {
       showCancelButton: true,
       confirmButtonText: 'Analyser',
       cancelButtonText: 'Fermer',
-      confirmButtonColor: '#6B8F71',
-      cancelButtonColor: '#C0483A',
+      confirmButtonColor: '#0D9488',
+      cancelButtonColor: '#EF4444',
       background: '#FFFFFF',
-      color: '#2C3E35',
+      color: '#1E293B',
       preConfirm: (value) => {
         if (!value) {
           Swal.showValidationMessage('Veuillez saisir votre question.');
@@ -364,14 +379,14 @@ export class DashboardComponent implements OnInit {
             html: `
               <div style="text-align: left; font-size: 14px; direction: ltr;">
                 <p><strong>Question :</strong> "${result.value}"</p>
-                <p><strong>Statut :</strong> <span style="color: #6B8F71; font-weight: bold;">CONFORME </span></p>
+                <p><strong>Statut :</strong> <span style="color: #0D9488; font-weight: bold;">CONFORME </span></p>
                 <p><strong>Analyse :</strong> Le produit analysé ne contient aucun allergène critique majeur non déclaré. Les fiches de traçabilité HACCP sont validées pour ce lot.</p>
               </div>
             `,
             icon: 'success',
-            confirmButtonColor: '#6B8F71',
+            confirmButtonColor: '#0D9488',
             background: '#FFFFFF',
-            color: '#2C3E35'
+            color: '#1E293B'
           });
         }, 1500);
       }
@@ -403,7 +418,7 @@ export class DashboardComponent implements OnInit {
             </div>
           `,
           icon: 'success',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       },
       error: () => {
@@ -411,7 +426,7 @@ export class DashboardComponent implements OnInit {
           title: 'Code scanné',
           text: code,
           icon: 'info',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       }
     });

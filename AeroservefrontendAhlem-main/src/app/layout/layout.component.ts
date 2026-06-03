@@ -23,9 +23,7 @@ interface NavItem {
   standalone: true,
   styleUrls: ['./layout.component.scss'],
   templateUrl: './layout.component.html',
-
   imports: [CommonModule, FormsModule, RouterModule, AppIconComponent],
-
 })
 export class LayoutComponent implements OnInit, OnDestroy {
   sidebarCollapsed = false;
@@ -44,15 +42,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
   navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] },
     { label: 'Users', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
-    { label: 'Caissier Approval', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN'] },
-    { label: 'Caissier', icon: 'UserCog', route: '/caissier', roles: ['RESPONSABLE_FB'] },
+    { label: 'Caissier Approval', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB'] },
+    { label: 'Caissier', icon: 'UserCog', route: '/caissier', roles: ['RESPONSABLE_FB', 'SUPER_ADMIN'] },
     { label: 'Points of Sales', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
-    { label: 'Products', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE'] },
+    { label: 'Products', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
     { label: 'Products Validation', icon: 'CheckCircle', route: '/products-validation', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN', 'CHEF_MAGASIN'] },
-    { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN'] },
+    { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN', 'CHEF_MAGASIN', 'CHEF_CUISINE'] },
+    { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
     { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN', 'CHEF_CUISINE'] },
-    { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB'] },
+    { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CAISSIER'] },
     { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN', 'RESPONSABLE_HYGIENE'] },
     { label: 'Category', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
     { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['SUPER_ADMIN', 'CAISSIER'] },
@@ -65,7 +63,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
       return this.auth.hasRole(...item.roles);
     });
   }
-
 
   avatarLoadFailed = false;
 
@@ -129,28 +126,29 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   getPageTitle(): string {
-  const titles: Record<string, string> = {
-    '/dashboard': 'Dashboard',
-    '/users': 'Users',
-    '/caissiers-approval': 'Caissier Approval',
-    '/caissier': 'Caissier',
-    '/points-de-vente': 'Points of Sales',
-    '/profile': 'Profile',
-    '/products': 'Products',
-    '/products-validation': 'Products Validation',
-    '/stocks': 'Stocks',
-    '/internal-orders': 'Internal Commands',
-    '/menus': 'Menus',
-    '/plannings': 'Planning',
-    '/category': 'Category',
-    '/reports': 'Reports',
-    '/hygiene-reports': 'Hygiene Reports',
-  };
+    const titles: Record<string, string> = {
+      '/dashboard': 'Dashboard',
+      '/users': 'Users',
+      '/caissiers-approval': 'Caissier Approval',
+      '/caissier': 'Caissier',
+      '/points-de-vente': 'Points of Sales',
+      '/profile': 'Profile',
+      '/products': 'Products',
+      '/products-validation': 'Products Validation',
+      '/stocks': 'Stocks',
+      '/internal-orders': 'Internal Commands',
+      '/menus': 'Menus',
+      '/plannings': 'Planning',
+      '/category': 'Category',
+      '/reports': 'Reports',
+      '/hygiene-reports': 'Hygiene Reports',
+    };
 
-  const path = '/' + (this.router.url.split('?')[0].split('/')[1] || 'dashboard');
+    const path = '/' + (this.router.url.split('?')[0].split('/')[1] || 'dashboard');
 
-  return titles[path] || 'AeroServe';
-}
+    return titles[path] || 'AeroServe';
+  }
+
   toggleChatbot(): void {
     this.showChatbot = !this.showChatbot;
     if (this.showChatbot && this.chatbotMessages.length === 0) {
@@ -229,12 +227,24 @@ export class LayoutComponent implements OnInit, OnDestroy {
   navigateToNotification(notif: Notification): void {
     this.showNotifications = false;
     let route = '/dashboard';
-    if (notif.data?.route) {
-      route = notif.data.route;
-    } else if (notif.data?.order_id) {
+    let data = notif.data;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch (e) {}
+    }
+    if (data?.route) {
+      route = data.route;
+    } else if (data?.order_id) {
       route = '/internal-orders';
-    } else if (notif.type === 'warning' || notif.type === 'alert') {
+    } else if (notif.type === 'low_stock' || notif.type === 'warning' || notif.type === 'alert') {
       route = '/stocks';
+    } else if (notif.type === 'new_order') {
+      route = '/internal-orders';
+    } else if (notif.type === 'hygiene_alert') {
+      route = '/hygiene-reports';
+    } else if (notif.type === 'planning_update') {
+      route = '/plannings';
     }
     this.router.navigateByUrl(route);
   }

@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, DestroyRef, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Role, User, USER_STATUS } from '../../core/models';
 import { ApiService } from '../../core/services/api.service';
 import { environment } from '../../../environments/environment';
@@ -15,6 +16,7 @@ import Swal from 'sweetalert2';
   styleUrl: './users.scss',
 })
 export class Users implements OnInit, OnDestroy {
+  private destroyRef = inject(DestroyRef);
 
   users: User[] = [];
   roles: Role[] = [];
@@ -71,7 +73,8 @@ export class Users implements OnInit, OnDestroy {
   watchEmail(): void {
     this.form?.get('email')?.valueChanges.pipe(
       debounceTime(500),
-      distinctUntilChanged()
+      distinctUntilChanged(),
+      takeUntilDestroyed(this.destroyRef)
     ).subscribe(email => {
       if (!email || this.editing) {
         this.emailExists = false;
@@ -93,13 +96,13 @@ export class Users implements OnInit, OnDestroy {
 
   // ================= LOAD =================
   loadUsers(): void {
-    this.api.get<any>('users').subscribe(res => {
+    this.api.get<any>('users').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(res => {
       this.users = res.data || res;
     });
   }
 
   loadRoles(): void {
-    this.api.get<Role[]>('roles').subscribe(r => {
+    this.api.get<Role[]>('roles').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(r => {
       this.roles = r.filter(role =>
         role.name.toUpperCase() !== 'CAISSIER'
         &&
@@ -208,7 +211,7 @@ export class Users implements OnInit, OnDestroy {
               title: 'Supprimé !',
               text: 'L\'utilisateur a été supprimé.',
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.loadUsers();
           },
@@ -217,7 +220,7 @@ export class Users implements OnInit, OnDestroy {
               title: 'Erreur',
               text: err.error?.message || 'Erreur lors de la suppression.',
               icon: 'error',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
           }
         });
@@ -281,7 +284,33 @@ export class Users implements OnInit, OnDestroy {
   }
 
   saveUserStatus(user: User) {
-    this.api.put(`users/${user.id}`, { status: user.status }).subscribe();
+    this.api.put(`users/${user.id}`, { status: user.status }).subscribe({
+      next: () => {
+        Swal.fire({
+          title: 'Statut mis à jour !',
+          text: `Le statut de ${user.first_name} ${user.last_name} a été modifié avec succès.`,
+          icon: 'success',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        });
+      },
+      error: (err) => {
+        Swal.fire({
+          title: 'Erreur',
+          text: err.error?.message || 'Erreur lors de la modification du statut.',
+          icon: 'error',
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 4000,
+          timerProgressBar: true
+        });
+        this.loadUsers();
+      }
+    });
   }
 
   onFileSelected(event: Event): void {

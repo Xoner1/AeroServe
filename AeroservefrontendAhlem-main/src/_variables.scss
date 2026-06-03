@@ -1,63 +1,69 @@
-// ========================================
-// AeroServe Design System — Sage & Stone
-// ========================================
+// ============================================
+// AeroServe Corporate Aviation Design System
+// ============================================
 
 // ─── Backgrounds ───
-$bg-primary:     #F5F2ED;
-$bg-secondary:   #EDE9E2;
-$bg-sidebar:     #2C3E35;
-$bg-sidebar-alt: #1A1F1C;
+$bg-primary:     #F8FAFC; // Sleek light background
+$bg-secondary:   #F1F5F9; // Slate 100 for secondary areas
+$bg-sidebar:     #0F172A; // Slate 900 for dark navy sidebar
+$bg-sidebar-alt: #1E293B; // Slate 800 for active states / separators
 
-// ─── Sage Scale ───
-$sage-dark:      #2C3E35;
-$sage-mid:       #4A6B58;
-$sage-base:      #6B8F71;
-$sage-light:     #A8C5A0;
-$sage-pale:      #D4E8D0;
+// ─── Accent Colors (Teal Scale) ───
+$teal-dark:      #115E59; // Teal 800
+$teal-mid:       #0F766E; // Teal 700
+$teal-base:      #0D9488; // Teal 600 - Confident Teal Accent
+$teal-light:     #2DD4BF; // Teal 400
+$teal-pale:      #CCFBF1; // Teal 100
 
-// ─── Neutrals / Stone ───
-$stone-dark:     #3D3830;
-$stone-mid:      #6B6459;
-$stone-light:    #C4A882;
-$stone-pale:     #EDE9E2;
+// ─── Slate Scale ───
+$slate-900:      #0F172A;
+$slate-800:      #1E293B;
+$slate-700:      #334155;
+$slate-600:      #475569;
+$slate-500:      #64748B;
+$slate-400:      #94A3B8;
+$slate-300:      #CBD5E1;
+$slate-200:      #E2E8F0;
+$slate-100:      #F1F5F9;
+$slate-50:       #F8FAFC;
 
 // ─── Semantic ───
-$color-accent:   #E8663A;
-$color-warning:  #D4924A;
-$color-error:    #C0483A;
-$color-success:  #6B8F71;
+$color-accent:   #0D9488; // Electric Teal
+$color-warning:  #F59E0B; // Amber 500
+$color-error:    #EF4444; // Red 500
+$color-success:  #10B981; // Emerald 500
+$color-info:     #3B82F6; // Blue 500
 
 // ─── Text ───
-$text-primary:   #1A1F1C;
-$text-secondary: #4A5045;
-$text-muted:     #5C625A;
-$text-inverse:   #F5F2ED;
+$text-primary:   #1E293B; // Dark slate for text
+$text-secondary: #475569; // Mid slate
+$text-muted:     #94A3B8; // Muted slate
+$text-inverse:   #F8FAFC; // Light text
 
 // ─── Surfaces ───
 $surface:        #FFFFFF;
-$surface-alt:    #EDE9E2;
-$background:     #F5F2ED;
+$surface-alt:    #F1F5F9;
+$background:     #F8FAFC;
 $bg-card:        #FFFFFF;
 
 // ─── Borders ───
-$border:         #D8D2C8;
-$border-light:   #E0DAD0;
+$border:         #E2E8F0; // 1px low opacity slate-200 border
+$border-light:   #F1F5F9;
 
-// ─── Shadows ───
-$shadow-sm: 0 1px 3px rgba(26, 31, 28, 0.08);
-$shadow-md: 0 4px 16px rgba(26, 31, 28, 0.10);
-$shadow-lg: 0 8px 32px rgba(26, 31, 28, 0.12);
+// ─── Shadows (Subtle, professional) ───
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
 // ─── Radii ───
-$radius-sm: 6px;
-$radius-md: 10px;
-$radius-lg: 16px;
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
 $radius-full: 9999px;
 
 // ─── Fonts ───
-$font-display: 'Fraunces', Georgia, serif;
-$font-body:    'DM Sans', sans-serif;
-$font-mono:    'JetBrains Mono', 'SF Mono', monospace;
+$font-body:    'Inter', sans-serif;
+$font-mono:    'JetBrains Mono', monospace;
 
 // ─── Transitions ───
-$transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+$transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);

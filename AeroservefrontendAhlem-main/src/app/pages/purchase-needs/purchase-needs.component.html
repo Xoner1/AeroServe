@@ -1,0 +1,70 @@
+<div class="page">
+  <!-- ─── HEADER ─── -->
+  <div class="page-header">
+    <div>
+      <h2>Prédiction des Besoins d'Achat</h2>
+      <p class="subtitle">Besoins de réapprovisionnement générés à partir des menus hebdomadaires</p>
+    </div>
+  </div>
+
+  @if (loading) {
+    <app-page-loading variant="table" [rows]="8" />
+  } @else {
+    @if (purchaseNeeds.length === 0) {
+      <div class="empty-state">
+        Aucun besoin de réapprovisionnement
+      </div>
+    } @else {
+      <div class="needs-container" style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="form-group" style="max-width: 400px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">
+            Sélectionner un Menu / Période
+          </label>
+          <select [(ngModel)]="selectedNeedId" (change)="onNeedSelect()" class="form-select">
+            @for (need of purchaseNeeds; track need.id) {
+              <option [value]="need.id">
+                Menu #{{ need.menu_id }} — Semaine du {{ need.week_start | date:'dd/MM/yyyy' }} (Staff: {{ need.staff_count }} pers.)
+              </option>
+            }
+          </select>
+        </div>
+
+        @if (selectedNeed) {
+          <div class="table-container">
+            <table class="premium-table">
+              <thead>
+                <tr>
+                  <th>Ingrédient</th>
+                  <th>Stock Actuel</th>
+                  <th>Quantité Requise</th>
+                  <th>Shortfall (Manquant)</th>
+                  <th>Unité</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of selectedNeed.items; track item.id) {
+                  <tr>
+                    <td><strong>{{ item.ingredient_name }}</strong></td>
+                    <td>{{ item.current_stock | number:'1.0-2' }}</td>
+                    <td>{{ item.required_quantity | number:'1.0-2' }}</td>
+                    <td style="color: var(--color-error); font-weight: 700;">
+                      {{ item.shortfall | number:'1.0-2' }}
+                    </td>
+                    <td><span class="badge badge-neutral">{{ item.unit }}</span></td>
+                  </tr>
+                }
+                @if (selectedNeed.items?.length === 0) {
+                  <tr>
+                    <td colspan="5" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                      Aucun ingrédient en rupture pour cette période.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

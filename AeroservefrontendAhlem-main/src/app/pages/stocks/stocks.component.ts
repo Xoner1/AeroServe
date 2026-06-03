@@ -4,13 +4,14 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { Stock } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
+import { AppIconComponent } from '../../shared/icon/app-icon.component';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-stocks',
   standalone: true,
   styleUrls: ['./stocks.component.css'],
-  imports: [CommonModule, FormsModule, PageLoadingComponent],
+  imports: [CommonModule, FormsModule, PageLoadingComponent, AppIconComponent],
   template: `
     @if (loading) {
       <app-page-loading variant="table" [rows]="8" />
@@ -19,163 +20,182 @@ import Swal from 'sweetalert2';
         <!-- ─── HEADER ─── -->
         <div class="page-header">
           <div>
-            <h2>Gestion des Stocks</h2>
-            <p class="subtitle">Suivi du stock en temps réel et mouvements d'entrées/sorties (FIFO)</p>
+            <h2>Gestion des Stocks (FIFO)</h2>
+            <p class="subtitle">Suivi du stock en temps réel et consommation par strate d'entrée First In, First Out</p>
           </div>
         </div>
 
         <!-- ─── KPI CARDS ─── -->
         <div class="kpi-grid">
           <div class="kpi-card info">
-            <div class="kpi-icon"></div>
+            <div class="kpi-icon">
+              <app-icon name="Warehouse" [size]="20" className="teal-icon"></app-icon>
+            </div>
             <div class="kpi-details">
-              <span class="kpi-label">Stock Total</span>
-              <span class="kpi-value">{{ kpis.total_stock | number:'1.0-2' }} items</span>
+              <span class="kpi-label">Stock Réel</span>
+              <span class="kpi-value">{{ kpis.total_stock | number:'1.0-1' }} items</span>
             </div>
           </div>
 
           <div class="kpi-card success">
-            <div class="kpi-icon"></div>
+            <div class="kpi-icon">
+              <app-icon name="CheckCircle" [size]="20" className="green-icon"></app-icon>
+            </div>
             <div class="kpi-details">
-              <span class="kpi-label">Entrées du Jour</span>
-              <span class="kpi-value">+{{ kpis.daily_inputs | number:'1.0-2' }}</span>
+              <span class="kpi-label">Entrées Jour</span>
+              <span class="kpi-value">+{{ kpis.daily_inputs | number:'1.0-1' }}</span>
             </div>
           </div>
 
           <div class="kpi-card danger">
-            <div class="kpi-icon"></div>
+            <div class="kpi-icon">
+              <app-icon name="LogOut" [size]="20" className="red-icon"></app-icon>
+            </div>
             <div class="kpi-details">
-              <span class="kpi-label">Sorties du Jour</span>
-              <span class="kpi-value">-{{ kpis.daily_outputs | number:'1.0-2' }}</span>
+              <span class="kpi-label">Sorties Jour</span>
+              <span class="kpi-value">-{{ kpis.daily_outputs | number:'1.0-1' }}</span>
             </div>
           </div>
 
           <div class="kpi-card warning">
-            <div class="kpi-icon"></div>
+            <div class="kpi-icon">
+              <app-icon name="AlertTriangle" [size]="20" className="amber-icon"></app-icon>
+            </div>
             <div class="kpi-details">
-              <span class="kpi-label">Produits Critiques</span>
+              <span class="kpi-label">Sous Seuil</span>
               <span class="kpi-value">{{ kpis.critical_count }}</span>
             </div>
           </div>
         </div>
 
-        <!-- ─── STOCKS GRID/TABLE ─── -->
-        <div class="card">
-          <div class="table-wrap">
-            <table>
-              <thead>
+        <!-- ─── STOCKS LIST TABLE ─── -->
+        <div class="table-container">
+          <table class="premium-table">
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th>Catégorie</th>
+                <th>Quantité</th>
+                <th>Seuil Alerte</th>
+                <th>Unité</th>
+                <th>Statut</th>
+                <th style="text-align: right;">Ajustement</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of stocks; track s.id) {
                 <tr>
-                  <th>Produit</th>
-                  <th>Catégorie</th>
-                  <th>Quantité</th>
-                  <th>Seuil Min</th>
-                  <th>Unité</th>
-                  <th>Statut</th>
-                  <th>Actions</th>
+                  <td>
+                    <strong style="color: var(--text-primary);">{{ s.product?.name }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge category-badge">{{ s.product?.category?.name || 'Général' }}</span>
+                  </td>
+                  <td class="quantity" [class.low]="s.quantity <= s.min_threshold">
+                    {{ s.quantity | number:'1.0-2' }}
+                  </td>
+                  <td>{{ s.min_threshold }}</td>
+                  <td>{{ s.unit }}</td>
+                  <td>
+                    @if (s.quantity <= s.min_threshold) {
+                      <span class="badge badge-error">Stock bas</span>
+                    } @else {
+                      <span class="badge badge-success">Suffisant</span>
+                    }
+                  </td>
+                  <td style="text-align: right;">
+                    <div class="action-buttons">
+                      <button class="action-btn success-btn" (click)="openMovement(s, 'in')">
+                        <app-icon name="Check" [size]="12"></app-icon> Entrée
+                      </button>
+                      <button class="action-btn danger-btn" (click)="openMovement(s, 'out')">
+                        <app-icon name="X" [size]="12"></app-icon> Sortie
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                @for (s of stocks; track s.id) {
-                  <tr>
-                    <td>
-                      <strong style="color: #1A1D1B;">{{ s.product?.name }}</strong>
-                    </td>
-                    <td>
-                      <span class="badge category-badge">{{ s.product?.category?.name || 'Général' }}</span>
-                    </td>
-                    <td class="quantity" [class.low]="s.quantity <= s.min_threshold">
-                      {{ s.quantity | number:'1.0-2' }}
-                    </td>
-                    <td>{{ s.min_threshold }}</td>
-                    <td>{{ s.unit }}</td>
-                    <td>
-                      @if (s.quantity <= s.min_threshold) {
-                        <span class="badge danger"> Stock bas</span>
-                      } @else {
-                        <span class="badge ok"> Suffisant</span>
-                      }
-                    </td>
-                    <td class="actions">
-                      <button class="btn-sm success" (click)="openMovement(s, 'in')"> Entrée</button>
-                      <button class="btn-sm danger" (click)="openMovement(s, 'out')"> Sortie</button>
-                    </td>
-                  </tr>
-                }
-                @if (stocks.length === 0) {
-                  <tr>
-                    <td colspan="7" style="text-align: center; padding: 32px; color: #A8C5A0;">
-                      Aucun article en stock.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-
-          <!-- ─── PAGINATION ─── -->
-          @if (totalPages > 1) {
-            <div class="pagination">
-              <button class="page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">
-                Précédent
-              </button>
-              <span class="page-info">Page {{ page }} sur {{ totalPages }}</span>
-              <button class="page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">
-                Suivant 
-              </button>
-            </div>
-          }
+              }
+              @if (stocks.length === 0) {
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">
+                    Aucun article en stock pour le moment.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
+
+        <!-- ─── PAGINATION ─── -->
+        @if (totalPages > 1) {
+          <div class="pagination">
+            <button class="page-btn" [disabled]="page === 1" (click)="goToPage(page - 1)">
+              Précédent
+            </button>
+            <span class="page-info">Page {{ page }} sur {{ totalPages }}</span>
+            <button class="page-btn" [disabled]="page === totalPages" (click)="goToPage(page + 1)">
+              Suivant 
+            </button>
+          </div>
+        }
 
         <!-- ─── MOVEMENT MODAL ─── -->
         @if (showModal) {
           <div class="modal-overlay" (click)="closeModal()">
-            <div class="modal" (click)="$event.stopPropagation()">
-              <h3>Mouvement de Stock — {{ selectedStock?.product?.name }}</h3>
+            <div class="modal-card" (click)="$event.stopPropagation()">
+              <div class="modal-header">
+                <h3>Mouvement FIFO — {{ selectedStock?.product?.name }}</h3>
+                <button (click)="closeModal()" style="font-size: 16px;">✕</button>
+              </div>
               <form (ngSubmit)="saveMovement()">
-                <div class="form-group">
-                  <label>Type de Mouvement</label>
-                  <select [(ngModel)]="movementForm.type" name="type">
-                    <option value="in"> Entrée de Stock</option>
-                    <option value="out"> Sortie de Stock</option>
-                    <option value="adjustment"> Ajustement direct</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Quantité *</label>
-                  <input type="number" [(ngModel)]="movementForm.quantity" name="quantity" min="0.01" step="0.01" required (input)="onQuantityChange()" />
-                </div>
-                
-                @if (movementForm.type === 'in') {
+                <div class="modal-body">
                   <div class="form-group">
-                    <label> Date d'expiration (Optionnel)</label>
-                    <input type="date" [(ngModel)]="movementForm.expiration_date" name="expiration_date" />
+                    <label>Type de Mouvement</label>
+                    <select [(ngModel)]="movementForm.type" name="type">
+                      <option value="in">Entrée de Stock</option>
+                      <option value="out">Sortie de Stock</option>
+                      <option value="adjustment">Ajustement direct</option>
+                    </select>
                   </div>
-                }
 
-                <!-- FIFO Lot Preview for Stock Out -->
-                @if (movementForm.type === 'out' && fifoLots.length > 0) {
-                  <div class="fifo-preview">
-                    <h4>Ordre de consommation FIFO</h4>
-                    <p class="fifo-hint">Sortie de {{ movementForm.quantity || 0 }} unités →</p>
-                    <div class="fifo-lots">
-                      @for (lot of fifoLots; track lot.id) {
-                        <div class="fifo-lot" [class.consumed]="lot.consumed">
-                          <span class="lot-date">Lot du {{ lot.date }}</span>
-                          <span class="lot-qty">{{ lot.used }} / {{ lot.available }} unités</span>
-                          @if (lot.expiration) {
-                            <span class="lot-exp">Exp: {{ lot.expiration }}</span>
-                          }
-                        </div>
-                      }
+                  <div class="form-group">
+                    <label>Quantité</label>
+                    <input type="number" [(ngModel)]="movementForm.quantity" name="quantity" min="0.01" step="0.01" required (input)="onQuantityChange()" placeholder="0.00" />
+                  </div>
+                  
+                  @if (movementForm.type === 'in') {
+                    <div class="form-group">
+                      <label>Date d'expiration (DLC)</label>
+                      <input type="date" [(ngModel)]="movementForm.expiration_date" name="expiration_date" />
                     </div>
-                  </div>
-                }
+                  }
 
-                <div class="form-group">
-                  <label>Raison / Justificatif</label>
-                  <input [(ngModel)]="movementForm.reason" name="reason" placeholder="Ex: Livraison fournisseur, Perte..." />
+                  <!-- FIFO Lot Preview for Stock Out -->
+                  @if (movementForm.type === 'out' && fifoLots.length > 0) {
+                    <div class="fifo-preview">
+                      <h4>Ordre de Consommation FIFO</h4>
+                      <p class="fifo-hint">Retrait planifié de {{ movementForm.quantity || 0 }} unités :</p>
+                      <div class="fifo-lots">
+                        @for (lot of fifoLots; track lot.id) {
+                          <div class="fifo-lot" [class.consumed]="lot.consumed">
+                            <span class="lot-date">Lot du {{ lot.date }}</span>
+                            <span class="lot-qty">{{ lot.used }} / {{ lot.available }} unités</span>
+                            @if (lot.expiration) {
+                              <span class="lot-exp">DLC: {{ lot.expiration }}</span>
+                            }
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <div class="form-group">
+                    <label>Justification du mouvement</label>
+                    <input [(ngModel)]="movementForm.reason" name="reason" placeholder="Ex: Livraison fournisseur, Perte, Recette..." />
+                  </div>
                 </div>
-                <div class="modal-actions">
+
+                <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
                   <button type="submit" class="btn btn-primary">Enregistrer</button>
                 </div>
@@ -232,7 +252,7 @@ export class StocksComponent implements OnInit {
           title: 'Erreur',
           text: msg,
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       }
     });
@@ -306,7 +326,7 @@ export class StocksComponent implements OnInit {
           title: 'Enregistré !',
           text: 'Le mouvement de stock a été enregistré avec succès.',
           icon: 'success',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
         this.closeModal();
         this.load();
@@ -316,7 +336,7 @@ export class StocksComponent implements OnInit {
           title: 'Erreur',
           text: err.error?.message || 'Erreur lors de l\'enregistrement.',
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#EF4444'
         });
       }
     });

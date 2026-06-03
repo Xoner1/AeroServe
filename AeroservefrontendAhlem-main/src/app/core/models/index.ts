@@ -87,6 +87,7 @@ export interface Product {
   expiration_date?: string;
   approval_status: 'pending' | 'approved' | 'rejected';
   created_by?: number;
+  quantity_per_batch?: number;
   category?: Category;
   creator?: User;
   stock?: Stock;
@@ -143,10 +144,13 @@ export interface InternalOrderItem {
 export interface Menu {
   id: number;
   name: string;
-  week_start: string;
-  week_end: string;
+  start_date: string;
+  end_date: string;
   created_by: number;
   is_active: boolean;
+  status: 'BROUILLON' | 'VALIDE' | 'REFUSE';
+  staff_count?: number;
+  comment?: string;
   creator?: User;
   items?: MenuItem[];
 }

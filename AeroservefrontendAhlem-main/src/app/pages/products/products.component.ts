@@ -20,7 +20,7 @@ import { environment } from '../../../environments/environment';
     } @else {
       <div class="page">
         <div class="page-header">
-          <h2>{{ validationMode ? 'Validation des Produits' : 'Produits' }}</h2>
+          <h2>{{ validationMode ? 'Validation des Produits' : 'Catalogue Produits' }}</h2>
 
           <div class="header-actions">
             @if (userRole !== 'CHEF_CUISINE' && userRole !== 'CHEF_MAGASIN') {
@@ -31,9 +31,9 @@ import { environment } from '../../../environments/environment';
                 <option value="food">Food</option>
               </select>
             } @else if (userRole === 'CHEF_CUISINE') {
-              <span class="filter-badge">Food</span>
+              <span class="filter-badge">Type: Food</span>
             } @else if (userRole === 'CHEF_MAGASIN') {
-              <span class="filter-badge">Commercial + Matière première</span>
+              <span class="filter-badge">Type: Reserve</span>
             }
 
             @if (userRole === 'RESPONSABLE_ACHAT' && !validationMode) {
@@ -46,266 +46,299 @@ import { environment } from '../../../environments/environment';
             }
 
             @if (!validationMode) {
-              <button class="btn btn-primary" (click)="openModal()">+ Ajouter</button>
+              <button class="btn btn-primary" (click)="openModal()">
+                <app-icon name="Package" [size]="14"></app-icon> Nouveau Produit
+              </button>
             }
           </div>
         </div>
 
-        <!-- TABLE -->
-        <div class="card">
-          <div class="table-wrap">
-            <table>
-              <thead>
+        <!-- Tabular List -->
+        <div class="table-container">
+          <table class="premium-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Catégorie</th>
+                <th>Validation</th>
+                <th>Service</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              @for (p of filteredProducts; track p.id) {
                 <tr>
-                  <th>Image</th>
-                  <th>Nom</th>
-                  <th>Type</th>
-                  <th>Catégorie</th>
-                  <th>Statut</th>
-                  <th>Utilisation</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                @for (p of filteredProducts; track p.id) {
-                  <tr>
-                    <td>
-                      @if (p.image) {
-                        <img [src]="getImageUrl(p.image)" alt="Product" class="table-product-img" />
-                      } @else {
-                        <div class="product-icon-fallback">
-                          <app-icon name="Package" [size]="18"></app-icon>
-                        </div>
-                      }
-                    </td>
-                    <td>
-                      <div class="product-name">
-                        {{ p.name }}
+                  <td>
+                    @if (p.image) {
+                      <img [src]="getImageUrl(p.image)" alt="Product" class="table-product-img" />
+                    } @else {
+                      <div class="product-icon-fallback">
+                        <app-icon name="Package" [size]="16"></app-icon>
                       </div>
-                    </td>
-
-                    <td>
-                      <span class="badge type">{{ p.type }}</span>
-                    </td>
-
-                    <td>
-                      {{ p.category?.name || '-' }}
-                    </td>
-
-                    <td>
-                      <span class="badge" [class]="'approval-' + p.approval_status">
-                        {{ p.approval_status === 'approved'
-                          ? 'Approuvé'
-                          : p.approval_status === 'pending'
-                          ? 'En attente'
-                          : 'Rejeté' }}
-                      </span>
-                    </td>
-
-                    <td>
-                      @if (p.approval_status === 'approved') {
-                        <span class="badge status-badge" [class]="p.is_active ? 'active' : 'inactive'">
-                          {{ p.is_active ? 'Actif' : 'Inactif' }}
-                        </span>
-                      } @else {
-                        -
+                    }
+                  </td>
+                  <td>
+                    <div class="product-name-wrapper">
+                      <span class="product-title">{{ p.name }}</span>
+                      @if (p.description) {
+                        <span class="product-subtitle">{{ p.description }}</span>
                       }
-                    </td>
+                    </div>
+                  </td>
 
-                    <td class="actions">
+                  <td>
+                    <span class="badge badge-neutral">{{ p.type }}</span>
+                  </td>
+
+                  <td>
+                    {{ p.category?.name || '-' }}
+                  </td>
+
+                  <td>
+                    <span class="badge" [class.badge-success]="p.approval_status === 'approved'" [class.badge-warning]="p.approval_status === 'pending'" [class.badge-error]="p.approval_status === 'rejected'">
+                      {{ p.approval_status === 'approved'
+                        ? 'Approuvé'
+                        : p.approval_status === 'pending'
+                        ? 'En attente'
+                        : 'Rejeté' }}
+                    </span>
+                  </td>
+
+                  <td>
+                    @if (p.approval_status === 'approved') {
+                      <span class="badge" [class.badge-success]="p.is_active" [class.badge-error]="!p.is_active">
+                        {{ p.is_active ? 'Actif' : 'Inactif' }}
+                      </span>
+                    } @else {
+                      -
+                    }
+                  </td>
+
+                  <td style="text-align: right;">
+                    <div class="action-buttons">
                       @if (!validationMode && p.type === 'food') {
-                        <button class="btn-icon assistant-btn" (click)="openChatbot(p)" title="Assistant IA "></button>
+                        <button class="action-btn info-btn" (click)="openChatbot(p)" title="Copilote Nutritionnel IA">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                          </svg>
+                        </button>
                       }
                       @if (validationMode && p.approval_status === 'pending') {
                         <button class="approve-btn" (click)="updateApprovalStatus(p, 'approved')" title="Approuver">
-                          <app-icon name="Check" [size]="16"></app-icon>
+                          <app-icon name="Check" [size]="14"></app-icon>
                         </button>
                         <button class="reject-btn" (click)="updateApprovalStatus(p, 'rejected')" title="Rejeter">
-                          <app-icon name="X" [size]="16"></app-icon>
+                          <app-icon name="X" [size]="14"></app-icon>
                         </button>
                       } @else {
-                        <button class="btn-icon" (click)="editProduct(p)"></button>
-                        <button class="btn-icon danger" (click)="deleteProduct(p.id)"></button>
+                        <button class="action-btn" (click)="editProduct(p)" title="Modifier">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
+                        </button>
+                        <button class="action-btn danger-btn" (click)="deleteProduct(p.id)" title="Supprimer">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                          </svg>
+                        </button>
                       }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (filteredProducts.length === 0) {
+                <tr>
+                  <td colspan="7" class="empty-state">
+                    Aucun produit trouvé dans cette catégorie.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
 
-        <!-- MODAL -->
+        <!-- CREATE/EDIT MODAL -->
         @if (showModal) {
           <div class="modal-overlay" (click)="closeModal()">
-            <div class="modal" (click)="$event.stopPropagation()">
-
-              <h3>{{ editing ? 'Modifier' : 'Ajouter' }} un produit</h3>
+            <div class="modal-card" (click)="$event.stopPropagation()" style="max-width: 600px;">
+              <div class="modal-header">
+                <h3>{{ editing ? 'Modifier' : 'Ajouter' }} un produit</h3>
+                <button (click)="closeModal()" style="font-size:16px;">✕</button>
+              </div>
 
               <form (ngSubmit)="save()">
-
-                <!-- NAME -->
-                <div class="form-group">
-                  <label>Nom</label>
-                  <input [(ngModel)]="form.name" name="name" required [disabled]="isLockedField('name')" />
-                </div>
-
-                <div class="form-row">
-                  <!-- TYPE -->
+                <div class="modal-body" style="max-height: 68vh;">
+                  <!-- NAME -->
                   <div class="form-group">
-                    <label>Type</label>
-                    @if (isChefCuisine) {
-                      <input value="Food" disabled class="form-input-locked" />
-                    } @else if (isChefMagasin) {
-                      <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
-                        <option value="commercial">Commercial</option>
-                        <option value="matiere_premiere">Matière première</option>
-                      </select>
-                    } @else {
-                      <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
-                        <option value="commercial">Commercial</option>
-                        <option value="matiere_premiere">Matière première</option>
-                        <option value="food">Food</option>
-                      </select>
+                    <label>Nom du Produit</label>
+                    <input [(ngModel)]="form.name" name="name" required [disabled]="isLockedField('name')" placeholder="Saisissez le nom" />
+                  </div>
+
+                  <div class="form-row">
+                    <!-- TYPE -->
+                    <div class="form-group">
+                      <label>Type</label>
+                      @if (isChefCuisine) {
+                        <input value="Food" disabled class="form-input-locked" />
+                      } @else if (isChefMagasin) {
+                        <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
+                          <option value="commercial">Commercial</option>
+                          <option value="matiere_premiere">Matière première</option>
+                        </select>
+                      } @else {
+                        <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
+                          <option value="commercial">Commercial</option>
+                          <option value="matiere_premiere">Matière première</option>
+                          <option value="food">Food</option>
+                        </select>
+                      }
+                    </div>
+
+                    <!-- PRICE (hidden for restricted roles) -->
+                    @if (!isRestrictedRole) {
+                      <div class="form-group">
+                        <label>Prix de vente (TND)</label>
+                        <input type="number" step="0.01" [(ngModel)]="form.price" name="price" required [disabled]="isLockedField('price')" placeholder="0.00" />
+                      </div>
                     }
                   </div>
 
-                  <!-- PRICE (hidden for Chef Magasin & Chef Cuisine) -->
+                  <!-- CATEGORY -->
+                  @if (form.type !== 'food') {
+                    <div class="form-group">
+                      <label>Catégorie de Réserve</label>
+                      <select [(ngModel)]="form.category_id" name="category_id" required [disabled]="isLockedField('category_id')">
+                        <option value="">-- choisir une catégorie --</option>
+                        @for (c of formCategories; track c.id) {
+                          <option [value]="c.id">
+                            {{ c.name }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                  }
+
+                  <!-- DESCRIPTION -->
+                  <div class="form-group">
+                    <label>Description & Notes</label>
+                    <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Notes complémentaires..."></textarea>
+                  </div>
+
+                  <!-- ALLERGENS (hidden for restricted roles) -->
                   @if (!isRestrictedRole) {
                     <div class="form-group">
-                      <label>Prix (TND)</label>
-                      <input type="number" step="0.01" [(ngModel)]="form.price" name="price" required [disabled]="isLockedField('price')" />
+                      <label>Allergènes (séparés par des virgules)</label>
+                      <input [(ngModel)]="form.allergens_text" name="allergens" [disabled]="isLockedField('allergens')" placeholder="Ex: gluten, lactose, fruits à coque" />
                     </div>
                   }
-                </div>
 
-                <!-- CATEGORY -->
-                @if (form.type !== 'food') {
-                  <div class="form-group">
-                    <label>Catégorie</label>
-                    <select [(ngModel)]="form.category_id" name="category_id" required [disabled]="isLockedField('category_id')">
-                      <option value="">-- choisir une catégorie --</option>
-                      @for (c of formCategories; track c.id) {
-                        <option [value]="c.id">
-                          {{ c.name }}
-                        </option>
-                      }
-                    </select>
-                  </div>
-                }
-
-                <!-- DESCRIPTION (Always editable) -->
-                <div class="form-group">
-                  <label>Description (Note)</label>
-                  <textarea [(ngModel)]="form.description" name="description" rows="3"></textarea>
-                </div>
-
-                <!-- ALLERGENS (hidden for Chef Magasin & Chef Cuisine) -->
-                @if (!isRestrictedRole) {
-                  <div class="form-group">
-                    <label>Allergènes (séparés par des virgules)</label>
-                    <input [(ngModel)]="form.allergens_text" name="allergens" [disabled]="isLockedField('allergens')" />
-                  </div>
-                }
-
-                <!-- EXPIRATION (hidden for Chef Magasin & Chef Cuisine) -->
-                @if (!isRestrictedRole) {
-                  <div class="form-group">
-                    <label>Date d'expiration</label>
-                    <input type="date" [(ngModel)]="form.expiration_date" name="expiration_date" [disabled]="isLockedField('expiration_date')" />
-                  </div>
-                }
-
-                <!-- USAGE STATUS (Visible when editing approved products) -->
-                @if (editing && selectedProductApprovalStatus === 'approved') {
-                  <div class="form-group">
-                    <label>Statut d'utilisation</label>
-                    <select [(ngModel)]="form.usage_status" name="usage_status">
-                      <option value="IN_USE">En service (IN_USE)</option>
-                      <option value="NOT_IN_USE">Hors service (NOT_IN_USE)</option>
-                      <option value="OUT_OF_STOCK">Rupture de stock (OUT_OF_STOCK)</option>
-                    </select>
-                  </div>
-                }
-
-                <!-- IMAGE UPLOAD -->
-                <div class="form-group">
-                  <label>Image du produit</label>
-                  <input type="file" (change)="onFileSelected($event)" accept="image/*" class="file-input" [disabled]="isLockedField('image')" />
-                  @if (imagePreview) {
-                    <img [src]="imagePreview" class="preview-image" alt="Aperçu" />
-                  }
-                </div>
-
-                <!-- RECIPE BUILDER (For FOOD type products) -->
-                @if (form.type === 'food') {
-                  <div class="recipe-section">
-                    <div class="recipe-header">
-                      <h4>Recette (Ingrédients)</h4>
-                      <button type="button" class="btn btn-secondary btn-sm" (click)="addRecipeIngredient()" [disabled]="isLockedField('recipe')">
-                        + Ajouter ingrédient
-                      </button>
+                  <!-- EXPIRATION -->
+                  @if (!isRestrictedRole) {
+                    <div class="form-group">
+                      <label>Date limite de consommation (DLC)</label>
+                      <input type="date" [(ngModel)]="form.expiration_date" name="expiration_date" [disabled]="isLockedField('expiration_date')" />
                     </div>
+                  }
 
-                    @if (recipeIngredients.length === 0) {
-                      <p class="recipe-empty">Aucun ingrédient ajouté à la recette.</p>
-                    } @else {
-                      @for (ing of recipeIngredients; track $index; let idx = $index) {
-                        <div class="ingredient-row">
-                          <select [(ngModel)]="ing.product_id" name="ing_id_{{idx}}" required [disabled]="isLockedField('recipe')">
-                            <option value="0">-- Choisir --</option>
-                            @for (avail of availableIngredients; track avail.id) {
-                              <option [value]="avail.id">{{ avail.name }}</option>
-                            }
-                          </select>
+                  <!-- USAGE STATUS -->
+                  @if (editing && selectedProductApprovalStatus === 'approved') {
+                    <div class="form-group">
+                      <label>Statut en service</label>
+                      <select [(ngModel)]="form.usage_status" name="usage_status">
+                        <option value="IN_USE">En service (IN_USE)</option>
+                        <option value="NOT_IN_USE">Hors service (NOT_IN_USE)</option>
+                        <option value="OUT_OF_STOCK">Rupture de stock (OUT_OF_STOCK)</option>
+                      </select>
+                    </div>
+                  }
 
-                          <input type="number" step="0.01" [(ngModel)]="ing.quantity" name="ing_qty_{{idx}}" placeholder="Qté" required [disabled]="isLockedField('recipe')" />
-
-                          <select [(ngModel)]="ing.unit" name="ing_unit_{{idx}}" required [disabled]="isLockedField('recipe')">
-                            <option value="piece">Pièce</option>
-                            <option value="kg">kg</option>
-                            <option value="g">g</option>
-                            <option value="liter">Litre</option>
-                            <option value="ml">ml</option>
-                          </select>
-
-                          <button type="button" class="btn-remove" (click)="removeRecipeIngredient(idx)" [disabled]="isLockedField('recipe')">
-                            
-                          </button>
-                        </div>
-                      }
+                  <!-- IMAGE UPLOAD -->
+                  <div class="form-group">
+                    <label>Image de l'article</label>
+                    <input type="file" (change)="onFileSelected($event)" accept="image/*" class="file-input" [disabled]="isLockedField('image')" />
+                    @if (imagePreview) {
+                      <img [src]="imagePreview" class="preview-image" alt="Aperçu" />
                     }
                   </div>
-                }
 
-                <!-- ACTIONS -->
-                <div class="modal-actions">
+                  <!-- RECIPE BUILDER -->
+                  @if (form.type === 'food') {
+                    <div class="form-group">
+                      <label>Quantité par lot (ex: ce batch produit X sandwiches)</label>
+                      <input type="number" [(ngModel)]="form.quantity_per_batch" name="quantity_per_batch" min="1" required />
+                    </div>
+
+                    <div class="recipe-section">
+                      <div class="recipe-header">
+                        <h4>Fiche Recette (Matières Premières)</h4>
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="addRecipeIngredient()" [disabled]="isLockedField('recipe')">
+                          + Ajouter Ingrédient
+                        </button>
+                      </div>
+
+                      @if (recipeIngredients.length === 0) {
+                        <p class="recipe-empty">Aucun ingrédient associé à cette recette.</p>
+                      } @else {
+                        @for (ing of recipeIngredients; track $index; let idx = $index) {
+                          <div class="ingredient-row">
+                            <select [(ngModel)]="ing.product_id" name="ing_id_{{idx}}" required [disabled]="isLockedField('recipe')">
+                              <option value="0">-- Choisir --</option>
+                              @for (avail of availableIngredients; track avail.id) {
+                                <option [value]="avail.id">{{ avail.name }}</option>
+                              }
+                            </select>
+
+                            <input type="number" step="0.01" [(ngModel)]="ing.quantity" name="ing_qty_{{idx}}" placeholder="Qté" required [disabled]="isLockedField('recipe')" />
+
+                            <select [(ngModel)]="ing.unit" name="ing_unit_{{idx}}" required [disabled]="isLockedField('recipe')">
+                              <option value="piece">Pièce</option>
+                              <option value="kg">kg</option>
+                              <option value="g">g</option>
+                              <option value="liter">Litre</option>
+                              <option value="ml">ml</option>
+                            </select>
+
+                            <button type="button" class="btn-remove" (click)="removeRecipeIngredient(idx)" [disabled]="isLockedField('recipe')">
+                              ✕
+                            </button>
+                          </div>
+                        }
+                      }
+                    </div>
+                  }
+                </div>
+
+                <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" (click)="closeModal()">
                     Annuler
                   </button>
-
                   <button type="submit" class="btn btn-primary">
-                    {{ editing ? 'Modifier' : 'Créer' }}
+                    {{ editing ? 'Enregistrer' : 'Créer le Produit' }}
                   </button>
                 </div>
-
               </form>
-
             </div>
           </div>
         }
 
-        <!-- CHATBOT DRAWER/DRAWER PANEL -->
+        <!-- IA NUTRITIONAL DRAWER -->
         @if (showChatbot && chatbotProduct) {
           <div class="chat-overlay" (click)="closeChatbot()">
             <div class="chat-drawer" (click)="$event.stopPropagation()">
               <div class="chat-header">
                 <div class="chat-title">
-                  <span class="chat-avatar-icon"></span>
+                  <span class="chat-avatar-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2DD4BF" stroke-width="2">
+                      <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12A10 10 0 0 1 12 2z"/>
+                      <path d="M12 6v6l4 2"/>
+                    </svg>
+                  </span>
                   <div>
-                    <h4 style="margin:0; font-size:14px; font-weight:700;">Assistant IA AeroServe</h4>
-                    <span style="font-size:11px; opacity:0.85;">Produit: {{ chatbotProduct.name }}</span>
+                    <h4>Copilote Nutritionnel IA</h4>
+                    <span>{{ chatbotProduct.name }}</span>
                   </div>
                 </div>
                 <button class="chat-close" (click)="closeChatbot()">✕</button>
@@ -333,14 +366,14 @@ import { environment } from '../../../environments/environment';
               </div>
 
               <div class="chat-chips">
-                <button (click)="askQuickQuestion('Quels sont les allergènes présents ? ')">Allergènes ? </button>
-                <button (click)="askQuickQuestion('Quels sont les ingrédients ? ')">Ingrédients ? </button>
-                <button (click)="askQuickQuestion('Est-ce sans gluten ? ')">Sans gluten ? </button>
+                <button (click)="askQuickQuestion('Quels sont les allergènes présents ?')">Allergènes ?</button>
+                <button (click)="askQuickQuestion('Quels sont les ingrédients ?')">Ingrédients ?</button>
+                <button (click)="askQuickQuestion('Est-ce adapté pour un régime sans gluten ?')">Sans Gluten ?</button>
               </div>
 
               <div class="chat-footer">
                 <input type="text" [(ngModel)]="chatbotInput" (keyup.enter)="sendChatbotMessage()" placeholder="Posez une question sur le produit..." [disabled]="chatbotLoading" />
-                <button class="chat-send" (click)="sendChatbotMessage()" [disabled]="chatbotLoading"></button>
+                <button class="chat-send" (click)="sendChatbotMessage()" [disabled]="chatbotLoading">➤</button>
               </div>
             </div>
           </div>
@@ -349,7 +382,7 @@ import { environment } from '../../../environments/environment';
     }
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 24px; }
+    .page { display: flex; flex-direction: column; gap: 20px; }
 
     .page-header {
       display: flex;
@@ -362,9 +395,9 @@ import { environment } from '../../../environments/environment';
 
     .page-header h2 {
       margin: 0;
-      font-size: 26px;
+      font-size: 20px;
       font-weight: 700;
-      color: #1A1D1B;
+      color: var(--text-primary);
     }
 
     .header-actions {
@@ -374,297 +407,99 @@ import { environment } from '../../../environments/environment';
     }
 
     .filter-badge {
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
       font-weight: 600;
-      color: #4A4D4B;
-      background: #EDE9E2;
-      border: 1px solid #D8D2C8;
+      color: var(--text-secondary);
+      background: #F1F5F9;
+      border: 1px solid #E2E8F0;
     }
 
     .form-input-locked {
-      padding: 12px 14px;
-      border: 1.5px solid #D8D2C8;
-      border-radius: 8px;
-      font-size: 14px;
-      background: #EDE9E2;
-      color: #4A4D4B;
+      padding: 8px 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      background: #F1F5F9;
+      color: var(--text-secondary);
+      width: 100%;
     }
 
     .filter-select {
-      padding: 10px 14px;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 10px;
-      font-size: 14px;
+      padding: 8px 12px;
+      border: 1px solid #E2E8F0;
+      border-radius: var(--radius-md);
+      font-size: 13px;
       font-weight: 500;
-      color: #4A4D4B;
+      color: var(--text-secondary);
       outline: none;
-      background: #fff;
+      background: var(--surface);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: border-color var(--transition);
+
+      &:focus { border-color: var(--accent); }
     }
 
-    .filter-select:hover { border-color: #2C3E35; }
-    .filter-select:focus { border-color: #2C3E35; box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1); }
-
-    .card {
-      background: #ffffff;
-      border-radius: 22px;
-      padding: 24px;
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
-      border: 1px solid rgba(29, 35, 31, 0.05);
+    .product-name-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
 
-    .table-wrap { overflow-x: auto; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
-
-    th {
-      text-align: left;
-      padding: 14px 16px;
-      background: linear-gradient(135deg, #fff8f8 0%, #ffffff 100%);
-      color: #6b7280;
-      font-weight: 700;
-      border-bottom: 2px solid #f1f1f1;
-      text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 0.03em;
-    }
-
-    td {
-      padding: 14px 16px;
-      border-bottom: 1px solid #f3f4f6;
-      color: #4A4D4B;
-      transition: background 0.2s ease;
-    }
-
-    tr:hover td { background: rgba(29, 35, 31, 0.02); }
-
-    .product-name {
-      font-weight: 600;
-      color: #111827;
-    }
-
-    .product-icon {
-      font-size: 20px;
-    }
+    .product-title { font-weight: 600; color: var(--text-primary); }
+    .product-subtitle { font-size: 11px; color: var(--text-muted); }
 
     .table-product-img {
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       object-fit: cover;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
+      border-radius: var(--radius-sm);
+      border: 1px solid #E2E8F0;
     }
 
-    .actions {
+    .action-buttons {
       display: flex;
-      gap: 8px;
+      gap: 6px;
+      justify-content: flex-end;
     }
 
-    .btn-icon {
+    .action-btn {
       background: none;
       border: none;
       cursor: pointer;
-      font-size: 16px;
-      padding: 6px 8px;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-    }
-
-    .btn-icon:hover {
-      background: rgba(29, 35, 31, 0.1);
-      transform: scale(1.1);
-    }
-
-    .btn-icon.danger:hover {
-      background: rgba(194,115,115, 0.1);
-    }
-
-    .badge {
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
+      color: var(--text-secondary);
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
       display: inline-flex;
       align-items: center;
-    }
-
-    .badge.type {
-      background: linear-gradient(135deg, #EDE9E2 0%, #ffffff 100%);
-      color: #2C3E35;
-      border: 1px solid rgba(29, 35, 31, 0.1);
-    }
-
-    .status-badge.active {
-      background: #E8F0EB;
-      color: #137333;
-    }
-
-    .status-badge.inactive {
-      background: #F5E4E4;
-      color: #c5221f;
-    }
-
-    .approval-approved {
-      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: #6B8F71;
-      border: 1px solid rgba(107,131,116, 0.1);
-    }
-
-    .approval-pending {
-      background: linear-gradient(135deg, #F5EDE4 0%, #ffffff 100%);
-      color: #D4924A;
-      border: 1px solid rgba(212,163,115, 0.1);
-    }
-
-    .approval-rejected {
-      background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%);
-      color: #C0483A;
-      border: 1px solid rgba(194,115,115, 0.1);
-    }
-
-    .btn {
-      padding: 10px 22px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s ease;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
-      color: #fff;
-      box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3);
-    }
-
-    .btn-secondary {
-      background: #f3f4f6;
-      color: #4A4D4B;
-    }
-
-    .btn-secondary:hover {
-      background: #e5e7eb;
-    }
-
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 12px;
-      border-radius: 8px;
-    }
-
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      display: flex;
-      align-items: center;
       justify-content: center;
-      z-index: 200;
-      backdrop-filter: blur(4px);
-    }
 
-    .modal {
-      background: #ffffff;
-      border-radius: 24px;
-      padding: 32px;
-      width: 100%;
-      max-width: 600px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(29, 35, 31, 0.1);
-    }
-
-    .modal h3 {
-      margin: 0 0 24px;
-      font-size: 22px;
-      font-weight: 700;
-      color: #111827;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-
-    .form-group label {
-      font-size: 14px;
-      font-weight: 700;
-      color: #374151;
-      text-transform: capitalize;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      padding: 12px 14px;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 10px;
-      font-size: 14px;
-      outline: none;
-      font-family: inherit;
-      color: #111827;
-      transition: all 0.2s ease;
-    }
-
-    .form-group input:disabled,
-    .form-group select:disabled {
-      background: #f3f4f6;
-      color: #9ca3af;
-      cursor: not-allowed;
-    }
-
-    .form-group input::placeholder,
-    .form-group textarea::placeholder {
-      color: #9ca3af;
-    }
-
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      border-color: #2C3E35;
-      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1);
-      background: #EDE9E2;
-    }
-
-    .file-input {
-      padding: 8px 10px !important;
+      &:hover { background: #F1F5F9; color: var(--text-primary); }
+      &.danger-btn:hover { background: #FEE2E2; color: #B91C1C; }
+      &.info-btn:hover { background: #E0F2FE; color: #0369A1; }
     }
 
     .preview-image {
-      max-height: 120px;
+      max-height: 100px;
       object-fit: contain;
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       margin-top: 8px;
-      border: 1px solid #e5e7eb;
+      border: 1px solid #E2E8F0;
       align-self: flex-start;
     }
 
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      gap: 12px;
     }
 
     .recipe-section {
-      margin-top: 20px;
-      border-top: 1.5px solid #f3f4f6;
-      padding-top: 20px;
+      margin-top: 16px;
+      border-top: 1px solid #F1F5F9;
+      padding-top: 16px;
     }
 
     .recipe-header {
@@ -672,355 +507,101 @@ import { environment } from '../../../environments/environment';
       justify-content: space-between;
       align-items: center;
       margin-bottom: 12px;
-    }
 
-    .recipe-header h4 {
-      margin: 0;
-      font-size: 16px;
-      color: #1f2937;
-      font-weight: 700;
+      h4 {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-primary);
+        font-weight: 600;
+      }
     }
 
     .recipe-empty {
-      font-size: 14px;
-      color: #6b7280;
+      font-size: 12px;
+      color: var(--text-muted);
       font-style: italic;
     }
 
     .ingredient-row {
       display: grid;
-      grid-template-columns: 2.5fr 1fr 1.5fr auto;
-      gap: 10px;
+      grid-template-columns: 2.2fr 1fr 1.2fr auto;
+      gap: 8px;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .ingredient-row select, .ingredient-row input {
-      padding: 10px !important;
-      font-size: 13px !important;
+      padding: 6px 10px !important;
+      font-size: 12.5px !important;
+      height: 34px;
     }
 
     .btn-remove {
-      background: #F5E4E4;
-      color: #C0483A;
-      border: 1px solid #F5E4E4;
-      border-radius: 8px;
+      background: #FEE2E2;
+      color: #B91C1C;
+      border: none;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      padding: 8px;
+      width: 34px;
+      height: 34px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
+      transition: all var(--transition);
+
+      &:hover { background: #FCA5A5; }
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
     }
 
-    .btn-remove:hover {
-      background: #F5E4E4;
-      transform: scale(1.05);
-    }
-
-    .btn-remove:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      margin-top: 28px;
-      padding-top: 24px;
-      border-top: 1px solid #f3f4f6;
-    }
-
-    /* CHATBOT DRAWER */
-    .chat-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: blur(4px);
-      z-index: 300;
-      display: flex;
-      justify-content: flex-end;
-      animation: fadeIn 0.2s ease;
-    }
-
-    .chat-drawer {
-      width: 100%;
-      max-width: 420px;
-      height: 100%;
-      background: #ffffff;
-      box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1);
-      display: flex;
-      flex-direction: column;
-      animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    @keyframes slideInRight {
-      from { transform: translateX(100%); }
-      to { transform: translateX(0); }
-    }
-
-    .chat-header {
-      padding: 20px;
-      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 4px 12px rgba(127, 42, 42, 0.15);
-    }
-
-    .chat-title {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .chat-avatar-icon {
-      font-size: 28px;
-      background: rgba(255, 255, 255, 0.2);
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .chat-close {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 20px;
-      cursor: pointer;
-      opacity: 0.8;
-      transition: opacity 0.2s;
-    }
-
-    .chat-close:hover {
-      opacity: 1;
-    }
-
-    .chat-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      background: #EDE9E2;
-    }
-
-    .chat-messages {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .chat-bubble {
-      display: flex;
-      justify-content: flex-start;
-    }
-
-    .chat-bubble.self {
-      justify-content: flex-end;
-    }
-
-    .bubble-content {
-      max-width: 80%;
-      padding: 12px 16px;
-      border-radius: 16px 16px 16px 4px;
-      background: #ffffff;
-      border: 1px solid #D8D2C8;
-      box-shadow: 0 4px 6px rgba(15, 23, 42, 0.02);
-      color: #4A4D4B;
-      font-size: 13.5px;
-      line-height: 1.5;
-    }
-
-    .chat-bubble.self .bubble-content {
-      border-radius: 16px 16px 4px 16px;
-      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
-      color: white;
-      border: none;
-      box-shadow: 0 4px 12px rgba(29, 35, 31, 0.15);
-    }
-
-    .bubble-content p {
-      margin: 0;
-      white-space: pre-wrap;
-    }
-
-    /* Typing indicator */
-    .loading-bubble {
-      display: flex;
-      gap: 4px;
-      padding: 12px 20px;
-    }
-
-    .loading-bubble .dot {
-      width: 8px;
-      height: 8px;
-      background: #A8C5A0;
-      border-radius: 50%;
-      animation: bounce 1.4s infinite ease-in-out both;
-    }
-
-    .loading-bubble .dot:nth-child(1) { animation-delay: -0.32s; }
-    .loading-bubble .dot:nth-child(2) { animation-delay: -0.16s; }
-
-    @keyframes bounce {
-      0%, 80%, 100% { transform: scale(0); }
-      40% { transform: scale(1.0); }
-    }
-
-    .chat-chips {
-      padding: 10px 16px;
-      background: #ffffff;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
-      border-top: 1px solid #EDE9E2;
-      scrollbar-width: none; /* Firefox */
-    }
-
-    .chat-chips::-webkit-scrollbar {
-      display: none; /* Safari & Chrome */
-    }
-
-    .chat-chips button {
-      background: #EDE9E2;
-      border: 1px solid #D8D2C8;
-      border-radius: 999px;
-      padding: 6px 12px;
-      font-size: 11.5px;
-      color: #4A4D4B;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
-
-    .chat-chips button:hover {
-      background: rgba(29, 35, 31, 0.08);
-      color: #2C3E35;
-      border-color: rgba(29, 35, 31, 0.15);
-    }
-
-    .chat-footer {
-      padding: 16px;
-      background: #ffffff;
-      border-top: 1px solid #EDE9E2;
-      display: flex;
-      gap: 10px;
-    }
-
-    .chat-footer input {
-      flex: 1;
-      padding: 12px 16px;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 12px;
-      font-size: 13.5px;
-      outline: none;
-      transition: all 0.2s;
-    }
-
-    .chat-footer input:focus {
-      border-color: #2C3E35;
-      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.08);
-    }
-
-    .chat-send {
-      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
-      color: white;
-      border: none;
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-size: 18px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 10px rgba(29, 35, 31, 0.15);
-    }
-
-    .chat-send:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 14px rgba(29, 35, 31, 0.25);
-    }
-
-    .chat-send:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .assistant-btn:hover {
-      background: rgba(34, 197, 94, 0.1) !important;
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 13px;
     }
 
     .product-icon-fallback {
-      width: 40px;
-      height: 40px;
-      background: #EDE9E2;
-      color: #5C625A;
-      border-radius: 10px;
+      width: 32px;
+      height: 32px;
+      background: #F1F5F9;
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #D8D2C8;
-      transition: all 0.2s ease;
-    }
-    .product-icon-fallback:hover {
-      background: #E5DFD5;
-      color: #2C3E35;
+      border: 1px solid #E2E8F0;
     }
 
     .approve-btn {
-      color: #137333;
-      background: #E8F0EB;
-      border: 1px solid rgba(19, 115, 51, 0.15);
-      padding: 8px 10px;
-      border-radius: 8px;
+      color: #15803D;
+      background: #DCFCE7;
+      padding: 6px;
+      border-radius: var(--radius-sm);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .approve-btn:hover {
-      background: #d5e7dd;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(19, 115, 51, 0.15);
-    }
-    .approve-btn:active {
-      transform: translateY(0);
+      transition: all var(--transition);
+
+      &:hover { background: #BBF7D0; }
     }
 
     .reject-btn {
-      color: #c5221f;
-      background: #F5E4E4;
-      border: 1px solid rgba(197, 34, 31, 0.15);
-      padding: 8px 10px;
-      border-radius: 8px;
+      color: #B91C1C;
+      background: #FEE2E2;
+      padding: 6px;
+      border-radius: var(--radius-sm);
       display: inline-flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .reject-btn:hover {
-      background: #eccdcd;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(197, 34, 31, 0.15);
-    }
-    .reject-btn:active {
-      transform: translateY(0);
+      transition: all var(--transition);
+
+      &:hover { background: #FCA5A5; }
     }
   `]
 })
-
 export class ProductsComponent implements OnInit {
-
   products: Product[] = [];
   categories: Category[] = [];
   filteredProducts: Product[] = [];
@@ -1113,7 +694,8 @@ export class ProductsComponent implements OnInit {
     description: '',
     allergens_text: '',
     expiration_date: '',
-    usage_status: 'IN_USE'
+    usage_status: 'IN_USE',
+    quantity_per_batch: 1
   };
 
   constructor(private api: ApiService, private auth: AuthService, private route: ActivatedRoute) {}
@@ -1219,7 +801,8 @@ export class ProductsComponent implements OnInit {
           description: fullProduct.description || '',
           allergens_text: fullProduct.allergens?.join(', ') || '',
           expiration_date: fullProduct.expiration_date || '',
-          usage_status: fullProduct.usage_status || 'IN_USE'
+          usage_status: fullProduct.usage_status || 'IN_USE',
+          quantity_per_batch: fullProduct.quantity_per_batch || 1
         };
 
         this.selectedProductApprovalStatus = fullProduct.approval_status;
@@ -1243,7 +826,7 @@ export class ProductsComponent implements OnInit {
           title: 'Erreur',
           text: 'Impossible de charger les détails du produit.',
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
       }
     });
@@ -1262,7 +845,8 @@ export class ProductsComponent implements OnInit {
       description: '',
       allergens_text: '',
       expiration_date: '',
-      usage_status: 'IN_USE'
+      usage_status: 'IN_USE',
+      quantity_per_batch: 1
     };
     this.selectedImageFile = null;
     this.imagePreview = null;
@@ -1314,7 +898,7 @@ export class ProductsComponent implements OnInit {
         title: 'Formulaire incomplet',
         text: 'Veuillez remplir tous les champs obligatoires.',
         icon: 'warning',
-        confirmButtonColor: '#6B8F71'
+        confirmButtonColor: '#0D9488'
       });
       return;
     }
@@ -1324,7 +908,7 @@ export class ProductsComponent implements OnInit {
         title: 'Recette manquante',
         text: 'Un produit Food doit contenir au moins un ingrédient dans sa recette.',
         icon: 'warning',
-        confirmButtonColor: '#6B8F71'
+        confirmButtonColor: '#0D9488'
       });
       return;
     }
@@ -1334,27 +918,29 @@ export class ProductsComponent implements OnInit {
         title: 'Recette incomplète',
         text: 'Veuillez sélectionner un produit valide pour chaque ingrédient.',
         icon: 'warning',
-        confirmButtonColor: '#6B8F71'
+        confirmButtonColor: '#0D9488'
       });
       return;
     }
 
     // Stock validation for FOOD products
     if (this.form.type === 'food') {
+      const batchSize = this.form.quantity_per_batch || 1;
       const stockErrors: string[] = [];
       for (const ing of this.recipeIngredients) {
         const prod = this.products.find(p => p.id === ing.product_id);
         const availableQty = prod?.stock?.quantity ?? 0;
-        if (ing.quantity > availableQty) {
-          stockErrors.push(`"${prod?.name || 'Produit'}" : besoin de ${ing.quantity} ${ing.unit}, disponible ${availableQty} ${ing.unit}`);
+        const requiredQty = ing.quantity * batchSize;
+        if (requiredQty > availableQty) {
+          stockErrors.push(`"${prod?.name || 'Produit'}" : besoin de ${requiredQty} ${ing.unit}, disponible ${availableQty} ${ing.unit}`);
         }
       }
       if (stockErrors.length > 0) {
         Swal.fire({
           title: 'Stock insuffisant',
-          html: `Les ingrédients suivants n'ont pas assez de stock :<br><br>${stockErrors.join('<br>')}`,
+          html: `Les ingrédients suivants n'ont pas assez de stock (batch: ${batchSize}):<br><br>${stockErrors.join('<br>')}`,
           icon: 'error',
-          confirmButtonColor: '#C0483A'
+          confirmButtonColor: '#EF4444'
         });
         return;
       }
@@ -1365,6 +951,10 @@ export class ProductsComponent implements OnInit {
     formData.append('type', this.form.type);
     formData.append('category_id', String(this.form.category_id));
     formData.append('description', this.form.description || '');
+
+    if (this.form.type === 'food') {
+      formData.append('quantity_per_batch', String(this.form.quantity_per_batch || 1));
+    }
 
     if (!this.isRestrictedRole) {
       formData.append('price', String(this.form.price || 0));
@@ -1402,7 +992,7 @@ export class ProductsComponent implements OnInit {
           title: 'Succès !',
           text: this.editing ? 'Le produit a été modifié.' : 'Le produit a été créé.',
           icon: 'success',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#0D9488'
         });
         this.closeModal();
         this.load();
@@ -1413,7 +1003,7 @@ export class ProductsComponent implements OnInit {
           title: 'Erreur',
           text: err.error?.message || 'Une erreur est survenue lors de la sauvegarde.',
           icon: 'error',
-          confirmButtonColor: '#6B8F71'
+          confirmButtonColor: '#EF4444'
         });
       }
     });
@@ -1426,13 +1016,12 @@ export class ProductsComponent implements OnInit {
       text: `Voulez-vous ${status === 'approved' ? 'approuver' : 'rejeter'} le produit "${product.name}" ?`,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: status === 'approved' ? '#6B8F71' : '#C0483A',
-      cancelButtonColor: '#4b5563',
+      confirmButtonColor: status === 'approved' ? '#0D9488' : '#EF4444',
+      cancelButtonColor: '#475569',
       confirmButtonText: status === 'approved' ? 'Oui, approuver' : 'Oui, rejeter',
       cancelButtonText: 'Annuler'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Try standard Laravel attribute update
         const formData = new FormData();
         formData.append('approval_status', status);
         formData.append('name', product.name);
@@ -1447,19 +1036,18 @@ export class ProductsComponent implements OnInit {
               title: 'Succès !',
               text: `Le produit a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.load();
           },
           error: () => {
-            // Fallback: try direct /status endpoint
             this.api.put(`products/${product.id}/status`, { status }).subscribe({
               next: () => {
                 Swal.fire({
                   title: 'Succès !',
                   text: `Le produit a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
                   icon: 'success',
-                  confirmButtonColor: '#6B8F71'
+                  confirmButtonColor: '#0D9488'
                 });
                 this.load();
               },
@@ -1468,7 +1056,7 @@ export class ProductsComponent implements OnInit {
                   title: 'Erreur',
                   text: err2.error?.message || 'Une erreur est survenue lors de la validation.',
                   icon: 'error',
-                  confirmButtonColor: '#C0483A'
+                  confirmButtonColor: '#EF4444'
                 });
               }
             });
@@ -1485,8 +1073,8 @@ export class ProductsComponent implements OnInit {
       text: 'Cette action est irréversible !',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#C0483A',
-      cancelButtonColor: '#4b5563',
+      confirmButtonColor: '#EF4444',
+      cancelButtonColor: '#475569',
       confirmButtonText: 'Oui, supprimer !',
       cancelButtonText: 'Annuler'
     }).then((result) => {
@@ -1497,7 +1085,7 @@ export class ProductsComponent implements OnInit {
               title: 'Supprimé !',
               text: 'Le produit a été supprimé.',
               icon: 'success',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#0D9488'
             });
             this.load();
           },
@@ -1506,7 +1094,7 @@ export class ProductsComponent implements OnInit {
               title: 'Erreur',
               text: err.error?.message || 'Erreur lors de la suppression.',
               icon: 'error',
-              confirmButtonColor: '#6B8F71'
+              confirmButtonColor: '#EF4444'
             });
           }
         });

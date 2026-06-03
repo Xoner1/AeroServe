@@ -67,13 +67,13 @@ import { BarcodeFormat } from '@zxing/library';
     .qr-viewport.hidden { display: none; }
     .qr-viewport ::ng-deep video { width: 100%; height: auto; display: block; }
     .qr-frame {
-      position: absolute; inset: 20%; border: 2px solid #6B8F71;
+      position: absolute; inset: 20%; border: 2px solid var(--accent);
       border-radius: 12px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.3);
       pointer-events: none;
     }
     .qr-error { color: #C0483A; font-size: 13px; text-align: center; padding: 12px; }
     .qr-result { background: #E8F0EB; border-radius: 10px; padding: 12px; margin-top: 12px; }
-    .qr-result strong { font-size: 12px; color: #6B8F71; display: block; margin-bottom: 4px; }
+    .qr-result strong { font-size: 12px; color: var(--accent); display: block; margin-bottom: 4px; }
     .qr-result p { font-size: 14px; color: #2C3E35; word-break: break-all; margin: 0; }
     .qr-footer { display: flex; justify-content: flex-end; margin-top: 16px; }
     .btn { padding: 10px 20px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; }

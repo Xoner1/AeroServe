@@ -5,17 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Menu extends Model
 {
-    protected $fillable = ['name', 'week_start', 'week_end', 'created_by', 'is_active'];
+    protected $fillable = [
+        'name', 'start_date', 'end_date', 'created_by', 'is_active',
+        'status', 'staff_count', 'comment',
+    ];
 
     protected function casts(): array
     {
         return [
-            'week_start' => 'date',
-            'week_end' => 'date',
+            'start_date' => 'date',
+            'end_date'   => 'date',
             'is_active' => 'boolean',
+            'staff_count' => 'integer',
         ];
     }
 
@@ -27,5 +32,10 @@ class Menu extends Model
     public function items(): HasMany
     {
         return $this->hasMany(MenuItem::class);
+    }
+
+    public function comments(): MorphMany
+    {
+        return $this->morphMany(Comment::class, 'commentable');
     }
 }

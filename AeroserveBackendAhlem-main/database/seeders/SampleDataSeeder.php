@@ -235,8 +235,8 @@ class SampleDataSeeder extends Seeder
         $menu = Menu::firstOrCreate(
             ['name' => 'Menu Semaine Standard'],
             [
-                'week_start' => $weekStart->toDateString(),
-                'week_end' => $weekStart->copy()->endOfWeek()->toDateString(),
+                'start_date' => $weekStart->toDateString(),
+                'end_date'   => $weekStart->copy()->endOfWeek()->toDateString(),
                 'created_by' => $chefCuisine->id,
                 'is_active' => true,
             ]
@@ -248,7 +248,7 @@ class SampleDataSeeder extends Seeder
         );
 
         Planning::firstOrCreate(
-            ['caissier_id' => $caissier->id, 'date' => now()->toDateString()],
+            ['user_id' => $caissier->id, 'date' => now()->toDateString()],
             [
                 'pdv_id' => $pdv?->id,
                 'is_day_off' => false,
@@ -260,7 +260,7 @@ class SampleDataSeeder extends Seeder
 
         $sale = Sale::firstOrCreate(
             [
-                'caissier_id' => $caissier->id,
+                'user_id' => $caissier->id,
                 'pdv_id' => $pdv?->id,
                 'payment_method' => 'cash',
                 'total_amount' => 0,

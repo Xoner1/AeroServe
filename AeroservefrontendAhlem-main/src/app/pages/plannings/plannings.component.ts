@@ -20,44 +20,44 @@ import Swal from 'sweetalert2';
         <div class="page-header">
           <div>
             <h2>Planning Hebdomadaire des Caissiers</h2>
-            <p class="subtitle">Gérez et affectez les caissiers aux points de vente par shift</p>
+            <p class="subtitle">Gérez et affectez les caissiers aux points de vente par shifts horaires de travail</p>
           </div>
           
           <div class="week-picker">
-            <button class="btn btn-nav" (click)="prevWeek()">Prev</button>
-            <span class="week-label"> Semaine: {{ getWeekRangeLabel() }}</span>
-            <button class="btn btn-nav" (click)="nextWeek()">Next</button>
+            <button class="week-nav-btn" (click)="prevWeek()">Précédent</button>
+            <span class="week-label">Semaine: {{ getWeekRangeLabel() }}</span>
+            <button class="week-nav-btn" (click)="nextWeek()">Suivant</button>
           </div>
         </div>
 
         <!-- ─── STATS BAR ─── -->
-        <div class="stats-bar card">
-          <div class="stat-item">
-            <span class="stat-lbl">Affectations de la Semaine</span>
-            <span class="stat-val">{{ plannings.length }}</span>
+        <div class="stat-summary-bar">
+          <div class="stat-card">
+            <span class="stat-label">Affectations Semaine</span>
+            <span class="stat-value">{{ plannings.length }}</span>
           </div>
-          <div class="stat-item">
-            <span class="stat-lbl">Caissiers Actifs</span>
-            <span class="stat-val">{{ cashiers.length }}</span>
+          <div class="stat-card">
+            <span class="stat-label">Caissiers Actifs</span>
+            <span class="stat-value">{{ cashiers.length }}</span>
           </div>
-          <div class="stat-item">
-            <span class="stat-lbl">Points de Vente</span>
-            <span class="stat-val">{{ pdvs.length }}</span>
+          <div class="stat-card">
+            <span class="stat-label">Points de Vente</span>
+            <span class="stat-value">{{ pdvs.length }}</span>
           </div>
         </div>
 
         <!-- ─── WEEKLY GRID TABLE ─── -->
-        <div class="card grid-card">
+        <div class="table-container" style="padding: 16px;">
           <div class="table-wrap">
             <table class="grid-table">
               <thead>
                 <tr>
-                  <th class="cashier-col">Caissier</th>
+                  <th class="cashier-col-header">Caissier</th>
                   @for (day of weekDays; track day) {
-                    <th class="day-col">
-                      <div class="day-header">
-                        <span class="day-name">{{ day | date:'EEEE':'':'fr-FR' }}</span>
-                        <span class="day-date">{{ day | date:'dd MMM' }}</span>
+                    <th class="day-col-header">
+                      <div class="day-header-cell">
+                        <span class="day-name-cell">{{ day | date:'EEEE':'':'fr-FR' }}</span>
+                        <span class="day-date-cell">{{ day | date:'dd MMM' }}</span>
                       </div>
                     </th>
                   }
@@ -66,29 +66,29 @@ import Swal from 'sweetalert2';
               <tbody>
                 @for (c of cashiers; track c.id) {
                   <tr>
-                    <td class="cashier-col">
-                      <div class="cashier-info">
-                        <span class="avatar-circle">{{ getInitials(c) }}</span>
+                    <td class="cashier-cell-sticky">
+                      <div class="cashier-info-block">
+                        <span class="avatar-circle-pos">{{ getInitials(c) }}</span>
                         <div>
-                          <strong>{{ c.first_name }} {{ c.last_name }}</strong>
-                          <small>{{ c.email }}</small>
+                          <strong class="cashier-name-strong">{{ c.first_name }} {{ c.last_name }}</strong>
+                          <span class="cashier-email-span">{{ c.email }}</span>
                         </div>
                       </div>
                     </td>
 
                     @for (day of weekDays; track day) {
-                      <td class="day-col">
-                        <div class="shifts-container">
+                      <td class="day-cell-grid">
+                        <div class="shifts-container-grid">
                           <!-- MATIN -->
                           <div class="shift-pill matin" 
                                [class.assigned]="getShiftPlanning(c.id, day, 'MATIN')"
                                [class.off]="getShiftPlanning(c.id, day, 'MATIN')?.day_status === 'OFF'"
                                [class.conge]="getShiftPlanning(c.id, day, 'MATIN')?.day_status === 'CONGE'"
                                (click)="openShiftModal(c, day, 'MATIN')">
-                            <span class="shift-icon"></span>
+                            <span class="shift-dot"></span>
                             <div class="shift-details">
-                              <span class="shift-name">Matin</span>
-                              <span class="shift-desc">
+                              <span class="shift-title-text">Matin</span>
+                              <span class="shift-desc-text">
                                 {{ getShiftLabel(c.id, day, 'MATIN') }}
                               </span>
                             </div>
@@ -100,10 +100,10 @@ import Swal from 'sweetalert2';
                                [class.off]="getShiftPlanning(c.id, day, 'APRES_MIDI')?.day_status === 'OFF'"
                                [class.conge]="getShiftPlanning(c.id, day, 'APRES_MIDI')?.day_status === 'CONGE'"
                                (click)="openShiftModal(c, day, 'APRES_MIDI')">
-                            <span class="shift-icon"></span>
+                            <span class="shift-dot"></span>
                             <div class="shift-details">
-                              <span class="shift-name">Après-midi</span>
-                              <span class="shift-desc">
+                              <span class="shift-title-text">Après-midi</span>
+                              <span class="shift-desc-text">
                                 {{ getShiftLabel(c.id, day, 'APRES_MIDI') }}
                               </span>
                             </div>
@@ -115,10 +115,10 @@ import Swal from 'sweetalert2';
                                [class.off]="getShiftPlanning(c.id, day, 'SOIR')?.day_status === 'OFF'"
                                [class.conge]="getShiftPlanning(c.id, day, 'SOIR')?.day_status === 'CONGE'"
                                (click)="openShiftModal(c, day, 'SOIR')">
-                            <span class="shift-icon"></span>
+                            <span class="shift-dot"></span>
                             <div class="shift-details">
-                              <span class="shift-name">Soir</span>
-                              <span class="shift-desc">
+                              <span class="shift-title-text">Soir</span>
+                              <span class="shift-desc-text">
                                 {{ getShiftLabel(c.id, day, 'SOIR') }}
                               </span>
                             </div>
@@ -130,8 +130,8 @@ import Swal from 'sweetalert2';
                 }
                 @if (cashiers.length === 0) {
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 48px; color: #A8C5A0;">
-                      Aucun caissier actif trouvé pour créer le planning.
+                    <td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                      Aucun caissier actif trouvé pour créer le planning hebdomadaire.
                     </td>
                   </tr>
                 }
@@ -143,63 +143,64 @@ import Swal from 'sweetalert2';
         <!-- ─── ADD / EDIT SCHEDULE MODAL ─── -->
         @if (showModal) {
           <div class="modal-overlay" (click)="closeModal()">
-            <div class="modal" (click)="$event.stopPropagation()">
+            <div class="modal-card" (click)="$event.stopPropagation()">
               <div class="modal-header">
                 <h3>{{ editing ? 'Modifier' : 'Créer' }} une affectation</h3>
-                <button class="btn-close-x" (click)="closeModal()">✕</button>
+                <button (click)="closeModal()" style="font-size: 16px;">✕</button>
               </div>
               
-              @if (validationError) {
-                <div class="error-banner"> {{ validationError }}</div>
-              }
-
               <form (ngSubmit)="save()">
-                
-                <div class="form-group">
-                  <label>Caissier</label>
-                  <input type="text" [value]="selectedCashierName" disabled class="disabled-input" />
-                </div>
+                <div class="modal-body">
+                  @if (validationError) {
+                    <div class="error-banner"> {{ validationError }}</div>
+                  }
 
-                <div class="form-group">
-                  <label>Date & Shift</label>
-                  <input type="text" [value]="formattedDateAndShift" disabled class="disabled-input" />
-                </div>
-
-                <div class="form-group">
-                  <label>Statut de la journée *</label>
-                  <select [(ngModel)]="form.day_status" name="day_status" required (change)="onStatusChange()">
-                    <option value="ON">Actif (En service)</option>
-                    <option value="OFF">Repos (Day Off)</option>
-                    <option value="CONGE">Congé annuel</option>
-                  </select>
-                </div>
-
-                @if (form.day_status === 'ON') {
                   <div class="form-group">
-                    <label>Point de Vente *</label>
-                    <select [(ngModel)]="form.pdv_id" name="pdv_id" required>
-                      <option [value]="null" disabled selected>Choisir un Point de Vente...</option>
-                      @for (pdv of pdvs; track pdv.id) {
-                        <option [value]="pdv.id">
-                           {{ pdv.name }} [{{ pdv.location || 'AIRSIDE' }}]
-                        </option>
-                      }
+                    <label>Caissier</label>
+                    <input type="text" [value]="selectedCashierName" disabled class="disabled-input" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Date & Shift</label>
+                    <input type="text" [value]="formattedDateAndShift" disabled class="disabled-input" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Statut de la journée *</label>
+                    <select [(ngModel)]="form.day_status" name="day_status" required (change)="onStatusChange()">
+                      <option value="ON">Actif (En service)</option>
+                      <option value="OFF">Repos (Day Off)</option>
+                      <option value="CONGE">Congé annuel</option>
                     </select>
                   </div>
 
-                  <div class="form-row">
+                  @if (form.day_status === 'ON') {
                     <div class="form-group">
-                      <label>Heure de début</label>
-                      <input type="time" [(ngModel)]="form.start_time" name="start_time" required />
+                      <label>Point de Vente *</label>
+                      <select [(ngModel)]="form.pdv_id" name="pdv_id" required>
+                        <option [value]="null" disabled selected>Choisir un Point de Vente...</option>
+                        @for (pdv of pdvs; track pdv.id) {
+                          <option [value]="pdv.id">
+                             {{ pdv.name }} [{{ pdv.location || 'AIRSIDE' }}]
+                          </option>
+                        }
+                      </select>
                     </div>
-                    <div class="form-group">
-                      <label>Heure de fin</label>
-                      <input type="time" [(ngModel)]="form.end_time" name="end_time" required />
-                    </div>
-                  </div>
-                }
 
-                <div class="modal-actions">
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label>Heure de début</label>
+                        <input type="time" [(ngModel)]="form.start_time" name="start_time" required />
+                      </div>
+                      <div class="form-group">
+                        <label>Heure de fin</label>
+                        <input type="time" [(ngModel)]="form.end_time" name="end_time" required />
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                <div class="modal-footer">
                   @if (editing) {
                     <button type="button" class="btn btn-danger" (click)="deleteCurrentPlanning()" style="margin-right: auto;">
                       Supprimer
@@ -208,7 +209,6 @@ import Swal from 'sweetalert2';
                   <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
                   <button type="submit" class="btn btn-primary">Valider</button>
                 </div>
-
               </form>
             </div>
           </div>
@@ -218,157 +218,147 @@ import Swal from 'sweetalert2';
     }
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 24px; font-family: 'Inter', sans-serif; }
-    
-    .page-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      border-bottom: 1px solid #EDE9E2; 
-      padding-bottom: 16px; 
-      flex-wrap: wrap; 
-      gap: 16px; 
-    }
-    
-    .page-header h2 { margin: 0; font-size: 26px; font-weight: 800; color: #1A1D1B; }
-    .subtitle { margin: 4px 0 0 0; font-size: 14px; color: #A8C5A0; }
+    .page { display: flex; flex-direction: column; gap: 20px; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 16px; flex-wrap: wrap; gap: 16px; }
+    .page-header h2 { margin: 0; font-size: 24px; font-weight: 600; color: var(--text-primary); }
+    .subtitle { margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary); }
     
     /* Week Picker */
     .week-picker {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: #fff;
-      border: 1px solid #D8D2C8;
+      background: var(--surface);
+      border: 1px solid var(--border);
       padding: 6px 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+      border-radius: var(--radius-md);
     }
     
     .week-label {
-      font-size: 14px;
-      font-weight: 700;
-      color: #4A4D4B;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
     }
     
-    .btn-nav {
-      background: #EDE9E2;
-      border: none;
-      border-radius: 8px;
-      width: 32px;
-      height: 32px;
+    .week-nav-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
       cursor: pointer;
-      font-size: 12px;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      color: var(--text-secondary);
+      transition: all var(--transition);
     }
     
-    .btn-nav:hover {
-      background: #2C3E35;
+    .week-nav-btn:hover {
+      background: var(--accent);
       color: #fff;
+      border-color: transparent;
     }
     
-    .card { background: #ffffff; border-radius: 22px; padding: 24px; box-shadow: 0 12px 28px rgba(15,23,42,.03); border: 1px solid #EDE9E2; }
-    
-    .stats-bar { display: flex; gap: 48px; padding: 20px 32px; background: #fff; flex-wrap: wrap; }
-    .stat-item { display: flex; flex-direction: column; gap: 4px; }
-    .stat-lbl { font-size: 11px; color: #A8C5A0; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-    .stat-val { font-size: 22px; font-weight: 800; color: #2C3E35; }
-
-    .grid-card {
-      padding: 12px;
-    }
-
     .table-wrap { overflow-x: auto; }
     
     .grid-table {
       width: 100%;
       border-collapse: separate;
-      border-spacing: 4px;
-      font-size: 13px;
+      border-spacing: 6px;
+      font-size: 12.5px;
     }
     
     .grid-table th, .grid-table td {
-      padding: 8px;
+      padding: 6px;
       border: none;
       vertical-align: top;
     }
     
-    .cashier-col {
-      width: 220px;
-      min-width: 200px;
-      background: #EDE9E2;
-      border-radius: 12px;
-      position: sticky;
-      left: 0;
-      z-index: 10;
-      box-shadow: 4px 0 10px rgba(0,0,0,0.02);
-      padding: 12px !important;
+    .cashier-col-header {
+      width: 200px;
+      min-width: 180px;
+      text-align: left;
+      color: var(--text-secondary);
+      font-weight: 600;
+      padding-left: 8px !important;
+    }
+
+    .day-col-header {
+      min-width: 140px;
+      text-align: center;
     }
     
-    .day-col {
-      min-width: 150px;
-      background: #fafbfc;
-      border-radius: 12px;
-      border: 1px solid #EDE9E2 !important;
-    }
-    
-    .day-header {
+    .day-header-cell {
       display: flex;
       flex-direction: column;
       align-items: center;
-      text-align: center;
-      padding: 6px 0;
+      padding: 4px 0;
     }
     
-    .day-name {
-      font-weight: 800;
-      font-size: 13px;
-      color: #4A4D4B;
+    .day-name-cell {
+      font-weight: 600;
+      font-size: 12.5px;
+      color: var(--text-primary);
       text-transform: capitalize;
     }
     
-    .day-date {
+    .day-date-cell {
       font-size: 11px;
-      color: #A8C5A0;
-      font-weight: 600;
-      margin-top: 2px;
+      color: var(--text-muted);
+      margin-top: 1px;
     }
 
-    .cashier-info { display: flex; align-items: center; gap: 10px; }
-    .avatar-circle { width: 34px; height: 34px; border-radius: 50%; background: #EDE9E2; color: #2C3E35; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1.5px solid rgba(29, 35, 31,0.1); }
-    .cashier-info strong { display: block; color: #1A1D1B; font-size: 13px; }
-    .cashier-info small { color: #A8C5A0; font-size: 11px; }
+    .cashier-cell-sticky {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      position: sticky;
+      left: 0;
+      z-index: 10;
+      padding: 10px !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    .day-cell-grid {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border) !important;
+    }
+
+    .cashier-info-block { display: flex; align-items: center; gap: 8px; }
+    .avatar-circle-pos { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 600; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    .cashier-name-strong { display: block; color: var(--text-primary); font-size: 12.5px; }
+    .cashier-email-span { color: var(--text-muted); font-size: 11px; display: block; }
 
     /* Shifts Container */
-    .shifts-container {
+    .shifts-container-grid {
       display: flex;
       flex-direction: column;
       gap: 6px;
     }
 
     .shift-pill {
-      background: #ffffff;
-      border: 1.5px dashed #D8D2C8;
-      border-radius: 10px;
-      padding: 8px 10px;
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
+      gap: 6px;
+      transition: all var(--transition);
     }
 
     .shift-pill:hover {
-      border-color: #2C3E35;
-      background: rgba(29, 35, 31,0.02);
+      border-color: var(--accent);
+      background: var(--bg-secondary);
       transform: translateY(-1px);
     }
 
-    .shift-icon {
-      font-size: 16px;
+    .shift-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      flex-shrink: 0;
     }
 
     .shift-details {
@@ -376,107 +366,69 @@ import Swal from 'sweetalert2';
       flex-direction: column;
     }
 
-    .shift-name {
-      font-weight: 700;
-      font-size: 11px;
-      color: #A8C5A0;
+    .shift-title-text {
+      font-weight: 600;
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .shift-desc {
-      font-size: 10.5px;
-      color: #A8C5A0;
-      font-weight: 600;
+    .shift-desc-text {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
     }
 
     /* Assigned State */
     .shift-pill.assigned {
-      background: #F5EDE4;
-      border: 1.5px solid #fde68a;
-    }
-    
-    .shift-pill.assigned .shift-name {
-      color: #D4924A;
-    }
-    
-    .shift-pill.assigned .shift-desc {
-      color: #b45309;
-      font-weight: bold;
+      background: #FFFBEB;
+      border: 1.5px solid #FCD34D;
+      
+      .shift-dot { background: var(--color-warning); }
+      .shift-title-text { color: #B45309; }
+      .shift-desc-text { color: #B45309; font-weight: 600; }
     }
 
     /* Active ON State */
     .shift-pill.assigned:not(.off):not(.conge) {
-      background: #E8F0EB;
-      border: 1.5px solid #bbf7d0;
-    }
-    
-    .shift-pill.assigned:not(.off):not(.conge) .shift-name {
-      color: #6B8F71;
-    }
-    
-    .shift-pill.assigned:not(.off):not(.conge) .shift-desc {
-      color: #15803d;
+      background: #F0FDF4;
+      border: 1.5px solid var(--color-success);
+      
+      .shift-dot { background: var(--color-success); }
+      .shift-title-text { color: #15803D; }
+      .shift-desc-text { color: #15803D; font-weight: 600; }
     }
 
     /* Repos OFF State */
     .shift-pill.off {
-      background: #EDE9E2;
-      border: 1.5px solid #cbd5e1;
-    }
-    
-    .shift-pill.off .shift-name {
-      color: #4A4D4B;
-    }
-    
-    .shift-pill.off .shift-desc {
-      color: #A8C5A0;
+      background: var(--bg-secondary);
+      border: 1.5px solid var(--border);
+      
+      .shift-dot { background: var(--text-muted); }
+      .shift-title-text { color: var(--text-secondary); }
+      .shift-desc-text { color: var(--text-muted); }
     }
 
     /* Congé CONGE State */
     .shift-pill.conge {
-      background: #eff6ff;
-      border: 1.5px solid #bfdbfe;
+      background: #EFF6FF;
+      border: 1.5px solid #93C5FD;
+      
+      .shift-dot { background: var(--color-info); }
+      .shift-title-text { color: #1D4ED8; }
+      .shift-desc-text { color: #1D4ED8; }
     }
     
-    .shift-pill.conge .shift-name {
-      color: #6B8F71;
-    }
-    
-    .shift-pill.conge .shift-desc {
-      color: #5A7263;
-    }
-
-    .btn { padding: 10px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; border: none; transition: all .2s; display: inline-flex; align-items: center; justify-content: center; }
-    .btn-primary { background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%); color: #fff; box-shadow: 0 4px 12px rgba(29, 35, 31,.2); }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(29, 35, 31,.3); }
-    .btn-secondary { background: #EDE9E2; color: #4A4D4B; }
-    .btn-secondary:hover { background: #D8D2C8; }
-    .btn-danger { background: #F5E4E4; color: #C0483A; border: 1.5px solid #C0483A; }
-    .btn-danger:hover { background: #C0483A; }
-
-    /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
-    .modal { background: #fff; border-radius: 20px; padding: 28px; width: 100%; max-width: 440px; box-shadow: 0 25px 50px -12px rgba(0,0,0,.15); border: 1px solid rgba(29, 35, 31,0.1); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-header h3 { margin: 0; font-size: 18px; font-weight: 800; color: #1A1D1B; }
-    .btn-close-x { background: none; border: none; font-size: 18px; color: #A8C5A0; cursor: pointer; font-weight: bold; }
-    
-    .error-banner { background: #F5E4E4; border-left: 4px solid #ef4444; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 600; margin-bottom: 16px; }
-
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-    .form-group label { font-size: 13px; font-weight: 700; color: #4A4D4B; }
-    .form-group input, .form-group select { padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; outline: none; }
-    .form-group input:focus, .form-group select:focus { border-color: #2C3E35; background: #EDE9E2; }
+    .error-banner { background: #FEE2E2; border-left: 4px solid var(--color-error); color: #B91C1C; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; margin-bottom: 16px; }
     
     .disabled-input {
-      background: #EDE9E2;
-      color: #A8C5A0;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
       cursor: not-allowed;
-      border-color: #D8D2C8 !important;
-      font-weight: 600;
+      border-color: var(--border) !important;
+      font-weight: 500;
     }
-
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid #EDE9E2; }
   `]
 })
 export class PlanningsComponent implements OnInit {

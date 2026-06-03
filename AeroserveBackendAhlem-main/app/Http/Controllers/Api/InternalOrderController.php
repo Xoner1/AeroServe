@@ -188,27 +188,33 @@ public function getProductsByCategories(Request $request): JsonResponse
 
     private function notifyOrderStatusChanged(InternalOrder $order, string $oldStatus): void
     {
-        // Notify creator (F&B Manager) if not current user
-        if ($order->created_by && $order->created_by !== auth()->id()) {
-            Notification::create([
-                'user_id' => $order->created_by,
-                'title' => 'Order Status Updated',
-                'message' => "Internal Order #{$order->id} status changed from {$oldStatus} to {$order->status}.",
-                'type' => 'info',
-                'is_read' => false,
-                'data' => ['order_id' => $order->id]
-            ]);
+        $message = "La commande interne #{$order->id} a changé de statut : {$oldStatus} → {$order->status}.";
+        $data    = ['order_id' => $order->id];
+
+        // FIX 2: Notify all RESPONSABLE_FB users by role (not just the order creator)
+        $fbUsers = User::whereHas('role', fn($q) => $q->where('name', 'RESPONSABLE_FB'))->get();
+        foreach ($fbUsers as $fbUser) {
+            if ($fbUser->id !== auth()->id()) {
+                Notification::create([
+                    'user_id' => $fbUser->id,
+                    'title'   => 'Statut de commande mis à jour',
+                    'message' => $message,
+                    'type'    => 'info',
+                    'is_read' => false,
+                    'data'    => $data,
+                ]);
+            }
         }
 
-        // Notify assignee if not current user
+        // Notify assignee (Chef Cuisine / Chef Magasin) if not current user
         if ($order->assigned_to && $order->assigned_to !== auth()->id()) {
             Notification::create([
                 'user_id' => $order->assigned_to,
-                'title' => 'Order Status Updated',
-                'message' => "Internal Order #{$order->id} status changed from {$oldStatus} to {$order->status}.",
-                'type' => 'info',
+                'title'   => 'Statut de commande mis à jour',
+                'message' => $message,
+                'type'    => 'info',
                 'is_read' => false,
-                'data' => ['order_id' => $order->id]
+                'data'    => $data,
             ]);
         }
     }

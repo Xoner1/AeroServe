@@ -7,7 +7,7 @@ export function roleGuard(...allowedRoles: string[]): CanActivateFn {
     const auth = inject(AuthService);
     const router = inject(Router);
 
-    if (auth.hasRole(...allowedRoles)) {
+    if (auth.getUserRole() === 'SUPER_ADMIN' || auth.hasRole(...allowedRoles)) {
       return true;
     }
     return router.createUrlTree(['/dashboard']);

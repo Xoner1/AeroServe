@@ -116,9 +116,104 @@ class DashboardController extends Controller
             $roleData['expired_batches_list'] = StockMovement::with('stock.product')->where('type', 'in')->whereNotNull('expiration_date')->where('expiration_date', '<', now())->where('quantity', '>', 0)->limit(5)->get();
             $roleData['total_stock_qty'] = Stock::sum('quantity');
         } elseif ($role === 'CHEF_CUISINE') {
+            // ── Widget A: Ingredient Availability Rate ──
+            $totalIngredients = Product::where('type', 'matiere_premiere')
+                ->where('approval_status', 'approved')
+                ->count();
+            $availableIngredients = Product::where('type', 'matiere_premiere')
+                ->where('approval_status', 'approved')
+                ->whereHas('stock', fn($q) => $q->where('quantity', '>', 0))
+                ->count();
+            $availabilityRate = $totalIngredients > 0
+                ? round(($availableIngredients / $totalIngredients) * 100)
+                : 0;
+
+            // ── Widget B: Weekly Menu Status ──
+            $currentWeekMenu = Menu::with('items.product')
+                ->where('start_date', '<=', now())
+                ->where('end_date', '>=', now())
+                ->first();
+            $menuStatus = 'NON_PLANIFIE';
+            if ($currentWeekMenu) {
+                $menuStatus = $currentWeekMenu->status === 'VALIDE'
+                    ? 'VALIDE'
+                    : 'EN_ATTENTE_STOCK';
+            }
+
+            // ── Widget C: Order Volume ──
+            $pendingToday = InternalOrder::where('status', 'EN_ATTENTE')
+                ->whereDate('created_at', today())
+                ->count();
+            $completedToday = InternalOrder::whereIn('status', ['DISPONIBLE', 'PARTIELLEMENT_DISPONIBLE'])
+                ->whereDate('updated_at', today())
+                ->count();
+
+            // ── Widget D1: Sous-Seuil Ingredients ──
+            $sousSeuilIngredients = collect();
+            if ($currentWeekMenu) {
+                $menuProductIds = $currentWeekMenu->items()->pluck('product_id');
+                $ingredientIds = DB::table('product_recipe')
+                    ->whereIn('food_product_id', $menuProductIds)
+                    ->pluck('ingredient_id');
+
+                $sousSeuilIngredients = Stock::with('product')
+                    ->whereIn('product_id', $ingredientIds)
+                    ->whereColumn('quantity', '<=', 'min_threshold')
+                    ->get()
+                    ->map(fn($s) => [
+                        'ingredient_name' => $s->product->name,
+                        'current_stock' => (float) $s->quantity,
+                        'min_threshold' => (float) $s->min_threshold,
+                        'unit' => $s->unit,
+                    ]);
+            }
+
+            // ── Widget D2: Next-week menu check (read-only info; reminder is sent via scheduled job on Thursdays 20:00) ──
+            $nextWeekStart = now()->addWeek()->startOfWeek()->toDateString();
+            $nextWeekEnd   = now()->addWeek()->endOfWeek()->toDateString();
+            $nextWeekMenu  = Menu::where('start_date', $nextWeekStart)
+                ->where('end_date', $nextWeekEnd)
+                ->first();
+
             $roleData['recipes_count'] = Product::where('type', 'food')->where('approval_status', 'approved')->count();
-            $roleData['active_menu'] = Menu::with('items.product')->where('is_active', true)->where('week_start', '<=', now())->where('week_end', '>=', now())->first();
-            $roleData['critical_ingredients'] = Stock::with('product')->whereHas('product', fn($q) => $q->whereIn('type', ['matiere_premiere', 'commercial']))->whereColumn('quantity', '<=', 'min_threshold')->limit(5)->get();
+            $roleData['active_menu'] = $currentWeekMenu;
+            $roleData['critical_ingredients'] = Stock::with('product')
+                ->whereHas('product', fn($q) => $q->whereIn('type', ['matiere_premiere', 'commercial']))
+                ->whereColumn('quantity', '<=', 'min_threshold')
+                ->limit(5)
+                ->get();
+
+            // Widget A
+            $roleData['availability_rate'] = $availabilityRate;
+            $roleData['total_ingredients'] = $totalIngredients;
+            $roleData['available_ingredients'] = $availableIngredients;
+
+            // Widget B
+            $roleData['current_menu_status'] = $menuStatus;
+            $roleData['current_menu_name'] = $currentWeekMenu?->name;
+
+            // Widget A — purchase need from latest menu
+            $latestNeed = \App\Models\PurchaseNeed::with('items')
+                ->whereHas('menu', fn($q) => $q->where('created_by', $user->id))
+                ->latest('generated_at')
+                ->first();
+            $roleData['latest_purchase_need'] = $latestNeed ? [
+                'id' => $latestNeed->id,
+                'total_items' => $latestNeed->items->count(),
+                'items_requiring_restock' => $latestNeed->items->where('shortfall', '>', 0)->count(),
+                'generated_at' => $latestNeed->generated_at,
+            ] : null;
+
+            // Widget C
+            $roleData['pending_orders_today'] = $pendingToday;
+            $roleData['completed_orders_today'] = $completedToday;
+
+            // Widget D1
+            $roleData['sous_seuil_ingredients'] = $sousSeuilIngredients;
+
+            // Widget D2 — next week menu info (FIX 3: reminder push is now a scheduled job, not a runtime flag)
+            $roleData['next_week_menu_planned'] = !is_null($nextWeekMenu);
+            $roleData['next_week_menu_name'] = $nextWeekMenu?->name;
         } elseif ($role === 'CAISSIER') {
             $roleData['my_sales_today'] = Sale::where('caissier_id', $user->id)->whereDate('created_at', today())->sum('total_amount');
             $roleData['my_sales_count_today'] = Sale::where('caissier_id', $user->id)->whereDate('created_at', today())->count();

@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   CdkDragDrop,
   DragDropModule,
@@ -9,6 +10,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { ApiService } from '../../core/services/api.service';
 import { Caissier } from '../../core/models';
+import Swal from 'sweetalert2';
 
 
 
@@ -20,6 +22,7 @@ import { Caissier } from '../../core/models';
   styleUrl: './caissier-approval.scss',
 })
 export class CaissierApprovalComponent implements OnInit {
+  private destroyRef = inject(DestroyRef);
 
 columns = [
   { title: 'en_attente', tasks: [] as Caissier[] },
@@ -33,7 +36,7 @@ columns = [
   }
 
   load(): void {
-    this.api.get('caissier').subscribe({
+    this.api.get('caissier').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res: any) => {
         const users = res.data || res;
 
@@ -43,7 +46,12 @@ columns = [
       },
       error: (err) => {
         console.error(err);
-        alert('Load failed');
+        Swal.fire({
+          title: 'Erreur',
+          text: 'Impossible de charger la liste des caissiers.',
+          icon: 'error',
+          confirmButtonColor: '#0D9488'
+        });
       }
     });
   }
@@ -78,7 +86,7 @@ columns = [
 
     this.api.put(`caissiers/${user.id}/status`, {
       status: newStatus
-    }).subscribe({
+    }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => {
         this.showToast('Statut mis à jour.', 'success');
       },
@@ -95,11 +103,15 @@ columns = [
   }
 
   private showToast(message: string, type: 'success' | 'error'): void {
-    const toast = document.createElement('div');
-    const bg = type === 'success' ? '#6B8F71' : '#C0483A';
-    toast.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;background:${bg};color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.2);`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => document.body.removeChild(toast), 3500);
+    Swal.fire({
+      title: type === 'success' ? 'Succès !' : 'Erreur',
+      text: message,
+      icon: type,
+      toast: true,
+      position: 'bottom-end',
+      showConfirmButton: false,
+      timer: 3500,
+      timerProgressBar: true
+    });
   }
 }

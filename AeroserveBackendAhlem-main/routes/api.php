@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\HygieneReportController;
 use App\Http\Controllers\Api\InternalOrderController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PurchaseNeedController;
 use App\Http\Controllers\Api\PlanningController;
 use App\Http\Controllers\Api\PointDeVenteController;
 use App\Http\Controllers\Api\ProductController;
@@ -41,6 +42,8 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     Route::get('/comments', [CommentController::class, 'index']);
     Route::post('/comments', [CommentController::class, 'store']);
+    Route::put('/comments/{comment}', [CommentController::class, 'update']);
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy']);
     Route::post('/chatbot/ask', [ChatbotController::class, 'ask']);
 
     Route::get('/roles', [UserController::class, 'roles']);
@@ -100,7 +103,20 @@ Route::middleware(['jwt.auth'])->group(function () {
 
         Route::apiResource('menus', MenuController::class);
         Route::get('/menus/current-week', [MenuController::class, 'currentWeek']);
+        Route::post('/menus/{menu}/submit', [MenuController::class, 'submit']);
+        Route::post('/menus/{menu}/clone', [MenuController::class, 'clone']);
     });
+
+    /*
+    |----------------------------------------------------------------------
+    | Purchase Needs — Chef Cuisine + Chef Magasin (BUG FIX: CHEF_MAGASIN added)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,SUPER_ADMIN')->group(function () {
+        Route::get('/purchase-needs', [PurchaseNeedController::class, 'index']);
+        Route::get('/purchase-needs/{purchaseNeed}', [PurchaseNeedController::class, 'show']);
+    });
+
 
     /*
     |----------------------------------------------------------------------

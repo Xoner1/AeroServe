@@ -119,7 +119,7 @@ button {
 }
 
 button:first-child {
-  color: #6B8F71;
+  color: var(--accent);
   margin-right: 8px;
 }
 
