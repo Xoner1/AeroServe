@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 use App\Traits\FifoStockTrait;
 
@@ -28,7 +29,8 @@ class InternalOrderController extends Controller
         }
 
         // Access restriction: filter orders by user role
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
         if ($user->role?->name === 'SUPER_ADMIN') {
             // Super Admin has access to all orders
         } elseif ($user->role?->name === 'RESPONSABLE_FB') {
@@ -102,7 +104,7 @@ class InternalOrderController extends Controller
         $order = InternalOrder::create([
             'type' => $request->type,
             'status' => 'EN_ATTENTE', // IMPORTANT (initial state)
-            'created_by' => auth()->id(),
+            'created_by' => Auth::id(),
             'assigned_to' => $assignee?->id,
             'pdv_id' => $request->pdv_id,
             'notes' => $request->notes,
@@ -162,7 +164,8 @@ class InternalOrderController extends Controller
         }
 
         // Prevent caissier from updating status
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
         if ($user->role?->name === 'CAISSIER') {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à modifier le statut de la commande.',
@@ -239,7 +242,7 @@ class InternalOrderController extends Controller
         // Notify all RESPONSABLE_FB users by role
         $fbUsers = User::whereHas('role', fn($q) => $q->where('name', 'RESPONSABLE_FB'))->get();
         foreach ($fbUsers as $fbUser) {
-            if ($fbUser->id !== auth()->id()) {
+            if ($fbUser->id !== Auth::id()) {
                 Notification::create([
                     'user_id' => $fbUser->id,
                     'title'   => 'Statut de commande mis à jour',
@@ -252,7 +255,7 @@ class InternalOrderController extends Controller
         }
 
         // Notify assignee (Chef Cuisine / Chef Magasin) if not current user
-        if ($order->assigned_to && $order->assigned_to !== auth()->id()) {
+        if ($order->assigned_to && $order->assigned_to !== Auth::id()) {
             Notification::create([
                 'user_id' => $order->assigned_to,
                 'title'   => 'Statut de commande mis à jour',
@@ -277,7 +280,8 @@ class InternalOrderController extends Controller
 
     private function authorizeOrder(InternalOrder $order): bool
     {
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
         if (!$user) {
             return false;
         }

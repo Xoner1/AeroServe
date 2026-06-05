@@ -8,6 +8,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class ChatbotController extends Controller
 {
@@ -28,7 +30,8 @@ class ChatbotController extends Controller
         $message = $request->input('message');
 
         // Fetch the authenticated user and role
-        $user = auth()->user();
+        /** @var User|null $user */
+        $user = Auth::user();
         $userRole = $user && $user->role ? $user->role->name : 'GUEST';
         $userName = $user ? "{$user->first_name} {$user->last_name}" : 'Utilisateur';
 
@@ -517,7 +520,7 @@ class ChatbotController extends Controller
     /**
      * Helper to retrieve textual user context summary for dynamic system prompt inject.
      */
-    private function getUserContextText($user): string
+    private function getUserContextText(User $user): string
     {
         $context = "=== CONTEXTE DE L'UTILISATEUR CONNECTÉ ===\n";
         $context .= "ID: {$user->id}\n";

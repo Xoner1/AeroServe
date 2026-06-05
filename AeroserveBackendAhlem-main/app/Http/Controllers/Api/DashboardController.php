@@ -13,13 +13,17 @@ use App\Models\Menu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
+
 
 class DashboardController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
+        /** @var User $user */
+        $user = Auth::user();
         $role = $user->role?->name;
+
 
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
