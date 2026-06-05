@@ -42,8 +42,5 @@ public function responsableFb()
         return $this->hasMany(Planning::class, 'pdv_id');
     }
 
-    public function sales(): HasMany
-    {
-        return $this->hasMany(Sale::class, 'pdv_id');
-    }
+
 }

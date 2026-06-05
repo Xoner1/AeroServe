@@ -23,7 +23,11 @@ export const routes: Routes = [
     loadComponent: () => import('./layout/layout.component').then(m => m.LayoutComponent),
     canActivate: [authGuard],
     children: [
-      { path: 'dashboard', loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+      { 
+        path: 'dashboard', 
+        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE')],
+        loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent) 
+      },
       { path: 'profile', loadComponent: () => import('./auth/profile/profile').then(m => m.ProfileComponent) },
 
       /* SUPER_ADMIN only */
@@ -39,11 +43,7 @@ export const routes: Routes = [
       },
 
       /* SUPER_ADMIN + RESPONSABLE_FB */
-      {
-        path: 'caissier',
-        canActivate: [roleGuard('RESPONSABLE_FB', 'SUPER_ADMIN')],
-        loadComponent: () => import('./pages/caissier/caissier').then(m => m.CaissierComponent)
-      },
+
       {
         path: 'caissiers-approval',
         canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_FB')],
@@ -90,12 +90,7 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/purchase-needs/purchase-needs.component').then(m => m.PurchaseNeedsComponent)
       },
 
-      /* Sales: SUPER_ADMIN + CAISSIER only */
-      {
-        path: 'sales',
-        canActivate: [roleGuard('SUPER_ADMIN', 'CAISSIER')],
-        loadComponent: () => import('./pages/sales/sales.component').then(m => m.SalesComponent)
-      },
+
 
       /* Hygiene Reports: SUPER_ADMIN + RESPONSABLE_HYGIENE */
       {

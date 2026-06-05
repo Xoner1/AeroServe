@@ -144,6 +144,24 @@ export class CategoryComponent implements OnInit {
     });
   }
 
+  getBadgeClass(type: string): string {
+    const map: Record<string, string> = {
+      commercial: 'badge-info',
+      matiere_premiere: 'badge-warning',
+      food: 'badge-success'
+    };
+    return map[type] || 'badge-neutral';
+  }
+
+  formatType(type: string): string {
+    const map: Record<string, string> = {
+      commercial: 'Commercial',
+      matiere_premiere: 'Matière première',
+      food: 'Alimentaire'
+    };
+    return map[type] || type;
+  }
+
   close(): void {
     this.showModal = false;
   }

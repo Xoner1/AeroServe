@@ -9,7 +9,7 @@
         <img [src]="avatarUrl" class="avatar" alt="Avatar">
 
         @if (previewAvatar) {
-          <div class="preview-badge">Preview</div>
+          <div class="preview-badge">Aperçu</div>
         }
       </div>
 
@@ -23,7 +23,7 @@
 
       @if (!editMode) {
         <button class="btn edit" (click)="enableEdit()">
-          Edit Profile
+          Modifier le profil
         </button>
       }
 
@@ -32,55 +32,71 @@
     <!-- RIGHT FORM CARD -->
     <div class="profile-main">
 
-      <h3>Edit Profile</h3>
+      <h3>Informations personnelles</h3>
+
+      @if (error) {
+        <div class="alert alert-danger">
+          <span class="alert-icon">⚠️</span>
+          <span class="alert-text">{{ error }}</span>
+        </div>
+      }
+
+      @if (success) {
+        <div class="alert alert-success">
+          <span class="alert-icon">✓</span>
+          <span class="alert-text">{{ success }}</span>
+        </div>
+      }
 
       <div class="grid">
 
         <div class="field">
-          <label>First Name</label>
+          <label>Prénom</label>
           <input [(ngModel)]="form.first_name" [disabled]="!editMode">
         </div>
 
         <div class="field">
-          <label>Last Name</label>
+          <label>Nom</label>
           <input [(ngModel)]="form.last_name" [disabled]="!editMode">
         </div>
 
         <div class="field">
-          <label>Email</label>
+          <label>Adresse e-mail</label>
           <input [(ngModel)]="form.email" disabled>
         </div>
 
         <div class="field">
-          <label>Phone</label>
+          <label>Numéro de téléphone</label>
           <input [(ngModel)]="form.phone" [disabled]="!editMode">
         </div>
 
         <div class="field">
-          <label>Age</label>
+          <label>Âge</label>
           <input type="number" [(ngModel)]="form.age" [disabled]="!editMode">
         </div>
 
         <div class="field full">
-          <label>Bio</label>
+          <label>Biographie</label>
           <input [(ngModel)]="form.bio" [disabled]="!editMode">
         </div>
 
         <div class="field full">
-          <label>Avatar</label>
-          <label class="avatar-picker">
+          <label>Photo de profil</label>
+          <label class="avatar-picker" [class.disabled]="!editMode">
             <div class="avatar-preview-wrap">
               @if (avatarUrl && avatarUrl !== 'assets/default-avatar.jpg') {
-                <img [src]="avatarUrl" class="avatar-preview-img" alt="preview" />
-                <div class="avatar-overlay"> Changer</div>
+                <img [src]="avatarUrl" class="avatar-preview-img" alt="Aperçu" />
+                @if (editMode) {
+                  <div class="avatar-overlay">Changer</div>
+                }
               } @else {
                 <div class="avatar-placeholder">
-                  <span class="avatar-ph-icon"></span>
+                  <span class="avatar-ph-icon">📷</span>
                   <span class="avatar-ph-text">Ajouter une photo</span>
                 </div>
               }
             </div>
-            <input type="file" accept="image/*" (change)="onFileSelected($event)" class="file-input-hidden">
+            <input type="file" accept="image/*" (change)="onFileSelected($event)" class="file-input-hidden" [disabled]="!editMode">
           </label>
         </div>
 
@@ -90,11 +106,11 @@
         <div class="actions">
 
           <button class="btn cancel" (click)="cancelEdit()">
-            Cancel
+            Annuler
           </button>
 
           <button class="btn save" (click)="saveProfile()" [disabled]="loading">
-            {{ loading ? 'Saving...' : 'Save Changes' }}
+            {{ loading ? 'Enregistrement...' : 'Enregistrer les modifications' }}
           </button>
 
         </div>

@@ -27,9 +27,11 @@ class ProductController extends Controller
             $query->whereIn('type', ['commercial', 'matiere_premiere']);
         }
 
-        // Chef Cuisine: only FOOD
+        // Chef Cuisine: only FOOD (unless requesting ingredients/all types for recipe builder)
         if ($role === 'CHEF_CUISINE') {
-            $query->where('type', 'food');
+            if (!$request->boolean('all_types')) {
+                $query->where('type', 'food');
+            }
         }
 
         if ($request->has('type')) {
@@ -48,7 +50,11 @@ class ProductController extends Controller
             $query->where('approval_status', $request->approval_status);
         }
 
-        return response()->json($query->paginate(15));
+        if ($request->boolean('no_paginate')) {
+            return response()->json($query->get());
+        }
+
+        return response()->json($query->paginate($request->integer('per_page', 15)));
     }
 
     public function store(Request $request): JsonResponse
@@ -371,8 +377,8 @@ class ProductController extends Controller
 
         $product->update($data);
 
-        // Sync recipe ingredients for Chef Cuisine
-        if ($role === 'CHEF_CUISINE' && $request->has('ingredients')) {
+        // Sync recipe ingredients
+        if ($request->has('ingredients')) {
             $syncData = [];
             foreach ($request->ingredients as $ingredient) {
                 $syncData[$ingredient['product_id']] = [
@@ -567,7 +573,7 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
             'type' => 'required|in:commercial,matiere_premiere,food',
-            'code' => 'nullable|string|max:50|unique:categories,code',
+            'code' => 'nullable|string|max:255|unique:categories,code',
         ]);
 
         $code = $request->code;
@@ -577,12 +583,12 @@ class ProductController extends Controller
                 'matiere_premiere' => 'MAT',
                 'food' => 'FOOD',
             };
-            $code = $prefix . '_' . strtoupper(\Illuminate\Support\Str::slug($request->name, '_'));
+            $baseCode = substr($prefix . '_' . strtoupper(\Illuminate\Support\Str::slug($request->name, '_')), 0, 240);
+            $code = $baseCode;
             // Ensure unique code
             $counter = 1;
-            $originalCode = $code;
             while (Category::where('code', $code)->exists()) {
-                $code = $originalCode . '_' . $counter++;
+                $code = $baseCode . '_' . $counter++;
             }
         }
 
@@ -602,7 +608,7 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'sometimes|string|max:255|unique:categories,name,' . $category->id,
-            'code' => 'nullable|string|max:50|unique:categories,code,' . $category->id,
+            'code' => 'nullable|string|max:255|unique:categories,code,' . $category->id,
         ]);
 
         $category->update($request->only(['name', 'code']));

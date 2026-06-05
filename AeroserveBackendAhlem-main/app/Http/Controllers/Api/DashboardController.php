@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use App\Models\Sale;
-use App\Models\SaleItem;
+
 use App\Models\Stock;
 use App\Models\InternalOrder;
 use App\Models\StockMovement;
@@ -25,38 +24,11 @@ class DashboardController extends Controller
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
 
-        // Total sales
-        $totalSales = Sale::whereBetween('created_at', [$dateFrom, $dateTo])->sum('total_amount');
-        $salesCount = Sale::whereBetween('created_at', [$dateFrom, $dateTo])->count();
-
-        // Popular products
-        $popularProducts = SaleItem::select('product_id', DB::raw('SUM(quantity) as total_sold'))
-            ->whereHas('sale', fn($q) => $q->whereBetween('created_at', [$dateFrom, $dateTo]))
-            ->groupBy('product_id')
-            ->orderByDesc('total_sold')
-            ->limit(10)
-            ->with('product')
-            ->get();
-
         // Low stock alerts
         $lowStockCount = Stock::whereColumn('quantity', '<=', 'min_threshold')->count();
 
         // Expired products count
         $expiredCount = Product::where('expiration_date', '<', now())->where('is_active', true)->count();
-
-        // Sales by PDV
-        $salesByPdv = Sale::select('pdv_id', DB::raw('SUM(total_amount) as total'), DB::raw('COUNT(*) as count'))
-            ->whereBetween('created_at', [$dateFrom, $dateTo])
-            ->groupBy('pdv_id')
-            ->with('pointDeVente')
-            ->get();
-
-        // Daily sales for chart
-        $dailySales = Sale::select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
-            ->whereBetween('created_at', [$dateFrom, $dateTo])
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get();
 
         // ─── ACTIVE USERS KPI ───
         $activeUsers = User::where('status', 'active')->count();
@@ -215,20 +187,13 @@ class DashboardController extends Controller
             $roleData['next_week_menu_planned'] = !is_null($nextWeekMenu);
             $roleData['next_week_menu_name'] = $nextWeekMenu?->name;
         } elseif ($role === 'CAISSIER') {
-            $roleData['my_sales_today'] = Sale::where('caissier_id', $user->id)->whereDate('created_at', today())->sum('total_amount');
-            $roleData['my_sales_count_today'] = Sale::where('caissier_id', $user->id)->whereDate('created_at', today())->count();
-            $roleData['my_payment_breakdown'] = Sale::select('payment_method', DB::raw('SUM(total_amount) as total'))->where('caissier_id', $user->id)->whereDate('created_at', today())->groupBy('payment_method')->get();
-            $roleData['my_recent_sales'] = Sale::where('caissier_id', $user->id)->latest()->limit(5)->with('pointDeVente')->get();
+            // Cashier no longer has sales
+            $roleData['message'] = 'Bienvenue sur votre espace.';
         }
 
         return response()->json([
-            'total_sales' => $totalSales,
-            'sales_count' => $salesCount,
-            'popular_products' => $popularProducts,
             'low_stock_count' => $lowStockCount,
             'expired_products_count' => $expiredCount,
-            'sales_by_pdv' => $salesByPdv,
-            'daily_sales' => $dailySales,
             
             // New metrics
             'active_users' => $activeUsers,

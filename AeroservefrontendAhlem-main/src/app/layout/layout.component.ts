@@ -40,27 +40,34 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   navItems: NavItem[] = [
-    { label: 'Dashboard', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] },
-    { label: 'Users', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
-    { label: 'Caissier Approval', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB'] },
-    { label: 'Caissier', icon: 'UserCog', route: '/caissier', roles: ['RESPONSABLE_FB', 'SUPER_ADMIN'] },
-    { label: 'Points of Sales', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
-    { label: 'Products', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Products Validation', icon: 'CheckCircle', route: '/products-validation', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Tableau de bord', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE'] },
+    { label: 'Utilisateurs', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
+    { label: 'Approbation Caissiers', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB'] },
+
+    { label: 'Points de vente', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
+    { label: 'Produits', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Validation Produits', icon: 'CheckCircle', route: '/products-validation', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
     { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN', 'CHEF_MAGASIN', 'CHEF_CUISINE'] },
-    { label: 'Internal Commands', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Menus', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN', 'CHEF_CUISINE'] },
-    { label: 'Planning', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CAISSIER'] },
-    { label: 'Hygiene Reports', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN', 'RESPONSABLE_HYGIENE'] },
-    { label: 'Category', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Sales', icon: 'Receipt', route: '/sales', roles: ['SUPER_ADMIN', 'CAISSIER'] },
-    { label: 'Profile', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] }
+    { label: 'Commandes Internes', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Menus Hebdomadaires', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN', 'CHEF_CUISINE'] },
+    { label: 'Besoins d\'Achat', icon: 'Receipt', route: '/purchase-needs', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN'] },
+    { label: 'Plannings & Horaires', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CAISSIER'] },
+    { label: 'Rapports d\'Hygiène', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN', 'RESPONSABLE_HYGIENE'] },
+    { label: 'Catégories', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
+
+    { label: 'Mon profil', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] }
   ];
 
   get filteredNavItems(): NavItem[] {
+    const role = this.auth.getCurrentUser()?.role?.name || '';
     return this.navItems.filter(item => {
       if (!item.roles) return true;
       return this.auth.hasRole(...item.roles);
+    }).map(item => {
+      if (item.route === '/caissiers-approval' && role === 'RESPONSABLE_FB') {
+        return { ...item, label: 'Gestion Caissiers' };
+      }
+      return item;
     });
   }
 
@@ -126,10 +133,12 @@ export class LayoutComponent implements OnInit, OnDestroy {
   }
 
   getPageTitle(): string {
+    const role = this.auth.getCurrentUser()?.role?.name || '';
+    const isFb = role === 'RESPONSABLE_FB';
     const titles: Record<string, string> = {
       '/dashboard': 'Dashboard',
       '/users': 'Users',
-      '/caissiers-approval': 'Caissier Approval',
+      '/caissiers-approval': isFb ? 'Gestion Caissiers' : 'Caissier Approval',
       '/caissier': 'Caissier',
       '/points-de-vente': 'Points of Sales',
       '/profile': 'Profile',
@@ -138,6 +147,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       '/stocks': 'Stocks',
       '/internal-orders': 'Internal Commands',
       '/menus': 'Menus',
+      '/purchase-needs': 'Purchase Needs',
       '/plannings': 'Planning',
       '/category': 'Category',
       '/reports': 'Reports',

@@ -36,14 +36,26 @@ interface CartItem {
         <div class="page-header">
           <div>
             <h2>Commandes Internes de Ravitaillement</h2>
-            <p class="subtitle">Gérez et suivez les demandes d'approvisionnement des points de vente</p>
+            <p class="subtitle">Gerez et suivez les demandes d'approvisionnement des points de vente</p>
           </div>
-          @if (userRole === 'RESPONSABLE_FB') {
+          @if (userRole === 'RESPONSABLE_FB' || userRole === 'CHEF_CUISINE') {
             <button class="btn btn-primary" (click)="openCreateModal()">+ Nouvelle Commande</button>
           }
         </div>
 
-        <!-- ─── F&B MANAGER: LIST VIEW ─── -->
+        <!-- ─── TABS FOR CHEF CUISINE ─── -->
+        @if (userRole === 'CHEF_CUISINE') {
+          <div class="tabs-navigation">
+            <button type="button" class="tab-btn" [class.active]="activeTab === 'incoming'" (click)="activeTab = 'incoming'">
+              📥 Plats a preparer (Entrants)
+            </button>
+            <button type="button" class="tab-btn" [class.active]="activeTab === 'outgoing'" (click)="activeTab = 'outgoing'">
+              📤 Demandes de matieres premieres (Sortantes)
+            </button>
+          </div>
+        }
+
+        <!-- ─── F&B MANAGER / SUPER ADMIN: LIST VIEW ─── -->
         @if (userRole === 'RESPONSABLE_FB' || userRole === 'SUPER_ADMIN') {
           <div class="table-container">
             <table class="premium-table">
@@ -52,10 +64,10 @@ interface CartItem {
                   <th>N° Commande</th>
                   <th>Type</th>
                   <th>Statut</th>
-                  <th>Créé par</th>
+                  <th>Cree par</th>
                   <th>Point de Vente</th>
-                  <th>Date de Livraison Prévue</th>
-                  <th>Date de Création</th>
+                  <th>Date de Livraison Prevue</th>
+                  <th>Date de Creation</th>
                   <th style="text-align: right;">Actions</th>
                 </tr>
               </thead>
@@ -81,13 +93,13 @@ interface CartItem {
                     <td>{{ o.point_de_vente?.name || '-' }}</td>
                     <td>
                       <span class="delivery-date-tag">
-                        {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Non spécifiée' }}
+                        {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Non specifiee' }}
                       </span>
                     </td>
                     <td>{{ o.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
                     <td style="text-align: right;">
                       <button class="btn btn-secondary" style="height: 30px; padding: 0 12px; font-size: 12px;" (click)="viewOrder(o)">
-                        Détails
+                        Details
                       </button>
                     </td>
                   </tr>
@@ -95,7 +107,60 @@ interface CartItem {
                 @if (orders.length === 0) {
                   <tr>
                     <td colspan="8" style="text-align: center; padding: 48px; color: var(--text-muted);">
-                      Aucune commande enregistrée. Cliquez sur "+ Nouvelle Commande" pour commencer.
+                      Aucune commande enregistree. Cliquez sur "+ Nouvelle Commande" pour commencer.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- ─── CHEF CUISINE OUTGOING ORDERS: LIST VIEW ─── -->
+        @if (userRole === 'CHEF_CUISINE' && activeTab === 'outgoing') {
+          <div class="table-container">
+            <table class="premium-table">
+              <thead>
+                <tr>
+                  <th>N° Commande</th>
+                  <th>Statut</th>
+                  <th>Point de Vente</th>
+                  <th>Date de Livraison Prevue</th>
+                  <th>Date de Creation</th>
+                  <th style="text-align: right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (o of outgoingOrders; track o.id) {
+                  <tr>
+                    <td><strong>#{{ o.id }}</strong></td>
+                    <td>
+                      <span class="badge" 
+                            [class.badge-warning]="o.status === 'EN_ATTENTE'" 
+                            [class.badge-info]="o.status === 'PARTIELLEMENT_DISPONIBLE'"
+                            [class.badge-success]="o.status === 'DISPONIBLE'"
+                            [class.badge-error]="o.status === 'NON_DISPONIBLE'">
+                        {{ formatStatus(o.status) }}
+                      </span>
+                    </td>
+                    <td>{{ o.point_de_vente?.name || '-' }}</td>
+                    <td>
+                      <span class="delivery-date-tag">
+                        {{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Non specifiee' }}
+                      </span>
+                    </td>
+                    <td>{{ o.created_at | date:'dd/MM/yyyy HH:mm' }}</td>
+                    <td style="text-align: right;">
+                      <button class="btn btn-secondary" style="height: 30px; padding: 0 12px; font-size: 12px;" (click)="viewOrder(o)">
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                }
+                @if (outgoingOrders.length === 0) {
+                  <tr>
+                    <td colspan="6" style="text-align: center; padding: 48px; color: var(--text-muted);">
+                      Aucune demande de ravitaillement enregistree. Cliquez sur "+ Nouvelle Commande" pour commencer.
                     </td>
                   </tr>
                 }
@@ -105,7 +170,7 @@ interface CartItem {
         }
 
         <!-- ─── KITCHEN / WAREHOUSE: KANBAN BOARD ─── -->
-        @if (userRole === 'CHEF_CUISINE' || userRole === 'CHEF_MAGASIN') {
+        @if (userRole === 'CHEF_MAGASIN' || (userRole === 'CHEF_CUISINE' && activeTab === 'incoming')) {
           <div cdkDropListGroup class="kanban-board">
             
             <!-- Column 1: Pending -->
@@ -127,11 +192,11 @@ interface CartItem {
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge badge-warning" style="font-size: 9px; padding: 1px 6px;">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">{{ o.point_de_vente?.name || 'Général' }}</p>
+                    <p class="card-pos">{{ o.point_de_vente?.name || 'General' }}</p>
                     <p class="card-creator">F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
                       <span class="card-date">{{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Sans Date' }}</span>
-                      <button class="btn-card-action">Gérer</button>
+                      <button class="btn-card-action">Gerer</button>
                     </div>
                   </div>
                 }
@@ -160,11 +225,11 @@ interface CartItem {
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge badge-info" style="font-size: 9px; padding: 1px 6px;">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">{{ o.point_de_vente?.name || 'Général' }}</p>
+                    <p class="card-pos">{{ o.point_de_vente?.name || 'General' }}</p>
                     <p class="card-creator">F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
                       <span class="card-date">{{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Sans Date' }}</span>
-                      <button class="btn-card-action">Gérer</button>
+                      <button class="btn-card-action">Gerer</button>
                     </div>
                   </div>
                 }
@@ -177,7 +242,7 @@ interface CartItem {
             <!-- Column 3: Available / Ready -->
             <div class="kanban-col">
               <div class="col-header available">
-                <span>Disponible / Prêt</span>
+                <span>Disponible / Pret</span>
                 <span class="col-count">{{ availableOrders.length }}</span>
               </div>
               <div
@@ -193,11 +258,11 @@ interface CartItem {
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge badge-success" style="font-size: 9px; padding: 1px 6px;">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">{{ o.point_de_vente?.name || 'Général' }}</p>
+                    <p class="card-pos">{{ o.point_de_vente?.name || 'General' }}</p>
                     <p class="card-creator">F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
                       <span class="card-date">{{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Sans Date' }}</span>
-                      <button class="btn-card-action">Gérer</button>
+                      <button class="btn-card-action">Gerer</button>
                     </div>
                   </div>
                 }
@@ -226,11 +291,11 @@ interface CartItem {
                       <span class="card-id">#{{ o.id }}</span>
                       <span class="badge badge-error" style="font-size: 9px; padding: 1px 6px;">{{ o.type }}</span>
                     </div>
-                    <p class="card-pos">{{ o.point_de_vente?.name || 'Général' }}</p>
+                    <p class="card-pos">{{ o.point_de_vente?.name || 'General' }}</p>
                     <p class="card-creator">F&B: {{ o.creator?.first_name }} {{ o.creator?.last_name }}</p>
                     <div class="card-bottom">
                       <span class="card-date">{{ o.delivery_date ? (o.delivery_date | date:'dd/MM/yyyy') : 'Sans Date' }}</span>
-                      <button class="btn-card-action">Gérer</button>
+                      <button class="btn-card-action">Gerer</button>
                     </div>
                   </div>
                 }
@@ -246,125 +311,134 @@ interface CartItem {
         <!-- ─── DETAILS & FULFILLMENT MODAL ─── -->
         @if (showViewModal && selectedOrder) {
           <div class="modal-overlay" (click)="closeModals()">
-            <div class="modal-card modal-wide" (click)="$event.stopPropagation()">
+            <div class="modal-card modal-medium" (click)="$event.stopPropagation()">
               <div class="modal-header">
                 <h3>Commande #{{ selectedOrder.id }} - Détails</h3>
                 <button (click)="closeModals()" style="font-size: 16px;">✕</button>
               </div>
 
-              <div class="order-detail-grid">
-                <div class="detail-panel">
-                  <div class="status-summary" style="margin-bottom: 16px;">
-                    <span class="badge" 
-                          [class.badge-warning]="selectedOrder.status === 'EN_ATTENTE'" 
-                          [class.badge-info]="selectedOrder.status === 'PARTIELLEMENT_DISPONIBLE'"
-                          [class.badge-success]="selectedOrder.status === 'DISPONIBLE'"
-                          [class.badge-error]="selectedOrder.status === 'NON_DISPONIBLE'">
-                      {{ formatStatus(selectedOrder.status) }}
-                    </span>
-                    <span class="badge badge-neutral">{{ selectedOrder.type | uppercase }}</span>
-                  </div>
-                  
-                  <div class="meta-info" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
-                    <p><strong>Créé par:</strong> {{ selectedOrder.creator?.first_name }} {{ selectedOrder.creator?.last_name }}</p>
-                    <p><strong>Point de Vente:</strong> {{ selectedOrder.point_de_vente?.name || '-' }}</p>
-                    <p><strong>Livraison Prévue:</strong> 
-                      <span class="delivery-date-tag">
-                        {{ selectedOrder.delivery_date ? (selectedOrder.delivery_date | date:'dd/MM/yyyy') : 'Non spécifiée' }}
-                      </span>
-                    </p>
-                    <p><strong>Instructions spéciales:</strong></p>
-                    <div class="notes-box">{{ selectedOrder.notes || 'Aucune consigne spécifique.' }}</div>
-                  </div>
+              <div class="modal-body">
+                <div class="order-detail-vertical">
+                  <div class="detail-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                      <div class="status-summary" style="display: flex; gap: 8px;">
+                        <span class="badge" 
+                              [class.badge-warning]="selectedOrder.status === 'EN_ATTENTE'" 
+                              [class.badge-info]="selectedOrder.status === 'PARTIELLEMENT_DISPONIBLE'"
+                              [class.badge-success]="selectedOrder.status === 'DISPONIBLE'"
+                              [class.badge-error]="selectedOrder.status === 'NON_DISPONIBLE'">
+                          {{ formatStatus(selectedOrder.status) }}
+                        </span>
+                        <span class="badge badge-neutral">{{ selectedOrder.type | uppercase }}</span>
+                      </div>
+                    </div>
+                    
+                    <div class="meta-info" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; margin-bottom: 20px; background: var(--bg-secondary); padding: 16px; border-radius: 8px; border: 1px solid var(--border);">
+                      <p style="margin: 0;"><strong>Créé par:</strong> {{ selectedOrder.creator?.first_name }} {{ selectedOrder.creator?.last_name }}</p>
+                      <p style="margin: 0;"><strong>Point de Vente:</strong> {{ selectedOrder.point_de_vente?.name || '-' }}</p>
+                      <p style="margin: 0;"><strong>Livraison Prévue:</strong> 
+                        <span class="delivery-date-tag">
+                          {{ selectedOrder.delivery_date ? (selectedOrder.delivery_date | date:'dd/MM/yyyy') : 'Non spécifiée' }}
+                        </span>
+                      </p>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                      <p style="margin-bottom: 6px;"><strong>Instructions spéciales:</strong></p>
+                      <div class="notes-box" style="margin: 0;">{{ selectedOrder.notes || 'Aucune consigne spécifique.' }}</div>
+                    </div>
 
-                  <!-- FULFILLMENT FORM -->
-                  <h4 style="font-size: 14px; font-weight:600; margin-bottom: 12px;">Articles Commandés</h4>
-                  <table class="premium-table">
-                    <thead>
-                      <tr>
-                        <th>Produit</th>
-                        <th>Demandé</th>
-                        <th>Livré</th>
-                        @if (userRole === 'CHEF_CUISINE' || userRole === 'CHEF_MAGASIN') {
-                          <th>Fulfill Control</th>
-                        }
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @for (item of selectedOrder.items; track item.id) {
+                    <!-- FULFILLMENT FORM -->
+                    <h4 style="font-size: 14px; font-weight:600; margin-bottom: 12px;">Articles Commandés</h4>
+                    <table class="premium-table">
+                      <thead>
                         <tr>
-                          <td><strong>{{ item.product?.name }}</strong></td>
-                          <td>{{ item.quantity_requested }}</td>
-                          <td>
-                            <span class="badge" [class.badge-success]="item.quantity_fulfilled >= item.quantity_requested" [class.badge-warning]="item.quantity_fulfilled < item.quantity_requested">
-                              {{ item.quantity_fulfilled }}
-                            </span>
-                          </td>
+                          <th>Produit</th>
+                          <th>Demandé</th>
+                          <th>Livré</th>
                           @if (userRole === 'CHEF_CUISINE' || userRole === 'CHEF_MAGASIN') {
-                            <td>
-                              <div class="fulfill-input-control">
-                                <input type="number" [(ngModel)]="item.quantity_fulfilled" min="0" [max]="item.quantity_requested" class="qty-input-sm" />
-                                <button class="btn-fulfill-save" (click)="saveFulfillment(selectedOrder.id, item)">Enregistrer</button>
-                              </div>
-                            </td>
+                            <th>Fulfill Control</th>
                           }
                         </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        @for (item of selectedOrder.items; track item.id) {
+                          <tr>
+                            <td><strong>{{ item.product?.name }}</strong></td>
+                            <td>{{ item.quantity_requested }}</td>
+                            <td>
+                              <span class="badge" [class.badge-success]="item.quantity_fulfilled >= item.quantity_requested" [class.badge-warning]="item.quantity_fulfilled < item.quantity_requested">
+                                {{ item.quantity_fulfilled }}
+                              </span>
+                            </td>
+                            @if (userRole === 'CHEF_CUISINE' || userRole === 'CHEF_MAGASIN') {
+                              <td>
+                                <div class="fulfill-input-control">
+                                  <input type="number" [(ngModel)]="item.quantity_fulfilled" min="0" [max]="item.quantity_requested" class="qty-input-sm" />
+                                  <button class="btn-fulfill-save" (click)="saveFulfillment(selectedOrder.id, item)">Enregistrer</button>
+                                </div>
+                              </td>
+                            }
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
 
-                <!-- COMMENTS BOX -->
-                <div class="comments-panel">
-                  <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Suivi &amp; Commentaires</h4>
-                  <div class="comments-list">
-                    @for (c of comments; track c.id) {
-                      <div class="fb-comment">
-                        <div class="fb-comment-avatar">
-                          @if (c.user?.avatar_url || c.user?.avatar) {
-                            <img [src]="getImgUrl(c.user?.avatar_url || c.user?.avatar)" alt="" />
-                          } @else {
-                            <span class="fb-avatar-fallback">{{ (c.user?.first_name?.[0] || '') + (c.user?.last_name?.[0] || '') }}</span>
-                          }
-                        </div>
-                        <div class="fb-comment-body">
-                          <div class="fb-comment-header">
-                            <strong class="fb-comment-author">{{ c.user?.first_name }} {{ c.user?.last_name }}</strong>
-                            <span class="fb-comment-time">{{ c.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
-                          </div>
-                          @if (editingCommentId === c.id) {
-                            <div class="fb-comment-edit">
-                              <textarea [(ngModel)]="editCommentText" rows="2" class="fb-edit-input"></textarea>
-                              <div class="fb-edit-actions">
-                                <button class="btn btn-primary btn-xs" (click)="saveEditComment(c.id)">Enregistrer</button>
-                                <button class="btn btn-xs" (click)="cancelEditComment()">Annuler</button>
+                  <!-- COMMENTS BOX -->
+                  @if (comments.length > 0 || userRole !== 'RESPONSABLE_FB') {
+                    <div class="comments-panel" style="border-top: 1px solid var(--border-light); padding-top: 20px; margin-top: 10px;">
+                      <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Suivi &amp; Commentaires ({{ comments.length }})</h4>
+                      
+                      @if (comments.length > 0) {
+                        <div class="comments-list" style="max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 6px; margin-bottom: 12px;">
+                          @for (c of comments; track c.id) {
+                            <div class="fb-comment">
+                              <div class="fb-comment-avatar">
+                                @if (c.user?.avatar_url || c.user?.avatar) {
+                                  <img [src]="getImgUrl(c.user?.avatar_url || c.user?.avatar)" alt="" />
+                                } @else {
+                                  <span class="fb-avatar-fallback">{{ (c.user?.first_name?.[0] || '') + (c.user?.last_name?.[0] || '') }}</span>
+                                }
+                              </div>
+                              <div class="fb-comment-body">
+                                <div class="fb-comment-header">
+                                  <strong class="fb-comment-author">{{ c.user?.first_name }} {{ c.user?.last_name }}</strong>
+                                  <span class="fb-comment-time">{{ c.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                                </div>
+                                @if (editingCommentId === c.id) {
+                                  <div class="fb-comment-edit">
+                                    <textarea [(ngModel)]="editCommentText" rows="2" class="fb-edit-input"></textarea>
+                                    <div class="fb-edit-actions">
+                                      <button class="btn btn-primary btn-xs" (click)="saveEditComment(c.id)">Enregistrer</button>
+                                      <button class="btn btn-xs" (click)="cancelEditComment()">Annuler</button>
+                                    </div>
+                                  </div>
+                                } @else {
+                                  <p class="fb-comment-text">{{ c.body }}</p>
+                                }
+                                @if (c.user_id === currentUser.id && editingCommentId !== c.id) {
+                                  <div class="fb-comment-actions">
+                                    <button class="fb-action-btn" (click)="startEditComment(c)">Modifier</button>
+                                    <button class="fb-action-btn danger" (click)="deleteComment(c.id, selectedOrder.id)">Supprimer</button>
+                                  </div>
+                                }
                               </div>
                             </div>
-                          } @else {
-                            <p class="fb-comment-text">{{ c.body }}</p>
-                          }
-                          @if (c.user_id === currentUser.id && editingCommentId !== c.id) {
-                            <div class="fb-comment-actions">
-                              <button class="fb-action-btn" (click)="startEditComment(c)">Modifier</button>
-                              <button class="fb-action-btn danger" (click)="deleteComment(c.id, selectedOrder.id)">Supprimer</button>
-                            </div>
                           }
                         </div>
-                      </div>
-                    }
-                    @if (comments.length === 0) {
-                      <div class="empty-comments">Aucun commentaire rédigé pour le moment.</div>
-                    }
-                  </div>
-                  
-                  @if (userRole !== 'RESPONSABLE_FB') {
-                    <div class="comment-input-area">
-                      <textarea [(ngModel)]="newComment" placeholder="Ajouter une note de suivi..." rows="2"></textarea>
-                      <button class="btn btn-primary" (click)="addComment(selectedOrder.id)">Envoyer</button>
+                      }
+                      
+                      @if (userRole !== 'RESPONSABLE_FB') {
+                        <div class="comment-input-area">
+                          <textarea [(ngModel)]="newComment" placeholder="Ajouter une note de suivi..." rows="2"></textarea>
+                          <button class="btn btn-primary" (click)="addComment(selectedOrder.id)">Envoyer</button>
+                        </div>
+                      }
                     </div>
                   }
-                </div>
 
+                </div>
               </div>
 
               <div class="modal-footer">
@@ -423,67 +497,92 @@ interface CartItem {
                   </div>
                 }
 
-                <!-- ── Step 2: Choose Categories ── -->
+                <!-- ── Step 2: Combined Selection & Quantities ── -->
                 @if (wizardStep === 2) {
-                  <h3 style="font-size: 16px; margin-bottom: 16px;">Sélectionnez les catégories</h3>
-                  @if (loadingCategories) { <p class="loading-label">Chargement des catégories...</p> }
-                  <div class="categories-grid">
-                    @for (cat of filteredCategories; track cat.id) {
-                      <div class="category-chip"
-                           [class.selected]="isCategorySelected(cat.id)"
-                           (click)="toggleCategory(cat)">
-                        {{ cat.name }}
-                      </div>
-                    }
-                  </div>
-                }
+                  <div class="wizard-split-layout">
+                    <!-- Left: Products catalog -->
+                    <div class="catalog-panel">
+                      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Sélectionnez les articles</h3>
+                      
+                      @if (loadingCategories || loadingProducts) {
+                        <p class="loading-label">Chargement des catégories et produits...</p>
+                      } @else {
+                        <!-- Category chips -->
+                        <div class="categories-grid" style="margin-bottom: 16px;">
+                          @for (cat of filteredCategories; track cat.id) {
+                            <div class="category-chip"
+                                 [class.selected]="isCategorySelected(cat.id)"
+                                 (click)="toggleCategory(cat)">
+                              {{ cat.name }}
+                            </div>
+                          }
+                        </div>
 
-                <!-- ── Step 3: Products Grid ── -->
-                @if (wizardStep === 3) {
-                  <h3 style="font-size: 16px; margin-bottom: 16px;">Ajoutez des articles à la commande</h3>
-                  @if (loadingProducts) { <p class="loading-label">Récupération des articles...</p> }
-                  <div class="products-grid">
-                    @for (prod of availableProducts; track prod.id) {
-                      <div class="product-card" [class.in-cart]="isInCart(prod.id)">
-                        @if (prod.image) {
-                          <img [src]="getImgUrl(prod.image)" [alt]="prod.name" class="product-img" />
-                        } @else {
-                          <div class="product-placeholder">
-                            <span>{{ prod.name.substring(0, 2) | uppercase }}</span>
+                        <!-- Products listing -->
+                        <div class="products-grid" style="max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                          @for (prod of displayProducts; track prod.id) {
+                            <div class="product-card" [class.in-cart]="isInCart(prod.id)">
+                              @if (prod.image) {
+                                <img [src]="getImgUrl(prod.image)" [alt]="prod.name" class="product-img" />
+                              } @else {
+                                <div class="product-placeholder">
+                                  <span>{{ prod.name.substring(0, 2) | uppercase }}</span>
+                                </div>
+                              }
+                              <div class="product-info">
+                                <strong>{{ prod.name }}</strong>
+                                <span style="font-size: 11px; color: var(--text-muted);">{{ prod.category?.name }}</span>
+                              </div>
+                              
+                              <div style="padding: 0 8px 8px; display: flex; flex-direction: column;">
+                                @if (!isInCart(prod.id)) {
+                                  <button class="btn-add" style="margin: 0;" (click)="addToCart(prod)">
+                                    + Ajouter
+                                  </button>
+                                } @else {
+                                  <div class="qty-control" style="justify-content: center; width: 100%;">
+                                    <button type="button" style="width: 24px; height: 24px; font-size: 14px;" (click)="decreaseQty(getCartItem(prod.id)!)">−</button>
+                                    <input type="number" [ngModel]="getCartItem(prod.id)!.quantity" (ngModelChange)="updateCartItemQty(prod.id, $event)" min="1" class="qty-input" style="width: 40px; height: 24px; font-size: 11px; padding: 2px;" />
+                                    <button type="button" style="width: 24px; height: 24px; font-size: 14px;" (click)="increaseQty(getCartItem(prod.id)!)">+</button>
+                                  </div>
+                                }
+                              </div>
+                            </div>
+                          }
+                          @if (displayProducts.length === 0) {
+                            <p style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px;">Aucun produit trouvé.</p>
+                          }
+                        </div>
+                      }
+                    </div>
+
+                    <!-- Right: Cart Overview -->
+                    <div class="cart-panel">
+                      <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">Panier ({{ cart.length }})</h3>
+                      <div class="cart-list" style="max-height: 420px; overflow-y: auto; padding-right: 4px;">
+                        @for (item of cart; track item.product.id) {
+                          <div class="cart-item" style="padding: 8px 12px; gap: 8px; border-radius: 8px; margin-bottom: 8px;">
+                            <span class="cart-name" style="font-size: 12px;">{{ item.product.name }}</span>
+                            <div class="qty-control">
+                              <button type="button" style="width: 22px; height: 22px; font-size: 12px;" (click)="decreaseQty(item)">−</button>
+                              <input type="number" [(ngModel)]="item.quantity" [name]="'cart_q'+item.product.id" min="1" class="qty-input" style="width: 36px; height: 22px; font-size: 11px; padding: 2px;" />
+                              <button type="button" style="width: 22px; height: 22px; font-size: 12px;" (click)="increaseQty(item)">+</button>
+                            </div>
+                            <button type="button" class="trash-btn" style="border:none; padding: 0 4px;" (click)="removeFromCart(item.product.id)">✕</button>
                           </div>
                         }
-                        <div class="product-info">
-                          <strong>{{ prod.name }}</strong>
-                          <span style="font-size: 11px; color: var(--text-muted);">{{ prod.category?.name }}</span>
-                        </div>
-                        <button class="btn-add" (click)="addToCart(prod)" [disabled]="isInCart(prod.id)">
-                          {{ isInCart(prod.id) ? '✓ Ajouté' : '+ Ajouter' }}
-                        </button>
+                        @if (cart.length === 0) {
+                          <div class="empty-hint" style="font-size: 12px; padding: 48px 16px; color: var(--text-muted);">
+                            Votre panier est vide.<br>Ajoutez des articles à gauche.
+                          </div>
+                        }
                       </div>
-                    }
+                    </div>
                   </div>
                 }
 
-                <!-- ── Step 4: Cart ── -->
-                @if (wizardStep === 4) {
-                  <h3 style="font-size: 16px; margin-bottom: 16px;">Ajustez les quantités demandées</h3>
-                  <div class="cart-list">
-                    @for (item of cart; track item.product.id) {
-                      <div class="cart-item">
-                        <span class="cart-name">{{ item.product.name }}</span>
-                        <div class="qty-control">
-                          <button type="button" (click)="decreaseQty(item)">−</button>
-                          <input type="number" [(ngModel)]="item.quantity" [name]="'q'+item.product.id" min="1" class="qty-input" />
-                          <button type="button" (click)="increaseQty(item)">+</button>
-                        </div>
-                        <button type="button" class="trash-btn" style="border:none;" (click)="removeFromCart(item.product.id)">✕</button>
-                      </div>
-                    }
-                  </div>
-                }
-
-                <!-- ── Step 5: Delivery Date & Notes + Submit ── -->
-                @if (wizardStep === 5) {
+                <!-- ── Step 3: Delivery Date & Notes + Recap ── -->
+                @if (wizardStep === 3) {
                   <h3 style="font-size: 16px; margin-bottom: 16px;">Planification de la Livraison</h3>
                   
                   <div class="scheduling-block">
@@ -498,7 +597,7 @@ interface CartItem {
                     </div>
                   </div>
 
-                  <div class="order-summary">
+                  <div class="order-summary" style="margin-top: 16px;">
                     <h4 style="font-size: 13px; font-weight:600; margin-bottom: 8px;">Récapitulatif de la Demande</h4>
                     <p><strong>Type:</strong> {{ form.type === 'food' ? 'Alimentaire' : 'Commercial' }}</p>
                     <p><strong>Date de Livraison:</strong> {{ form.delivery_date ? (form.delivery_date | date:'dd/MM/yyyy') : 'Non renseignée' }}</p>
@@ -519,8 +618,8 @@ interface CartItem {
                   <button type="button" class="btn btn-secondary" (click)="closeModals()">Annuler</button>
                 }
 
-                @if (wizardStep < 5) {
-                  <button type="button" class="btn btn-primary" [disabled]="wizardStep === 1 && !form.type || wizardStep === 2 && selectedCategories.length === 0 || wizardStep === 3 && cart.length === 0 || wizardStep === 4 && cart.length === 0" (click)="goStep(wizardStep + 1)">Suivant</button>
+                @if (wizardStep < 3) {
+                  <button type="button" class="btn btn-primary" [disabled]="(wizardStep === 1 && !form.type) || (wizardStep === 2 && cart.length === 0)" (click)="goStep(wizardStep + 1)">Suivant</button>
                 } @else {
                   <button type="button" class="btn btn-primary" (click)="submitOrder()" [disabled]="saving || !form.delivery_date">
                     {{ saving ? 'Transmission...' : 'Confirmer & Commander' }}
@@ -588,7 +687,8 @@ interface CartItem {
     .col-cards.cdk-drop-list-dragging .kanban-card:not(.cdk-drag-placeholder) { transition: transform 250ms cubic-bezier(0, 0, 0.2, 1); }
     
     /* Modal Details Grid */
-    .order-detail-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+    .order-detail-vertical { display: flex; flex-direction: column; gap: 20px; }
+    .modal-medium { max-width: 700px !important; width: 90%; }
     .detail-panel { display: flex; flex-direction: column; }
     .notes-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; min-height: 50px; }
     
@@ -599,8 +699,8 @@ interface CartItem {
     .btn-fulfill-save:hover { background: #0F766E; }
 
     /* Comments Section — Facebook-style */
-    .comments-panel { display: flex; flex-direction: column; height: 100%; max-height: 480px; }
-    .comments-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 6px; margin-bottom: 12px; min-height: 200px; }
+    .comments-panel { display: flex; flex-direction: column; gap: 12px; }
+    .comments-list { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 6px; margin-bottom: 12px; max-height: 250px; }
     .fb-comment { display: flex; gap: 10px; align-items: flex-start; }
     .fb-comment-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-sidebar); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; }
     .fb-comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -684,12 +784,22 @@ interface CartItem {
     .order-summary ul { margin: 8px 0 0 16px; padding: 0; font-size: 12.5px; color: var(--text-secondary); }
     .empty-hint { color: var(--text-muted); font-size: 13px; text-align: center; padding: 24px; }
     .loading-label { color: var(--text-muted); font-size: 12px; margin: 4px 0; }
+    .modal-wide { max-width: 900px !important; width: 90%; }
+    .wizard-split-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; align-items: stretch; min-height: 400px; }
+    .catalog-panel { border-right: 1px solid var(--border-light); padding-right: 16px; display: flex; flex-direction: column; }
+    .cart-panel { padding-left: 8px; display: flex; flex-direction: column; }
+    
+    .tabs-navigation { display: flex; gap: 12px; border-bottom: 1px solid var(--border); padding-bottom: 0px; margin-bottom: 16px; }
+    .tab-btn { background: none; border: none; padding: 8px 16px; font-size: 13.5px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: all var(--transition); border-bottom: 2px solid transparent; }
+    .tab-btn:hover { color: var(--accent); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
   `]
 })
 export class InternalOrdersComponent implements OnInit {
 
   orders: InternalOrder[] = [];
   loading = true;
+  activeTab: 'incoming' | 'outgoing' = 'incoming';
 
   showViewModal = false;
   showCreateModal = false;
@@ -698,10 +808,8 @@ export class InternalOrdersComponent implements OnInit {
   wizardStep = 1;
   steps = [
     { n: 1, label: 'Type' },
-    { n: 2, label: 'Categories' },
-    { n: 3, label: 'Products' },
-    { n: 4, label: 'Cart' },
-    { n: 5, label: 'Confirm' },
+    { n: 2, label: 'Sélection & Quantités' },
+    { n: 3, label: 'Date & Notes' },
   ];
 
   form: any = { type: '', notes: '', delivery_date: '' };
@@ -751,12 +859,16 @@ export class InternalOrdersComponent implements OnInit {
   // CHEF_CUISINE sees only 'food' orders; CHEF_MAGASIN sees only 'commercial' orders.
   private get kanbanOrders(): InternalOrder[] {
     if (this.userRole === 'CHEF_CUISINE') {
-      return this.orders.filter(o => o.type === 'food');
+      return this.orders.filter(o => o.type === 'food' && o.assigned_to === this.currentUser?.id);
     }
     if (this.userRole === 'CHEF_MAGASIN') {
-      return this.orders.filter(o => o.type === 'commercial');
+      return this.orders.filter(o => o.type === 'commercial' && o.assigned_to === this.currentUser?.id);
     }
     return this.orders;
+  }
+
+  get outgoingOrders(): InternalOrder[] {
+    return this.orders.filter(o => o.created_by === this.currentUser?.id);
   }
 
   // Kanban getters
@@ -785,13 +897,16 @@ export class InternalOrdersComponent implements OnInit {
   // ─── Wizard ───────────────────────────────────────────────────────────────
 
   openCreateModal(): void {
-    this.wizardStep = 1;
-    this.form = { type: '', notes: '', delivery_date: '' };
+    this.wizardStep = this.userRole === 'CHEF_CUISINE' ? 2 : 1;
+    this.form = { type: this.userRole === 'CHEF_CUISINE' ? 'commercial' : '', notes: '', delivery_date: '' };
     this.selectedCategories = [];
     this.availableProducts = [];
     this.cart = [];
     this.saveError = '';
     this.showCreateModal = true;
+    if (this.userRole === 'CHEF_CUISINE') {
+      this.loadFilteredCategoriesAndProducts();
+    }
   }
 
   goStep(n: number): void {
@@ -799,10 +914,7 @@ export class InternalOrdersComponent implements OnInit {
     if (n === 2) {
       this.selectedCategories = [];
       this.filteredCategories = [];
-      this.loadFilteredCategories();
-    }
-    if (n === 3 && this.selectedCategories.length > 0) {
-      this.loadProductsByCategories();
+      this.loadFilteredCategoriesAndProducts();
     }
   }
 
@@ -810,10 +922,35 @@ export class InternalOrdersComponent implements OnInit {
     this.form.type = type;
   }
 
-  // ─── Step 2: Categories ───────────────────────────────────────────────────
+  // Helper getters for step 2
+  get displayProducts(): Product[] {
+    if (this.selectedCategories.length === 0) {
+      return this.availableProducts;
+    }
+    const selectedIds = this.selectedCategories.map(c => c.id);
+    return this.availableProducts.filter(p => p.category_id !== undefined && selectedIds.includes(p.category_id));
+  }
 
-  loadFilteredCategories(): void {
+  getCartItem(productId: number): CartItem | undefined {
+    return this.cart.find(i => i.product.id === productId);
+  }
+
+  updateCartItemQty(productId: number, val: number): void {
+    const item = this.getCartItem(productId);
+    if (item) {
+      if (val >= 1) {
+        item.quantity = val;
+      } else {
+        this.removeFromCart(productId);
+      }
+    }
+  }
+
+  // ─── Step 2: Categories & Products ────────────────────────────────────────
+
+  loadFilteredCategoriesAndProducts(): void {
     this.loadingCategories = true;
+    this.loadingProducts = true;
     this.api.get<Category[]>('categories').subscribe({
       next: cats => {
         const typeMap: Record<string, string[]> = {
@@ -823,8 +960,28 @@ export class InternalOrdersComponent implements OnInit {
         const allowed = typeMap[this.form.type] || [];
         this.filteredCategories = cats.filter(c => allowed.includes(c.type));
         this.loadingCategories = false;
+
+        if (this.filteredCategories.length > 0) {
+          const ids = this.filteredCategories.map(c => c.id);
+          this.api.post<any>('products/by-categories', { category_ids: ids }).subscribe({
+            next: (prods: any) => {
+              this.availableProducts = prods.data || prods;
+              this.loadingProducts = false;
+            },
+            error: () => {
+              this.availableProducts = [];
+              this.loadingProducts = false;
+            }
+          });
+        } else {
+          this.availableProducts = [];
+          this.loadingProducts = false;
+        }
       },
-      error: () => { this.loadingCategories = false; }
+      error: () => {
+        this.loadingCategories = false;
+        this.loadingProducts = false;
+      }
     });
   }
 
@@ -841,20 +998,6 @@ export class InternalOrdersComponent implements OnInit {
     return this.selectedCategories.some(c => c.id === id);
   }
 
-  // ─── Step 3: Products ─────────────────────────────────────────────────────
-
-  loadProductsByCategories(): void {
-    this.loadingProducts = true;
-    const ids = this.selectedCategories.map(c => c.id);
-    this.api.post<any>('products/by-categories', { category_ids: ids }).subscribe({
-      next: (prods: any) => {
-        this.availableProducts = prods.data || prods;
-        this.loadingProducts = false;
-      },
-      error: () => { this.loadingProducts = false; }
-    });
-  }
-
   addToCart(product: Product): void {
     if (!this.isInCart(product.id)) {
       this.cart.push({ product, quantity: 1 });
@@ -865,10 +1008,14 @@ export class InternalOrdersComponent implements OnInit {
     return this.cart.some(i => i.product.id === id);
   }
 
-  // ─── Step 4: Cart ─────────────────────────────────────────────────────────
-
   increaseQty(item: CartItem): void { item.quantity++; }
-  decreaseQty(item: CartItem): void { if (item.quantity > 1) item.quantity--; }
+  decreaseQty(item: CartItem): void {
+    if (item.quantity > 1) {
+      item.quantity--;
+    } else {
+      this.removeFromCart(item.product.id);
+    }
+  }
   removeFromCart(id: number): void { this.cart = this.cart.filter(i => i.product.id !== id); }
 
   // ─── Submit ───────────────────────────────────────────────────────────────
@@ -1039,7 +1186,7 @@ export class InternalOrdersComponent implements OnInit {
   onGoToStep2(): void {
     this.selectedCategories = [];
     this.filteredCategories = [];
-    this.loadFilteredCategories();
+    this.loadFilteredCategoriesAndProducts();
     this.goStep(2);
   }
 }

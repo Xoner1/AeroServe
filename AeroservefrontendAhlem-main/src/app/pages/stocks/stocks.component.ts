@@ -178,7 +178,7 @@ import Swal from 'sweetalert2';
                       <div class="fifo-lots">
                         @for (lot of fifoLots; track lot.id) {
                           <div class="fifo-lot" [class.consumed]="lot.consumed">
-                            <span class="lot-date">Lot du {{ lot.date }}</span>
+                            <span class="lot-date">Lot #{{ lot.id }} du {{ lot.date }}</span>
                             <span class="lot-qty">{{ lot.used }} / {{ lot.available }} unités</span>
                             @if (lot.expiration) {
                               <span class="lot-exp">DLC: {{ lot.expiration }}</span>

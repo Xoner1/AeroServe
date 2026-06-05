@@ -165,7 +165,12 @@ export class LoginComponent {
 
     this.auth.login(this.email, this.password).subscribe({
       next: () => {
-        this.router.navigate(['/dashboard']);
+        const user = this.auth.getCurrentUser();
+        if (user?.role?.name === 'CAISSIER') {
+          this.router.navigate(['/plannings']);
+        } else {
+          this.router.navigate(['/dashboard']);
+        }
       },
       error: (err) => {
         this.loading = false;

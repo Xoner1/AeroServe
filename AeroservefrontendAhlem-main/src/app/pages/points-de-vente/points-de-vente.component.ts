@@ -9,422 +9,422 @@ import { PointDeVente, Airport } from '../../core/models';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-
 <div class="page">
-
- @if (message) {
-  <div class="alert" [ngClass]="messageType">
-    {{ message }}
-  </div>
-}
-  <!-- HEADER -->
+  <!-- ─── HEADER ─── -->
   <div class="page-header">
-    <h2>Points of Sale</h2>
-    <button class="btn btn-primary" (click)="openModal()">+ Add</button>
-  </div>
-@for (group of groupedByAirport | keyvalue; track group.key) {
-
-  <h2 class="airport-title">
-  {{ group.key }}
-  </h2>
-
-  <div class="cards-grid">
-
-    @for (pdv of group.value; track pdv.id) {
-
-      <div class="pdv-card">
-
-        <div class="pdv-header">
-         <span [ngClass]="pdv.is_active ? 'status active' : 'status inactive'">
-  {{ pdv.is_active ? 'Active' : 'Inactive' }}
-</span>
-        </div>
-
-<h3>{{ pdv.name }}</h3>
-
-@if (pdv._message) {
-  <div class="card-message success">
-    {{ pdv._message }}
-  </div>
-}
-<p [ngClass]="pdv.responsableFb ? 'responsable' : 'responsable empty'">
-   {{ getResponsableName(pdv) }}
-</p>
-<div class="pdv-actions">
-  <button class="btn-edit" (click)="editPdv(pdv)">Edit</button>
-  <button class="btn-delete" (click)="deletePdv(pdv.id)">Delete</button>
-</div>
-
-      </div>
-
-    } <!-- INNER FOR CLOSED -->
-
+    <div>
+      <h2>Points de Vente</h2>
+      <p class="subtitle">Administrez et configurez les différents terminaux de vente et attribuez les responsables F&B</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">
+      <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 6px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      Ajouter un Point de Vente
+    </button>
   </div>
 
-}
+  @if (message) {
+    <div class="alert" [ngClass]="messageType === 'success' ? 'alert-success' : 'alert-error'">
+      {{ message }}
+    </div>
+  }
 
-  <!-- MODAL -->
-  @if (showModal) {
-    <div class="modal-overlay" (click)="closeModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
+  <!-- ─── AIRPORT GROUPS ─── -->
+  @for (group of groupedByAirport | keyvalue; track group.key) {
+    <div class="airport-group" style="margin-bottom: 24px;">
+      <h3 class="airport-title">
+        <svg class="airport-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L14 19v-5.5z"/>
+        </svg>
+        {{ group.key }}
+      </h3>
 
-        <h3>{{ editing ? 'Edit Point of Sale' : 'Add Point of Sale' }}</h3>
-
-        <form (ngSubmit)="save()">
-
-          <div class="form-group">
-            <label>Name</label>
-            <input [(ngModel)]="form.name" name="name" required />
-          </div>
-
-          <div class="form-group">
-            <label>Airport</label>
-            <select [(ngModel)]="form.airport_id" name="airport_id" required>
-              @for (a of airports; track a.id) {
-                <option [ngValue]="a.id">
-                  {{ a.name }} ({{ a.code }})
-                </option>
+      <div class="cards-grid">
+        @for (pdv of group.value; track pdv.id) {
+          <div class="pdv-card" [class.inactive-card]="!pdv.is_active">
+            <div class="pdv-card-header">
+              <span class="badge" [class.badge-success]="pdv.is_active" [class.badge-error]="!pdv.is_active">
+                {{ pdv.is_active ? 'Actif' : 'Inactif' }}
+              </span>
+              @if (pdv.location) {
+                <span class="badge badge-neutral font-mono uppercase text-xs">{{ pdv.location }}</span>
               }
-            </select>
+            </div>
+
+            <h4 class="pdv-name">{{ pdv.name }}</h4>
+
+            @if (pdv._message) {
+              <div class="card-message success">
+                {{ pdv._message }}
+              </div>
+            }
+
+            <div class="pdv-responsable">
+              <span class="label">Responsable F&B</span>
+              <div class="value" [class.empty]="!pdv.responsableFb">
+                <svg class="user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>{{ getResponsableName(pdv) }}</span>
+              </div>
+            </div>
+
+            <div class="pdv-actions">
+              <button class="btn btn-secondary btn-sm" (click)="editPdv(pdv)">
+                <svg class="btn-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 4px;">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                Modifier
+              </button>
+              <button class="btn btn-danger btn-sm" (click)="deletePdv(pdv.id)">
+                <svg class="btn-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 4px;">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Supprimer
+              </button>
+            </div>
           </div>
-
-          <div class="form-group">
-            <label>
-              <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" />
-              Active
-            </label>
-          </div>
-
-          <div class="form-group">
-            <label>Location</label>
-            <select [(ngModel)]="form.location" name="location">
-              <option [ngValue]="null">-- Choisir --</option>
-              <option value="AIRSIDE">AIRSIDE</option>
-              <option value="LANDSIDE">LANDSIDE</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Responsible FB</label>
-
-            <select [(ngModel)]="form.responsable_fb_id" name="responsable_fb_id">
-              <option [ngValue]="null">-- None --</option>
-
-              @for (u of fbUsers; track u.id) {
-                <option [ngValue]="u.id">
-                  {{ u.first_name }} {{ u.last_name }}
-                </option>
-              }
-            </select>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" (click)="closeModal()">
-              Cancel
-            </button>
-
-            <button type="submit" class="btn btn-primary">
-              {{ editing ? 'Update' : 'Create' }}
-            </button>
-          </div>
-
-        </form>
+        }
       </div>
     </div>
   }
 
+  <!-- ─── MODAL ADD/EDIT ─── -->
+  @if (showModal) {
+    <div class="modal-overlay" (click)="closeModal()">
+      <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ editing ? 'Modifier le Point de Vente' : 'Ajouter un Point de Vente' }}</h3>
+          <button class="close-btn" (click)="closeModal()" style="font-size: 18px; color: var(--text-muted); cursor: pointer;">✕</button>
+        </div>
+
+        <form (ngSubmit)="save()">
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Nom du Point de Vente *</label>
+              <input [(ngModel)]="form.name" name="name" placeholder="Ex: Prime Burger Terminal 2" required />
+            </div>
+
+            <div class="form-group">
+              <label>Aéroport Rattaché *</label>
+              <select [(ngModel)]="form.airport_id" name="airport_id" required>
+                <option [ngValue]="null" disabled>-- Choisir un aéroport --</option>
+                @for (a of airports; track a.id) {
+                  <option [ngValue]="a.id">
+                    {{ a.name }} ({{ a.code }})
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Zone / Emplacement</label>
+              <select [(ngModel)]="form.location" name="location">
+                <option [ngValue]="null">-- Non spécifié --</option>
+                <option value="AIRSIDE">AIRSIDE (Zone sous douane)</option>
+                <option value="LANDSIDE">LANDSIDE (Zone publique)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Responsable F&B Affecté</label>
+              <select [(ngModel)]="form.responsable_fb_id" name="responsable_fb_id">
+                <option [ngValue]="null">-- Aucun responsable --</option>
+                @for (u of fbUsers; track u.id) {
+                  <option [ngValue]="u.id">
+                    {{ u.first_name }} {{ u.last_name }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <div class="form-group-checkbox" style="margin-top: 16px;">
+              <label class="checkbox-container">
+                <input type="checkbox" [(ngModel)]="form.is_active" name="is_active" />
+                <span class="checkmark"></span>
+                <span class="checkbox-label" style="margin-left: 8px;">Point de vente actif</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 12px; background: #F8FAFC;">
+            <button type="button" class="btn btn-secondary" (click)="closeModal()">
+              Annuler
+            </button>
+            <button type="submit" class="btn btn-primary">
+              {{ editing ? 'Mettre à jour' : 'Créer' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
 </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; gap: 24px; }
-    
-    .page-header { 
-      display: flex; 
-      justify-content: space-between; 
-      align-items: center; 
-      padding: 0;
+    .page {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
     
-    .page-header h2 { 
-      margin: 0; 
-      font-size: 26px; 
-      font-weight: 700; 
-      color: #1A1D1B; 
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+    }
+    
+    .subtitle {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: var(--text-secondary);
     }
     
     .alert {
-      padding: 14px 18px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      font-size: 14px;
-      font-weight: 600;
-      animation: fadeIn 0.3s ease;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
     }
     
-    .alert.success {
-      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: var(--accent);
-      border: 1px solid rgba(107, 131, 116, 0.1);
+    .alert-success {
+      background: #DCFCE7;
+      color: #15803D;
+      border: 1px solid rgba(21, 128, 61, 0.1);
     }
     
-    .alert.error {
-      background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%);
-      color: #C0483A;
-      border: 1px solid rgba(194, 115, 115, 0.1);
+    .alert-error {
+      background: #FEE2E2;
+      color: #B91C1C;
+      border: 1px solid rgba(185, 28, 28, 0.1);
+    }
+
+    .btn-icon-sm {
+      width: 14px;
+      height: 14px;
+    }
+
+    .btn-sm {
+      height: 30px;
+      padding: 0 12px;
+      font-size: 12px;
+      border-radius: var(--radius-md);
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-6px); }
-      to { opacity: 1; transform: translateY(0); }
+    .airport-group {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
-    
+
     .airport-title {
-      margin: 28px 0 16px;
-      font-size: 20px;
-      font-weight: 700;
-      color: #111827;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-secondary);
       display: flex;
       align-items: center;
       gap: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    .airport-icon {
+      width: 18px;
+      height: 18px;
+      color: var(--accent);
     }
     
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 20px;
     }
     
     .pdv-card {
-      background: #ffffff;
-      border-radius: 20px;
-      padding: 22px;
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
-      border: 1px solid transparent;
-      transition: all 0.3s ease;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+      transition: all var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
     
     .pdv-card:hover {
-      transform: translateY(-6px);
-      border-color: #2C3E35;
-      box-shadow: 0 20px 40px rgba(29, 35, 31, 0.15);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--accent);
+    }
+
+    .pdv-card.inactive-card {
+      opacity: 0.8;
+      background: var(--bg-secondary);
     }
     
-    .pdv-header {
+    .pdv-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
     }
     
-    .status {
-      font-size: 12px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    
-    .status.active {
-      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: var(--accent);
-      border: 1px solid rgba(107, 131, 116, 0.1);
-    }
-    
-    .status.inactive {
-      background: linear-gradient(135deg, #F5E4E4 0%, #ffffff 100%);
-      color: #C0483A;
-      border: 1px solid rgba(194, 115, 115, 0.1);
-    }
-    
-    .pdv-card h3 {
-      font-size: 18px;
-      font-weight: 700;
-      color: #111827;
-      margin: 0 0 8px;
-    }
-    
-    .responsable {
-      font-size: 13px;
+    .pdv-name {
+      font-size: 16px;
       font-weight: 600;
-      color: #2C3E35;
-      margin-top: 8px;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    
+    .pdv-responsable {
+      background: var(--bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .pdv-responsable .label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+
+    .pdv-responsable .value {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
     }
-    
-    .responsable.empty {
-      color: #9ca3af;
+
+    .pdv-responsable .value.empty {
+      color: var(--text-muted);
       font-style: italic;
+    }
+
+    .user-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--text-secondary);
+    }
+
+    .pdv-responsable .value.empty .user-icon {
+      color: var(--text-muted);
     }
     
     .card-message {
-      margin-top: 12px;
       padding: 8px 12px;
-      border-radius: 10px;
+      border-radius: var(--radius-md);
       font-size: 12px;
-      font-weight: 700;
-      background: linear-gradient(135deg, #E8F0EB 0%, #ffffff 100%);
-      color: var(--accent);
-      border: 1px solid rgba(107, 131, 116, 0.1);
+      font-weight: 500;
+      background: #DCFCE7;
+      color: #15803D;
+      border: 1px solid rgba(21, 128, 61, 0.1);
     }
     
     .pdv-actions {
       display: flex;
       gap: 10px;
-      margin-top: 16px;
+      margin-top: 4px;
     }
-    
-    .btn-edit {
+
+    .pdv-actions button {
       flex: 1;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
+    }
+
+    .close-btn {
+      font-size: 18px;
+      color: var(--text-muted);
+      transition: color var(--transition);
+      background: none;
       border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
     }
-    
-    .btn-edit:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(29, 35, 31, 0.2);
+
+    .close-btn:hover {
+      color: var(--text-primary);
     }
-    
-    .btn-delete {
-      flex: 1;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, #ef4444 0%, #C0483A 100%);
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s ease;
+
+    /* Checkbox Styling */
+    .form-group-checkbox {
+      margin-top: 8px;
+      margin-bottom: 8px;
     }
-    
-    .btn-delete:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(194, 115, 115, 0.2);
-    }
-    
-    .btn-primary {
-      padding: 10px 22px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #2C3E35 0%, #1A1D1B 100%);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 8px 16px rgba(29, 35, 31, 0.2);
-      transition: all 0.2s ease;
-    }
-    
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px rgba(29, 35, 31, 0.3);
-    }
-    
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+
+    .checkbox-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      z-index: 200;
-      backdrop-filter: blur(4px);
-    }
-    
-    .modal {
-      background: #ffffff;
-      padding: 32px;
-      border-radius: 24px;
-      width: 100%;
-      max-width: 520px;
-      max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(29, 35, 31, 0.1);
-    }
-    
-    .modal h3 {
-      margin: 0 0 24px;
-      font-size: 22px;
-      font-weight: 700;
-      color: #111827;
-    }
-    
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-    
-    .form-group label {
-      font-size: 14px;
-      font-weight: 700;
-      color: #374151;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    
-    .form-group label input[type=\"checkbox\"] {
+      position: relative;
+      padding-left: 28px;
       cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      user-select: none;
     }
-    
-    input, select {
-      padding: 12px 14px;
-      border: 1.5px solid #e5e7eb;
-      border-radius: 10px;
-      font-size: 14px;
-      color: #111827;
-      font-family: inherit;
-      transition: all 0.2s ease;
-    }
-    
-    input::placeholder, select::placeholder {
-      color: #9ca3af;
-    }
-    
-    input:focus, select:focus {
-      border-color: #2C3E35;
-      box-shadow: 0 0 0 3px rgba(29, 35, 31, 0.1);
-      background: #EDE9E2;
-      outline: none;
-    }
-    
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      margin-top: 28px;
-      padding-top: 24px;
-      border-top: 1px solid #f3f4f6;
-    }
-    
-    .btn-secondary {
-      padding: 10px 22px;
-      border: none;
-      background: #f3f4f6;
-      color: #4A4D4B;
-      border-radius: 12px;
-      font-weight: 700;
+
+    .checkbox-container input {
+      position: absolute;
+      opacity: 0;
       cursor: pointer;
-      transition: all 0.2s ease;
+      height: 0;
+      width: 0;
     }
-    
-    .btn-secondary:hover {
-      background: #e5e7eb;
+
+    .checkmark {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0;
+      height: 18px;
+      width: 18px;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      transition: all var(--transition);
+    }
+
+    .checkbox-container:hover input ~ .checkmark {
+      background-color: var(--border);
+    }
+
+    .checkbox-container input:checked ~ .checkmark {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checkmark:after {
+      content: "";
+      position: absolute;
+      display: none;
+    }
+
+    .checkbox-container input:checked ~ .checkmark:after {
+      display: block;
+    }
+
+    .checkbox-container .checkmark:after {
+      left: 6px;
+      top: 2px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    .checkbox-label {
+      line-height: 18px;
     }
   `]
 })

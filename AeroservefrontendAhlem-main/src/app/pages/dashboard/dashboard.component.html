@@ -12,291 +12,234 @@
     @if (userRole === 'SUPER_ADMIN') {
       <!-- ─── Flight Strip Header ─── -->
       <div class="flight-strip">
-        <div class="fs-badge">ADMIN CONSOLE</div>
+        <div class="fs-badge">PUPITRE D'ADMINISTRATION</div>
         <div class="fs-mission">
-          <h1 class="fs-callsign">{{ userName }}</h1>
-          <p class="fs-briefing">Pilotez l'activité commerciale globale, analysez les ventes, surveillez le stock et optimisez la charge opérationnelle.</p>
+          <div class="fs-welcome" style="display: flex; align-items: center; gap: 8px;">
+            <svg class="fs-welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; color: var(--accent);">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <h1 class="fs-callsign" style="margin: 0; font-size: 22px;">{{ userName }}</h1>
+          </div>
+          <p class="fs-briefing" style="margin-top: 6px;">Supervision globale de AeroServe. Analysez les flux opérationnels, contrôlez le gaspillage en temps réel et validez les recommandations automatisées.</p>
         </div>
         <div class="fs-instruments">
           <div class="instrument">
             <span class="instrument-label">Effectif Actif</span>
-            <span class="instrument-value">{{ data?.active_users || 0 }}</span>
+            <div class="instrument-val-wrap" style="display: flex; align-items: center; gap: 6px; margin: 2px 0;">
+              <span class="pulse-dot active" style="width: 6px; height: 6px; border-radius: 50%; background: #10B981; display: inline-block; box-shadow: 0 0 8px #10B981;"></span>
+              <span class="instrument-value">{{ data?.active_users || 0 }}</span>
+            </div>
             <span class="instrument-unit">employés</span>
           </div>
           <div class="instrument" [class.status-alert]="data?.delayed_orders > 0">
-            <span class="instrument-label">Retards</span>
-            <span class="instrument-value">{{ data?.delayed_orders || 0 }}</span>
-            <span class="instrument-unit">commandes</span>
+            <span class="instrument-label">Commandes Retard</span>
+            <div class="instrument-val-wrap" style="display: flex; align-items: center; gap: 6px; margin: 2px 0;">
+              @if (data?.delayed_orders > 0) {
+                <span class="pulse-dot warning" style="width: 6px; height: 6px; border-radius: 50%; background: #EF4444; display: inline-block; box-shadow: 0 0 8px #EF4444; animation: pulse 1.5s infinite;"></span>
+              }
+              <span class="instrument-value">{{ data?.delayed_orders || 0 }}</span>
+            </div>
+            <span class="instrument-unit">alertes</span>
           </div>
           <div class="instrument">
-            <span class="instrument-label">Gaspillage</span>
-            <span class="instrument-value">{{ data?.total_waste || 0 | number:'1.0-1' }}</span>
+            <span class="instrument-label">Hedge Gaspillage</span>
+            <div class="instrument-val-wrap" style="display: flex; align-items: center; gap: 6px; margin: 2px 0;">
+              <span class="instrument-value">{{ data?.total_waste || 0 | number:'1.0-1' }}</span>
+            </div>
             <span class="instrument-unit">unités</span>
           </div>
         </div>
       </div>
 
       <!-- ─── KPI Instrument Cluster ─── -->
-      <div class="instrument-cluster">
-        <div class="kpi-card kpi-revenue">
+      <div class="instrument-cluster" style="margin-top: 20px;">
+        <div class="kpi-card kpi-orders" [class.status-alert]="data?.pending_orders > 10">
           <div class="kpi-glow"></div>
-          <div class="kpi-header">
-            <span class="kpi-label">Chiffre d'Affaires</span>
-            <span class="kpi-trend">+12.5%</span>
-          </div>
-          <span class="kpi-value">{{ data?.total_sales | number:'1.2-2' }} <small>TND</small></span>
-          <div class="kpi-meta">Cumul période</div>
-        </div>
-        <div class="kpi-card kpi-orders">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header">
-            <span class="kpi-label">Commandes en attente</span>
-          </div>
-          <span class="kpi-value">{{ data?.pending_orders || 0 }}</span>
-          <div class="kpi-meta">{{ data?.processed_today || 0 }} traitées aujourd'hui</div>
-        </div>
-        <div class="kpi-card kpi-waste">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header">
-            <span class="kpi-label">Unités gaspillées</span>
-          </div>
-          <span class="kpi-value" [class.high]="data?.total_waste > 50">{{ data?.total_waste || 0 | number:'1.0-1' }}</span>
-          <div class="kpi-meta">Objectif &lt; 50 unités</div>
-        </div>
-        <div class="kpi-card kpi-load">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header">
-            <span class="kpi-label">Charge Cuisine</span>
-          </div>
-          <span class="kpi-value">{{ getKitchenLoadShare() | number:'1.0-0' }}<small>%</small></span>
-          <div class="kpi-meta">Magasin: {{ getWarehouseLoadShare() | number:'1.0-0' }}%</div>
-        </div>
-      </div>
-
-      <!-- ─── Analytics Radar (Charts Row) ─── -->
-      <div class="analytics-deck">
-        <!-- Sales Trend Chart -->
-        <div class="deck-card chart-card">
-          <div class="deck-card-header">
-            <div>
-              <h3>Tendance des Ventes</h3>
-              <span>Chiffre d'affaires {{ salesPeriod === 'day' ? 'quotidien' : salesPeriod === 'week' ? 'hebdomadaire' : 'mensuel' }}</span>
-            </div>
-            <div class="period-selector">
-              <button class="per-btn" [class.active]="salesPeriod === 'day'" (click)="setSalesPeriod('day')">Jour</button>
-              <button class="per-btn" [class.active]="salesPeriod === 'week'" (click)="setSalesPeriod('week')">Sem.</button>
-              <button class="per-btn" [class.active]="salesPeriod === 'month'" (click)="setSalesPeriod('month')">Mois</button>
-            </div>
-          </div>
-
-          @if ((data?.daily_sales?.length ?? 0) >= 2) {
-            <div class="chart-viewport">
-              <svg viewBox="0 0 500 200" class="svg-chart">
-                <defs>
-                  <linearGradient id="salesGradNew" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#0D9488" stop-opacity="0.2"/>
-                    <stop offset="100%" stop-color="#0D9488" stop-opacity="0.0"/>
-                  </linearGradient>
-                </defs>
-                <!-- Grid -->
-                <line x1="40" y1="30" x2="470" y2="30" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="70" x2="470" y2="70" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="110" x2="470" y2="110" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="150" x2="470" y2="150" stroke="#CBD5E1" stroke-width="1.5" />
-                <path [attr.d]="getSalesAreaPath()" fill="url(#salesGradNew)" />
-                <path [attr.d]="getSalesLinePath()" fill="none" stroke="#0D9488" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                <!-- Dots -->
-                @for (d of data?.daily_sales || []; track d.date; let idx = $index) {
-                  <circle [attr.cx]="getSalesX(idx)" [attr.cy]="getSalesY(d.total)" r="4" fill="#FFFFFF" stroke="#0D9488" stroke-width="2.5" />
-                }
+          <div class="kpi-content">
+            <div class="kpi-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="kpi-label">Commandes en attente</span>
+              <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #3B82F6;">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
               </svg>
             </div>
-            <div class="chart-labels">
-              @for (d of data?.daily_sales || []; track d.date) {
-                <div class="cl">
-                  <span class="cl-val">{{ d.total | number:'1.0-0' }}</span>
-                  <span class="cl-lbl">{{ d.date | date:'dd/MM' }}</span>
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="chart-empty">Pas assez de données pour générer le graphique.</div>
-          }
+            <span class="kpi-value" style="font-size: 28px; font-weight: 700; display: block; margin: 8px 0 4px 0;">{{ data?.pending_orders || 0 }}</span>
+            <div class="kpi-meta" style="font-size: 11px; color: var(--text-secondary);">{{ data?.processed_today || 0 }} traitées aujourd'hui</div>
+          </div>
         </div>
 
-        <!-- POS Donut -->
-        <div class="deck-card donut-card">
-          <div class="deck-card-header">
-            <div>
-              <h3>Performance POS</h3>
-              <span>Contribution des terminaux</span>
+        <div class="kpi-card kpi-waste" [class.status-alert]="data?.total_waste > 50">
+          <div class="kpi-glow"></div>
+          <div class="kpi-content">
+            <div class="kpi-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="kpi-label">Pertes de Stock</span>
+              <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #EF4444;">
+                <path d="M3 6h18"></path>
+                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+              </svg>
             </div>
+            <span class="kpi-value" style="font-size: 28px; font-weight: 700; display: block; margin: 8px 0 4px 0;">{{ data?.total_waste || 0 | number:'1.0-1' }}</span>
+            <div class="kpi-meta" style="font-size: 11px; color: var(--text-secondary);">Seuil toléré: &lt; 50 unités</div>
           </div>
-          @if (data?.sales_by_pdv?.length) {
-            <div class="donut-wrap">
-              <div class="donut-chart" [style.background]="'conic-gradient(' + getDonutGradient() + ')'">
-                <div class="donut-center">
-                  <span class="dc-label">Total</span>
-                  <strong class="dc-value">{{ data?.total_sales | number:'1.0-0' }} TND</strong>
-                </div>
-              </div>
-              <div class="donut-legend">
-                @for (s of data?.sales_by_pdv || []; track s.pdv_id; let idx = $index) {
-                  <div class="donut-legend-item">
-                    <div class="dli-marker">
-                      <span class="dli-dot" [style.background]="getDonutColor(idx)"></span>
-                      <strong>{{ s.point_de_vente?.name || 'POS' }}</strong>
-                    </div>
-                    <span class="dli-value">{{ getPdvShare(s.total) | number:'1.0-0' }}%</span>
-                  </div>
-                }
-              </div>
+        </div>
+
+        <div class="kpi-card kpi-load">
+          <div class="kpi-glow"></div>
+          <div class="kpi-content">
+            <div class="kpi-header" style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="kpi-label">Cadence Cuisine</span>
+              <svg class="kpi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; color: #0D9488;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
             </div>
-          } @else {
-            <div class="chart-empty">Aucune vente enregistrée.</div>
-          }
+            <span class="kpi-value" style="font-size: 28px; font-weight: 700; display: block; margin: 8px 0 4px 0;">{{ getKitchenLoadShare() | number:'1.0-0' }}<small style="font-size: 14px;">%</small></span>
+            <div class="kpi-meta" style="font-size: 11px; color: var(--text-secondary);">Magasin/Logistique: {{ getWarehouseLoadShare() | number:'1.0-0' }}%</div>
+          </div>
         </div>
       </div>
 
       <!-- ─── Lower Deck ─── -->
-      <div class="analytics-deck">
-        <!-- Waste Trend -->
+      <div class="analytics-deck" style="margin-top: 20px;">
+        <!-- Waste Trend Chart -->
         <div class="deck-card chart-card">
-          <div class="deck-card-header">
+          <div class="deck-card-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
             <div>
-              <h3>Évolution du Gaspillage</h3>
-              <span>Unités déclarées impropres</span>
+              <h3 style="margin: 0; font-size: 15px;">Évolution du Gaspillage</h3>
+              <span style="font-size: 12px; color: var(--text-secondary);">Historique des pertes déclarées</span>
+            </div>
+            <div class="chart-legend" style="display: flex; align-items: center; gap: 6px;">
+              <span class="legend-dot error" style="width: 8px; height: 8px; border-radius: 50%; background: #EF4444; display: inline-block;"></span>
+              <span class="legend-label" style="font-size: 11px; color: var(--text-secondary);">Pertes (unités)</span>
             </div>
           </div>
           @if ((data?.waste_trend?.length ?? 0) >= 2) {
             <div class="chart-viewport">
               <svg viewBox="0 0 500 200" class="svg-chart">
                 <defs>
-                  <linearGradient id="wasteGradNew" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#D4924A" stop-opacity="0.2"/>
-                    <stop offset="100%" stop-color="#D4924A" stop-opacity="0.0"/>
+                  <linearGradient id="wasteGradNewRed" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#EF4444" stop-opacity="0.15"/>
+                    <stop offset="100%" stop-color="#EF4444" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
-                <line x1="40" y1="30" x2="470" y2="30" stroke="#E0DAD0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="70" x2="470" y2="70" stroke="#E0DAD0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="110" x2="470" y2="110" stroke="#E0DAD0" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="150" x2="470" y2="150" stroke="#D8D2C8" stroke-width="1.5" />
-                <path [attr.d]="getWasteAreaPath()" fill="url(#wasteGradNew)" />
-                <path [attr.d]="getWasteLinePath()" fill="none" stroke="#D4924A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                <line x1="40" y1="30" x2="470" y2="30" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4" />
+                <line x1="40" y1="70" x2="470" y2="70" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4" />
+                <line x1="40" y1="110" x2="470" y2="110" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,4" />
+                <line x1="40" y1="150" x2="470" y2="150" stroke="var(--border)" stroke-width="1.5" />
+                <path [attr.d]="getWasteAreaPath()" fill="url(#wasteGradNewRed)" />
+                <path [attr.d]="getWasteLinePath()" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
                 @for (w of data?.waste_trend || []; track w.date; let idx = $index) {
-                  <circle [attr.cx]="getWasteX(idx)" [attr.cy]="getWasteY(w.total)" r="4" fill="#FFFFFF" stroke="#D4924A" stroke-width="2.5" />
+                  <circle [attr.cx]="getWasteX(idx)" [attr.cy]="getWasteY(w.total)" r="4.5" fill="#FFFFFF" stroke="#EF4444" stroke-width="2.5" />
                 }
               </svg>
             </div>
             <div class="chart-labels">
               @for (w of data?.waste_trend || []; track w.date) {
                 <div class="cl">
-                  <span class="cl-val warn">{{ w.total | number:'1.0-1' }}</span>
+                  <span class="cl-val" style="font-family: var(--font-data); font-size: 11px; font-weight: 500; color: #EF4444;">{{ w.total | number:'1.0-1' }}</span>
                   <span class="cl-lbl">{{ w.date | date:'dd/MM' }}</span>
                 </div>
               }
             </div>
           } @else {
-            <div class="chart-empty">Pas assez de données.</div>
+            <div class="chart-empty">Données d'évolution insuffisantes.</div>
           }
         </div>
 
-        <!-- Top Products -->
-        <div class="deck-card">
-          <div class="deck-card-header">
+        <!-- Operational Load -->
+        <div class="load-panel">
+          <div class="deck-card-header" style="margin-bottom: 16px;">
             <div>
-              <h3>Top Produits</h3>
-              <span>Classement par volume — {{ salesPeriod === 'day' ? 'aujourd\'hui' : salesPeriod === 'week' ? 'cette semaine' : 'ce mois' }}</span>
+              <h3 style="margin: 0; font-size: 15px;">Charge Opérationnelle</h3>
+              <span style="font-size: 12px; color: var(--text-secondary);">Répartition des requêtes et commandes actives</span>
             </div>
           </div>
-          <div class="top-products-grid">
-            @for (p of data?.popular_products || []; track p.product_id; let idx = $index) {
-              <div class="top-prod-card" [class.gold]="idx === 0" [class.silver]="idx === 1" [class.bronze]="idx === 2">
-                <div class="tpc-rank">{{ idx + 1 }}</div>
-                <div class="tpc-info">
-                  <strong>{{ p.product?.name || '-' }}</strong>
-                  <span>{{ p.product?.type }}</span>
-                </div>
-                <div class="tpc-bar">
-                  <div class="tpc-bar-fill" [style.width.%]="getProductBarWidth(p.total_sold)"></div>
-                </div>
-                <span class="tpc-qty">{{ p.total_sold || 0 }}</span>
+          <div class="load-bars">
+            <div class="load-track">
+              <span class="load-label">Préparation Cuisine <small>{{ getKitchenLoadShare() | number:'1.0-0' }}%</small></span>
+              <div class="load-bar-shell">
+                <div class="load-bar-fill load-kitchen" [style.width.%]="getKitchenLoadShare()"></div>
               </div>
-            }
-            @if (!data?.popular_products?.length) {
-              <div class="chart-empty">Aucun produit vendu.</div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── Operational Load ─── -->
-      <div class="load-panel">
-        <div class="deck-card-header">
-          <div>
-            <h3>Charge Opérationnelle</h3>
-            <span>Commandes actives en cours</span>
-          </div>
-        </div>
-        <div class="load-bars">
-          <div class="load-track">
-            <span class="load-label">Cuisine <small>{{ getKitchenLoadShare() | number:'1.0-0' }}%</small></span>
-            <div class="load-bar-shell">
-              <div class="load-bar-fill load-kitchen" [style.width.%]="getKitchenLoadShare()"></div>
+              <span class="load-count">{{ data?.kitchen_load || 0 }} cmds</span>
             </div>
-            <span class="load-count">{{ data?.kitchen_load || 0 }}</span>
-          </div>
-          <div class="load-track">
-            <span class="load-label">Magasin <small>{{ getWarehouseLoadShare() | number:'1.0-0' }}%</small></span>
-            <div class="load-bar-shell">
-              <div class="load-bar-fill load-warehouse" [style.width.%]="getWarehouseLoadShare()"></div>
+            <div class="load-track">
+              <span class="load-label">Transit Magasin <small>{{ getWarehouseLoadShare() | number:'1.0-0' }}%</small></span>
+              <div class="load-bar-shell">
+                <div class="load-bar-fill load-warehouse" [style.width.%]="getWarehouseLoadShare()"></div>
+              </div>
+              <span class="load-count">{{ data?.warehouse_load || 0 }} des.</span>
             </div>
-            <span class="load-count">{{ data?.warehouse_load || 0 }}</span>
           </div>
         </div>
       </div>
 
       <!-- ─── AI Predictive Section ─── -->
-      <div class="ai-section">
-        <div class="ai-section-header">
-          <span class="ai-badge">Intelligence Artificielle</span>
-          <h3>Assistant Prédictif de Stock</h3>
+      <div class="ai-section" style="margin-top: 24px;">
+        <div class="ai-section-header" style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+          <span class="ai-badge">MOTEUR PRÉDICTIF IA</span>
+          <h3 style="margin: 0; font-size: 15px;">Analyse Logistique & Approvisionnement</h3>
         </div>
+
+        @if (aiReportText) {
+          <div class="ai-report-card" style="margin-bottom: 16px;">
+            <div class="ai-report-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 22px; height: 22px; color: #047857;">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <div class="ai-report-content">
+              <strong>Synthèse de l'Assistant IA</strong>
+              <p>{{ aiReportText }}</p>
+            </div>
+          </div>
+        }
 
         <div class="ai-deck">
           <!-- Forecast Table -->
           <div class="deck-card">
-            <div class="deck-card-header">
+            <div class="deck-card-header" style="margin-bottom: 12px;">
               <div>
-                <h3>Analyse d'Épuisement</h3>
-                <span>Jours restants estimés par l'IA</span>
+                <h3 style="margin: 0; font-size: 15px;">Déplétion du Stock Réserve</h3>
+                <span style="font-size: 12px; color: var(--text-secondary);">Durée de vie théorique estimée par l'algorithme</span>
               </div>
             </div>
-            <div class="table-scroll">
-              <table class="dash-table">
+            <div class="table-scroll" style="margin-top: 10px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden;">
+              <table class="dash-table premium-table" style="margin: 0; width: 100%; border-collapse: collapse;">
                 <thead>
-                  <tr><th>Produit</th><th>Stock</th><th>Cons./jr</th><th>Jours</th><th>Statut</th></tr>
+                  <tr style="background: var(--bg-secondary);">
+                    <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Produit</th>
+                    <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Stock Actuel</th>
+                    <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Moy. Cons.</th>
+                    <th style="padding: 10px 12px; text-align: left; font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Épuisement</th>
+                    <th style="padding: 10px 12px; text-align: right; font-size: 11px; color: var(--text-secondary); text-transform: uppercase;">Alerte</th>
+                  </tr>
                 </thead>
                 <tbody>
                   @for (f of forecasts | slice:0:5; track f.product_id) {
-                    <tr>
-                      <td><strong>{{ f.name }}</strong></td>
-                      <td class="td-mono">{{ f.current_stock }} {{ f.unit }}</td>
-                      <td class="td-mono">{{ f.daily_average }}/jr</td>
-                      <td>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                      <td style="padding: 10px 12px; font-size: 13px;"><strong>{{ f.name }}</strong></td>
+                      <td style="padding: 10px 12px; font-size: 13px; font-family: var(--font-data);">{{ f.current_stock }} {{ f.unit }}</td>
+                      <td style="padding: 10px 12px; font-size: 13px; font-family: var(--font-data);">{{ f.daily_average }}/jr</td>
+                      <td style="padding: 10px 12px; font-size: 13px;">
                         <span class="days-left" [class.critical]="f.status === 'CRITIQUE'" [class.caution]="f.status === 'MOYEN'">
-                          {{ f.days_left }}j
+                          {{ f.days_left }} jours
                         </span>
                       </td>
-                      <td>
-                        <span class="status-tag" [class.tag-danger]="f.status === 'CRITIQUE'" [class.tag-warn]="f.status === 'MOYEN'" [class.tag-ok]="f.status === 'STABLE'">
-                          {{ f.status }}
+                      <td style="padding: 10px 12px; text-align: right; font-size: 13px;">
+                        <span class="badge" 
+                              [class.badge-error]="f.status === 'CRITIQUE'" 
+                              [class.badge-warning]="f.status === 'MOYEN'" 
+                              [class.badge-success]="f.status === 'STABLE'">
+                          {{ f.status === 'CRITIQUE' ? 'Critique' : f.status === 'MOYEN' ? 'Moyen' : 'Stable' }}
                         </span>
                       </td>
                     </tr>
                   }
                   @if (forecasts.length === 0) {
-                    <tr><td colspan="5" class="empty-cell">Aucune prévision disponible.</td></tr>
+                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px 0; font-size: 13px;">Aucune donnée de prévision générée.</td></tr>
                   }
                 </tbody>
               </table>
@@ -305,39 +248,39 @@
 
           <!-- AI Recommendations -->
           <div class="deck-card ai-recos-card">
-            <div class="deck-card-header">
+            <div class="deck-card-header" style="margin-bottom: 12px;">
               <div>
-                <h3>Recommandations d'Achat</h3>
-                <span>Suggestions d'approvisionnement automatiques</span>
+                <h3 style="margin: 0; font-size: 15px;">Ordres d'Approvisionnement Recommandés</h3>
+                <span style="font-size: 12px; color: var(--text-secondary);">Flux d'achat suggérés pour éviter la rupture</span>
               </div>
             </div>
 
             @if (anomalies.length > 0) {
-              <div class="anomalies-strip">
+              <div class="anomalies-strip" style="margin-bottom: 12px;">
                 @for (a of anomalies; track a.product_id) {
                   <div class="anomaly-chip">
-                    <strong>Surconsommation {{ a.name }}</strong>
-                    <span>Auj. {{ a.today_consumption }} / Moy. {{ a.daily_average }} ({{ a.ratio }}x)</span>
+                    <strong>⚠️ Pic de consommation : {{ a.name }}</strong>
+                    <span>Consommation actuelle: {{ a.today_consumption }} / Moyenne: {{ a.daily_average }} (Ratio: {{ a.ratio }}x)</span>
                   </div>
                 }
               </div>
             }
 
-            <div class="recos-list">
+            <div class="recos-list" style="margin-top: 12px;">
               @for (r of recommendations | slice:0:3; track r.product_id) {
                 <div class="reco-item">
                   <div class="reco-meta">
                     <strong>{{ r.name }}</strong>
-                    <span>{{ r.reason }}</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">{{ r.reason }}</span>
                   </div>
-                  <div class="reco-action">
-                    <span class="reco-qty">+{{ r.recommended_qty }} {{ r.unit }}</span>
-                    <button class="reco-btn" (click)="placeAIOrder(r)">Commander</button>
+                  <div class="reco-action" style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                    <span class="reco-qty font-mono" style="font-size: 13px; font-weight: 600; color: var(--accent);">+{{ r.recommended_qty }} {{ r.unit }}</span>
+                    <button class="btn btn-primary" style="font-size: 11px; height: 26px; padding: 0 10px;" (click)="placeAIOrder(r)">Commander</button>
                   </div>
                 </div>
               }
               @if (recommendations.length === 0) {
-                <div class="empty-cell">Félicitations ! Aucun réapprovisionnement nécessaire.</div>
+                <div style="text-align: center; color: var(--text-muted); padding: 32px 0; font-size: 13px;">Tous les stocks sont à un niveau optimal.</div>
               }
             </div>
           </div>
@@ -349,6 +292,7 @@
          2. RESPONSABLE_FB DASHBOARD
          ═══════════════════════════════════════════════════════ -->
     @if (userRole === 'RESPONSABLE_FB') {
+      <!-- ─── Flight Strip Header ─── -->
       <div class="flight-strip theme-fb">
         <div class="fs-badge">RESPONSABLE F&B</div>
         <div class="fs-mission">
@@ -374,15 +318,50 @@
         </div>
       </div>
 
-      <div class="instrument-cluster">
-        <div class="kpi-card kpi-revenue">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header">
-            <span class="kpi-label">Chiffre d'Affaires</span>
+      <!-- ─── Stock & Quality Alerts ─── -->
+      @if ((data?.low_stock_count || 0) > 0 || (data?.expired_products_count || 0) > 0) {
+        <div class="stock-alert-banner">
+          <span class="sab-icon">⚠️</span>
+          <div class="sab-content">
+            <strong>Alerte Qualité & Stocks</strong>
+            <p>
+              Il y a actuellement <span style="font-weight: 700;">{{ data?.low_stock_count || 0 }}</span> produit(s) sous le seuil d'alerte 
+              et <span style="font-weight: 700;">{{ data?.expired_products_count || 0 }}</span> lot(s) expiré(s) en réserve. 
+              Veuillez passer des commandes de réapprovisionnement.
+            </p>
           </div>
-          <span class="kpi-value">{{ data?.total_sales | number:'1.2-2' }} <small>TND</small></span>
-          <div class="kpi-meta">Cumul période</div>
+          <button class="btn btn-primary btn-sm" routerLink="/internal-orders">Commander</button>
         </div>
+      }
+
+      <!-- ─── Shortcut Navigation Panel ─── -->
+      <div class="shortcuts-grid">
+        <a class="shortcut-card" routerLink="/plannings">
+          <div class="sc-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="sc-content">
+            <h4>Planning Caissiers</h4>
+            <p>Gérer les horaires, les affectations aux points de vente et les repos des caissiers.</p>
+          </div>
+          <span class="sc-arrow">→</span>
+        </a>
+
+        <a class="shortcut-card" routerLink="/internal-orders">
+          <div class="sc-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="sc-content">
+            <h4>Commandes Internes</h4>
+            <p>Créer et suivre les demandes d'approvisionnement en nourriture et matériel.</p>
+          </div>
+          <span class="sc-arrow">→</span>
+        </a>
+
+      </div>
+
+      <!-- ─── KPI Instrument Cluster ─── -->
+      <div class="instrument-cluster" style="margin-top: 8px;">
         <div class="kpi-card kpi-orders">
           <div class="kpi-glow"></div>
           <div class="kpi-header">
@@ -409,103 +388,167 @@
         </div>
       </div>
 
-      <div class="analytics-deck">
-        <div class="deck-card chart-card">
-          <div class="deck-card-header">
-            <div>
-              <h3>Tendance des Ventes</h3>
-              <span>{{ salesPeriod === 'day' ? 'Journalières' : salesPeriod === 'week' ? 'Hebdomadaires' : 'Mensuelles' }}</span>
+      <!-- ─── Main Operations Deck ─── -->
+      <div class="analytics-deck" style="margin-top: 8px;">
+        
+        <!-- Left Deck Card: Charge & Evolution Gaspillage -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          
+          <!-- Charge Opérationnelle -->
+          <div class="load-panel" style="margin-top:0;">
+            <div class="deck-card-header" style="margin-bottom:12px;">
+              <div>
+                <h3>Charge Opérationnelle</h3>
+                <span>Commandes actives en cours</span>
+              </div>
             </div>
-            <div class="period-selector">
-              <button class="per-btn" [class.active]="salesPeriod === 'day'" (click)="setSalesPeriod('day')">Jour</button>
-              <button class="per-btn" [class.active]="salesPeriod === 'week'" (click)="setSalesPeriod('week')">Sem.</button>
-              <button class="per-btn" [class.active]="salesPeriod === 'month'" (click)="setSalesPeriod('month')">Mois</button>
+            <div class="load-bars">
+              <div class="load-track">
+                <span class="load-label">Cuisine <small>{{ getKitchenLoadShare() | number:'1.0-0' }}%</small></span>
+                <div class="load-bar-shell">
+                  <div class="load-bar-fill load-kitchen" [style.width.%]="getKitchenLoadShare()"></div>
+                </div>
+                <span class="load-count">{{ data?.kitchen_load || 0 }}</span>
+              </div>
+              <div class="load-track">
+                <span class="load-label">Magasin <small>{{ getWarehouseLoadShare() | number:'1.0-0' }}%</small></span>
+                <div class="load-bar-shell">
+                  <div class="load-bar-fill load-warehouse" [style.width.%]="getWarehouseLoadShare()"></div>
+                </div>
+                <span class="load-count">{{ data?.warehouse_load || 0 }}</span>
+              </div>
             </div>
           </div>
-          @if ((data?.daily_sales?.length ?? 0) >= 2) {
-            <div class="chart-viewport">
-              <svg viewBox="0 0 500 200" class="svg-chart">
-                <defs>
-                  <linearGradient id="salesGradFB2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#0088FF" stop-opacity="0.25"/>
-                    <stop offset="100%" stop-color="#0088FF" stop-opacity="0.0"/>
-                  </linearGradient>
-                </defs>
-                <line x1="40" y1="30" x2="470" y2="30" stroke="#1A3255" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="70" x2="470" y2="70" stroke="#1A3255" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="110" x2="470" y2="110" stroke="#1A3255" stroke-width="1" stroke-dasharray="4,4" />
-                <line x1="40" y1="150" x2="470" y2="150" stroke="#1A3255" stroke-width="1.5" />
-                <path [attr.d]="getSalesAreaPath()" fill="url(#salesGradFB2)" />
-                <path [attr.d]="getSalesLinePath()" fill="none" stroke="#0088FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                @for (d of data?.daily_sales || []; track d.date; let idx = $index) {
-                  <circle [attr.cx]="getSalesX(idx)" [attr.cy]="getSalesY(d.total)" r="4" fill="#0F1E3A" stroke="#0088FF" stroke-width="2.5" />
-                }
-              </svg>
+
+          <!-- Evolution du Gaspillage Chart -->
+          <div class="deck-card chart-card">
+            <div class="deck-card-header">
+              <div>
+                <h3>Évolution du Gaspillage</h3>
+                <span>Unités déclarées impropres ce mois-ci</span>
+              </div>
             </div>
-            <div class="chart-labels">
-              @for (d of data?.daily_sales || []; track d.date) {
-                <div class="cl">
-                  <span class="cl-val">{{ d.total | number:'1.0-0' }}</span>
-                  <span class="cl-lbl">{{ d.date | date:'dd/MM' }}</span>
+            @if ((data?.waste_trend?.length ?? 0) >= 2) {
+              <div class="chart-viewport">
+                <svg viewBox="0 0 500 200" class="svg-chart">
+                  <defs>
+                    <linearGradient id="wasteGradFb" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.2"/>
+                      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0.0"/>
+                    </linearGradient>
+                  </defs>
+                  <line x1="40" y1="30" x2="470" y2="30" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
+                  <line x1="40" y1="70" x2="470" y2="70" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
+                  <line x1="40" y1="110" x2="470" y2="110" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="4,4" />
+                  <line x1="40" y1="150" x2="470" y2="150" stroke="#CBD5E1" stroke-width="1.5" />
+                  <path [attr.d]="getWasteAreaPath()" fill="url(#wasteGradFb)" />
+                  <path [attr.d]="getWasteLinePath()" fill="none" stroke="#3B82F6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                  @for (w of data?.waste_trend || []; track w.date; let idx = $index) {
+                    <circle [attr.cx]="getWasteX(idx)" [attr.cy]="getWasteY(w.total)" r="4" fill="#FFFFFF" stroke="#3B82F6" stroke-width="2.5" />
+                  }
+                </svg>
+              </div>
+              <div class="chart-labels">
+                @for (w of data?.waste_trend || []; track w.date) {
+                  <div class="cl">
+                    <span class="cl-val warn">{{ w.total | number:'1.0-1' }}</span>
+                    <span class="cl-lbl">{{ w.date | date:'dd/MM' }}</span>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="chart-empty">Pas assez de données de gaspillage ce mois-ci.</div>
+            }
+          </div>
+
+        </div>
+
+        <!-- Right Deck Card: Commandes Récentes & Alertes Stocks Bas -->
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          
+          <!-- Commandes Récentes -->
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div>
+                <h3>Commandes Internes Récentes</h3>
+                <span>Vos dernières demandes de réapprovisionnement</span>
+              </div>
+            </div>
+            <div class="table-scroll">
+              <table class="dash-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Type</th>
+                    <th>Point de Vente</th>
+                    <th>Statut</th>
+                    <th>Livraison</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (order of recentOrders; track order.id) {
+                    <tr>
+                      <td><strong>#{{ order.id }}</strong></td>
+                      <td>
+                        <span style="font-size:10px; font-weight:600; text-transform:uppercase; color: var(--text-secondary)">
+                          {{ order.type === 'food' ? 'Food' : 'Matériel' }}
+                        </span>
+                      </td>
+                      <td><small>{{ order.point_de_vente?.name || 'Général' }}</small></td>
+                      <td>
+                        <span class="status-tag"
+                              [class.tag-ok]="order.status === 'DISPONIBLE'"
+                              [class.tag-warn]="order.status === 'EN_ATTENTE' || order.status === 'PARTIELLEMENT_DISPONIBLE'"
+                              [class.tag-danger]="order.status === 'NON_DISPONIBLE'">
+                          {{ order.status === 'DISPONIBLE' ? 'Prêt' : order.status === 'EN_ATTENTE' ? 'En attente' : order.status === 'PARTIELLEMENT_DISPONIBLE' ? 'Partiel' : 'Non dispo' }}
+                        </span>
+                      </td>
+                      <td class="td-mono"><small>{{ order.delivery_date | date:'dd/MM' }}</small></td>
+                    </tr>
+                  }
+                  @if (recentOrders.length === 0) {
+                    <tr>
+                      <td colspan="5" class="empty-cell" style="text-align:center; padding:16px; color:var(--text-muted);">
+                        Aucune commande récente.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Alertes Stocks Bas (Low Stock) -->
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div>
+                <h3>Ingrédients Critiques</h3>
+                <span>Matières premières sous le seuil d'alerte</span>
+              </div>
+            </div>
+            <div class="recos-list">
+              @for (item of lowStockItems | slice:0:3; track item.id) {
+                <div class="reco-item">
+                  <div class="reco-meta">
+                    <strong>{{ item.product?.name || 'Produit' }}</strong>
+                    <span>En stock: {{ item.quantity }} {{ item.product?.unit || 'u' }} / Seuil: {{ item.min_threshold }}</span>
+                  </div>
+                  <div class="reco-action">
+                    <span class="reco-qty danger">{{ item.quantity }} / {{ item.min_threshold }}</span>
+                    <button class="reco-btn" routerLink="/internal-orders">Commander</button>
+                  </div>
+                </div>
+              }
+              @if (lowStockItems.length === 0) {
+                <div class="empty-cell" style="text-align:center; padding:16px; color:var(--text-muted);">
+                  Tous les stocks sont à des niveaux optimaux.
                 </div>
               }
             </div>
-          } @else {
-            <div class="chart-empty">Pas assez de données.</div>
-          }
+          </div>
+
         </div>
 
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div>
-              <h3>Top Produits</h3>
-              <span>Classement par volume — {{ salesPeriod === 'day' ? 'aujourd\'hui' : salesPeriod === 'week' ? 'cette semaine' : 'ce mois' }}</span>
-            </div>
-          </div>
-          <div class="top-products-grid">
-            @for (p of data?.popular_products || []; track p.product_id; let idx = $index) {
-              <div class="top-prod-card" [class.gold]="idx === 0" [class.silver]="idx === 1" [class.bronze]="idx === 2">
-                <div class="tpc-rank">{{ idx + 1 }}</div>
-                <div class="tpc-info">
-                  <strong>{{ p.product?.name || '-' }}</strong>
-                  <span>{{ p.product?.type }}</span>
-                </div>
-                <div class="tpc-bar">
-                  <div class="tpc-bar-fill" [style.width.%]="getProductBarWidth(p.total_sold)"></div>
-                </div>
-                <span class="tpc-qty">{{ p.total_sold || 0 }}</span>
-              </div>
-            }
-            @if (!data?.popular_products?.length) {
-              <div class="chart-empty">Aucun produit vendu.</div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <div class="load-panel">
-        <div class="deck-card-header">
-          <div>
-            <h3>Charge Opérationnelle</h3>
-            <span>Commandes actives en cours</span>
-          </div>
-        </div>
-        <div class="load-bars">
-          <div class="load-track">
-            <span class="load-label">Cuisine <small>{{ getKitchenLoadShare() | number:'1.0-0' }}%</small></span>
-            <div class="load-bar-shell">
-              <div class="load-bar-fill load-kitchen" [style.width.%]="getKitchenLoadShare()"></div>
-            </div>
-            <span class="load-count">{{ data?.kitchen_load || 0 }}</span>
-          </div>
-          <div class="load-track">
-            <span class="load-label">Magasin <small>{{ getWarehouseLoadShare() | number:'1.0-0' }}%</small></span>
-            <div class="load-bar-shell">
-              <div class="load-bar-fill load-warehouse" [style.width.%]="getWarehouseLoadShare()"></div>
-            </div>
-            <span class="load-count">{{ data?.warehouse_load || 0 }}</span>
-          </div>
-        </div>
       </div>
     }
 
@@ -600,14 +643,16 @@
           <div class="recos-list">
             @for (c of data?.role_specific?.critical_products_list || []; track c.id) {
               <div class="reco-item">
-                <div class="reco-meta">
+                <div class="reco-meta" style="width: 100%;">
                   <strong>{{ c.product?.name }}</strong>
-                  <span>Seuil: {{ c.min_threshold }} {{ c.unit }}</span>
+                  <span style="margin-bottom: 6px;">Seuil: {{ c.min_threshold }} {{ c.unit }}</span>
+                  <div class="reco-bar-shell" style="margin: 4px 0 0 0;">
+                    <div class="reco-bar-fill danger" [style.width.%]="(c.quantity / c.min_threshold) * 100"></div>
+                  </div>
                 </div>
-                <div class="reco-bar-shell">
-                  <div class="reco-bar-fill danger" [style.width.%]="(c.quantity / c.min_threshold) * 100"></div>
+                <div class="reco-action">
+                  <span class="reco-qty danger">{{ c.quantity }} / {{ c.min_threshold }}</span>
                 </div>
-                <span class="reco-qty danger">{{ c.quantity }} / {{ c.min_threshold }}</span>
               </div>
             }
             @if (!data?.role_specific?.critical_products_list?.length) {
@@ -722,6 +767,16 @@
           <span class="ai-badge">Intelligence Artificielle</span>
           <h3>Assistant Prédictif de Stock</h3>
         </div>
+
+        @if (aiReportText) {
+          <div class="ai-report-card">
+            <div class="ai-report-icon">✨</div>
+            <div class="ai-report-content">
+              <strong>Synthèse IA :</strong>
+              <p>{{ aiReportText }}</p>
+            </div>
+          </div>
+        }
         <div class="ai-deck">
           <div class="deck-card">
             <div class="deck-card-header">
@@ -924,6 +979,7 @@
         </div>
       }
 
+      <!-- ─── Flight Strip Header ─── -->
       <div class="flight-strip theme-kitchen">
         <div class="fs-badge">CHEF CUISINE</div>
         <div class="fs-mission">
@@ -954,208 +1010,268 @@
         </div>
       </div>
 
-      <!-- ─── Row 1: Widget A (Availability Gauge) + Widget B (Menu Status Card) ─── -->
-      <div class="analytics-deck">
-        <!-- Widget A: Ingredient Availability Rate -->
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div><h3>Taux de Disponibilité des Ingrédients</h3><span>Matières premières en stock positif</span></div>
+      <!-- ─── Shortcut Navigation Panel ─── -->
+      <div class="shortcuts-grid" style="margin-top: 8px;">
+        <a class="shortcut-card" routerLink="/menus">
+          <div class="sc-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           </div>
-          <div class="gauge-wrap">
-            <div class="gauge-container">
-              <svg viewBox="0 0 120 120" class="gauge-svg">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#E2E8F0" stroke-width="10" />
-                <circle cx="60" cy="60" r="52" fill="none"
-                        [attr.stroke]="getGaugeColor(data?.role_specific?.availability_rate)"
-                        stroke-width="10" stroke-linecap="round"
-                        [attr.stroke-dasharray]="getGaugeDashArray(data?.role_specific?.availability_rate)"
-                        transform="rotate(-90, 60, 60)" />
-              </svg>
-              <div class="gauge-center">
-                <span class="gauge-value">{{ data?.role_specific?.availability_rate || 0 }}<small>%</small></span>
-                <span class="gauge-label">disponibles</span>
-              </div>
-            </div>
-            <div class="gauge-meta">
-              <span>{{ data?.role_specific?.available_ingredients || 0 }} / {{ data?.role_specific?.total_ingredients || 0 }} ingrédients</span>
-            </div>
+          <div class="sc-content">
+            <h4>Recettes & Menus</h4>
+            <p>Planifier le menu de la semaine et configurer les ingrédients des recettes.</p>
+          </div>
+          <span class="sc-arrow">→</span>
+        </a>
+
+        <a class="shortcut-card" routerLink="/stocks">
+          <div class="sc-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+          <div class="sc-content">
+            <h4>Stocks Cuisine</h4>
+            <p>Consulter les stocks de la cuisine et déclarer les entrées/sorties ou pertes.</p>
+          </div>
+          <span class="sc-arrow">→</span>
+        </a>
+
+        <a class="shortcut-card" routerLink="/internal-orders">
+          <div class="sc-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="sc-content">
+            <h4>Commandes Internes</h4>
+            <p>Demander des matières premières au magasinier et suivre le statut de livraison.</p>
+          </div>
+          <span class="sc-arrow">→</span>
+        </a>
+      </div>
+
+      <!-- ─── KPI Instrument Cluster ─── -->
+      <div class="instrument-cluster" style="margin-top: 8px;">
+        <div class="kpi-card kpi-waste">
+          <div class="kpi-glow"></div>
+          <div class="kpi-header">
+            <span class="kpi-label">Charge Cuisine Actuelle</span>
+          </div>
+          <span class="kpi-value">{{ data?.kitchen_load || 0 }}</span>
+          <div class="kpi-meta">Commandes en attente de préparation</div>
+        </div>
+
+        <div class="kpi-card kpi-load">
+          <div class="kpi-glow"></div>
+          <div class="kpi-header">
+            <span class="kpi-label">Taux de Disponibilité</span>
+          </div>
+          <span class="kpi-value">{{ data?.role_specific?.availability_rate || 0 }}<small>%</small></span>
+          <div class="kpi-meta">
+            {{ data?.role_specific?.available_ingredients || 0 }} / {{ data?.role_specific?.total_ingredients || 0 }} ingrédients en stock
           </div>
         </div>
 
-        <!-- Widget B: Weekly Menu Status -->
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div><h3>Statut du Menu Hebdomadaire</h3><span>Semaine en cours</span></div>
+        <div class="kpi-card kpi-orders" [class.status-alert]="(data?.role_specific?.sous_seuil_ingredients?.length || 0) > 0">
+          <div class="kpi-glow"></div>
+          <div class="kpi-header">
+            <span class="kpi-label">Ingrédients Sous-Seuil</span>
           </div>
-          <div class="menu-status-card">
-            <div class="msc-badge-wrapper">
-              <span class="msc-badge"
-                    [class.msc-valid]="data?.role_specific?.current_menu_status === 'VALIDE'"
-                    [class.msc-pending]="data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK'"
-                    [class.msc-none]="data?.role_specific?.current_menu_status === 'NON_PLANIFIE'">
-                @if (data?.role_specific?.current_menu_status === 'VALIDE') {
-                  <span>✓ Validé</span>
-                } @else if (data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK') {
-                  <span>⏳ En attente de validation</span>
-                } @else {
-                  <span>✕ Non planifié</span>
-                }
-              </span>
-            </div>
-            @if (data?.role_specific?.current_menu_name) {
-              <p class="msc-name">{{ data?.role_specific?.current_menu_name }}</p>
-            }
-            @if (data?.role_specific?.current_menu_status === 'NON_PLANIFIE') {
-              <button class="btn btn-primary" routerLink="/menus" style="margin-top:auto;">Créer un menu</button>
-            }
-            @if (data?.role_specific?.active_menu?.items?.length) {
-              <div style="margin-top:auto;">
-                <div class="msc-table-scroll">
-                  <table class="dash-table msc-table">
-                    <thead>
-                      <tr><th>Jour</th><th>Pt-déj</th><th>Coll.</th><th>Déj.</th><th>Dîner</th></tr>
-                    </thead>
-                    <tbody>
-                      @for (day of daysList; track day.key) {
-                        <tr>
-                          <td><strong>{{ day.label.substring(0,3) }}.</strong></td>
-                          <td>{{ getMenuDishName(day.key, 'breakfast') }}</td>
-                          <td>{{ getMenuDishName(day.key, 'snack') }}</td>
-                          <td>{{ getMenuDishName(day.key, 'lunch') }}</td>
-                          <td>{{ getMenuDishName(day.key, 'dinner') }}</td>
-                        </tr>
-                      }
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            }
-          </div>
+          <span class="kpi-value">{{ data?.role_specific?.sous_seuil_ingredients?.length || 0 }}</span>
+          <div class="kpi-meta">Pour le menu de cette semaine</div>
         </div>
       </div>
 
-      <!-- ─── Row 2: Widget C (Order Volume) + Widget D1 (Sous-Seuil Alerts) ─── -->
-      <div class="analytics-deck">
-        <!-- Widget C: Order Volume -->
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div><h3>Volume des Commandes</h3><span>Activité du jour</span></div>
-          </div>
-          <div class="order-volume-grid">
-            <div class="ov-card ov-pending">
-              <span class="ov-label">En attente</span>
-              <span class="ov-value">{{ data?.role_specific?.pending_orders_today || 0 }}</span>
-              <span class="ov-unit">commandes aujourd'hui</span>
-            </div>
-            <div class="ov-card ov-completed">
-              <span class="ov-label">Traitées</span>
-              <span class="ov-value">{{ data?.role_specific?.completed_orders_today || 0 }}</span>
-              <span class="ov-unit">commandes aujourd'hui</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Widget D1: Sous-Seuil Alert -->
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div><h3>Alertes Sous-Seuil</h3><span>Ingrédients des menus cette semaine</span></div>
-          </div>
-          <div class="recos-list">
-            @for (ing of data?.role_specific?.sous_seuil_ingredients || []; track ing.ingredient_name) {
-              <div class="reco-item">
-                <div class="reco-meta">
-                  <strong>{{ ing.ingredient_name }}</strong>
-                  <span>Stock actuel: {{ ing.current_stock }} {{ ing.unit }} / Seuil: {{ ing.min_threshold }} {{ ing.unit }}</span>
-                </div>
-                <div class="reco-bar-shell">
-                  <div class="reco-bar-fill danger" [style.width.%]="(ing.current_stock / ing.min_threshold) * 100"></div>
-                </div>
-                <span class="reco-qty danger" style="white-space:nowrap;">{{ ing.current_stock }} / {{ ing.min_threshold }}</span>
-              </div>
-            }
-            @if (!data?.role_specific?.sous_seuil_ingredients?.length) {
-              <div class="empty-cell">Aucun ingrédient sous le seuil pour les menus de cette semaine.</div>
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- ─── Feature 6: Purchase Needs Summary ─── -->
-      @if (data?.role_specific?.latest_purchase_need) {
-        <div class="deck-card" style="border-left:4px solid #F59E0B;">
-          <div class="deck-card-header">
-            <div>
-              <h3>📋 Analyse des Besoins en Réapprovisionnement</h3>
-              <span>Générée le {{ data?.role_specific?.latest_purchase_need?.generated_at | date:'dd/MM/yyyy HH:mm' }}</span>
-            </div>
-          </div>
-          <div style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-            <div style="padding:12px 20px; background:#FFFBEB; border-radius:var(--radius-md); text-align:center; min-width:120px;">
-              <span style="font-size:28px; font-weight:700; color:#B45309; display:block;">{{ data?.role_specific?.latest_purchase_need?.items_requiring_restock || 0 }}</span>
-              <span style="font-size:11px; color:#92400E; font-weight:500;">ingrédients à réapprovisionner</span>
-            </div>
-            <div style="padding:12px 20px; background:#F0FDF4; border-radius:var(--radius-md); text-align:center; min-width:120px;">
-              <span style="font-size:28px; font-weight:700; color:#15803D; display:block;">{{ data?.role_specific?.latest_purchase_need?.total_items || 0 }}</span>
-              <span style="font-size:11px; color:#166534; font-weight:500;">ingrédients analysés</span>
-            </div>
-            <p style="flex:1; font-size:13px; color:var(--text-secondary); margin:0;">
-              {{ data?.role_specific?.latest_purchase_need?.items_requiring_restock }} ingrédients nécessitent un réapprovisionnement — liste envoyée au Chef Magasin.
-            </p>
-          </div>
-        </div>
-      }
-
-      <!-- ─── Existing Menu Table + Critical Ingredients (kept for reference) ─── -->
-      @if (data?.role_specific?.active_menu) {
-        <div class="analytics-deck">
+      <!-- ─── Operations Grid ─── -->
+      <div class="analytics-deck" style="margin-top: 8px;">
+        
+        <!-- Left Deck Column -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Widget B: Weekly Menu Status -->
           <div class="deck-card">
             <div class="deck-card-header">
-              <div><h3>Menu de la Semaine</h3><span>Composition complète</span></div>
+              <div>
+                <h3>Statut du Menu Hebdomadaire</h3>
+                <span>Composition et planification de la semaine en cours</span>
+              </div>
             </div>
-            <div class="table-scroll">
-              <table class="dash-table">
-                <thead>
-                  <tr><th>Jour</th><th>Petit-déj</th><th>Collation</th><th>Déjeuner</th><th>Dîner</th></tr>
-                </thead>
-                <tbody>
-                  @for (day of daysList; track day.key) {
-                    <tr>
-                      <td><strong>{{ day.label }}</strong></td>
-                      <td>{{ getMenuDishName(day.key, 'breakfast') }}</td>
-                      <td>{{ getMenuDishName(day.key, 'snack') }}</td>
-                      <td>{{ getMenuDishName(day.key, 'lunch') }}</td>
-                      <td>{{ getMenuDishName(day.key, 'dinner') }}</td>
-                    </tr>
+            <div class="menu-status-card">
+              <div class="msc-badge-wrapper" style="padding: 10px 0;">
+                <span class="msc-badge"
+                      [class.msc-valid]="data?.role_specific?.current_menu_status === 'VALIDE'"
+                      [class.msc-pending]="data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK'"
+                      [class.msc-none]="data?.role_specific?.current_menu_status === 'NON_PLANIFIE'">
+                  @if (data?.role_specific?.current_menu_status === 'VALIDE') {
+                    <span>✓ Validé</span>
+                  } @else if (data?.role_specific?.current_menu_status === 'EN_ATTENTE_STOCK') {
+                    <span>⏳ En attente de validation</span>
+                  } @else {
+                    <span>✕ Non planifié</span>
                   }
-                </tbody>
-              </table>
+                </span>
+              </div>
+              @if (data?.role_specific?.current_menu_name) {
+                <p class="msc-name" style="font-weight: 600; margin-bottom: 8px;">{{ data?.role_specific?.current_menu_name }}</p>
+              }
+              @if (data?.role_specific?.current_menu_status === 'NON_PLANIFIE') {
+                <button class="btn btn-primary" routerLink="/menus" style="margin-top:auto; align-self: center;">Créer un menu</button>
+              }
+              @if (data?.role_specific?.active_menu?.items?.length) {
+                <div style="margin-top:auto;">
+                  <div class="msc-table-scroll" style="border: 1px solid #E2E8F0; border-radius: var(--radius-md); overflow: hidden;">
+                    <table class="dash-table msc-table" style="margin: 0;">
+                      <thead>
+                        <tr><th>Jour</th><th>Pt-déj</th><th>Coll.</th><th>Déj.</th><th>Dîner</th></tr>
+                      </thead>
+                      <tbody>
+                        @for (day of daysList; track day.key) {
+                          <tr>
+                            <td><strong>{{ day.label.substring(0,3) }}.</strong></td>
+                            <td><small>{{ getMenuDishName(day.key, 'breakfast') }}</small></td>
+                            <td><small>{{ getMenuDishName(day.key, 'snack') }}</small></td>
+                            <td><small>{{ getMenuDishName(day.key, 'lunch') }}</small></td>
+                            <td><small>{{ getMenuDishName(day.key, 'dinner') }}</small></td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
             </div>
           </div>
 
+          <!-- Widget C: Order Volume -->
           <div class="deck-card">
             <div class="deck-card-header">
-              <div><h3>Ingrédients Bas (Global)</h3><span>Toutes matières premières sous le seuil</span></div>
+              <div><h3>Volume des Commandes Cuisine</h3><span>Activité et flux de préparation du jour</span></div>
+            </div>
+            <div class="order-volume-grid" style="padding: 0;">
+              <div class="ov-card ov-pending" style="padding: 16px;">
+                <span class="ov-label">À Préparer</span>
+                <span class="ov-value" style="color: #B45309;">{{ data?.role_specific?.pending_orders_today || 0 }}</span>
+                <span class="ov-unit">en attente</span>
+              </div>
+              <div class="ov-card ov-completed" style="padding: 16px;">
+                <span class="ov-label">Livrées / Prêtes</span>
+                <span class="ov-value" style="color: #15803D;">{{ data?.role_specific?.completed_orders_today || 0 }}</span>
+                <span class="ov-unit">aujourd'hui</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature 6: Purchase Needs Summary -->
+          @if (data?.role_specific?.latest_purchase_need) {
+            <div class="deck-card" style="border-left: 4px solid #F59E0B; background: linear-gradient(135deg, var(--surface) 0%, #FFFDF5 100%);">
+              <div class="deck-card-header" style="margin-bottom: 12px;">
+                <div>
+                  <h3 style="display: flex; align-items: center; gap: 6px;">📋 Besoins de Réapprovisionnement</h3>
+                  <span style="font-size: 10px;">Calculé le {{ data?.role_specific?.latest_purchase_need?.generated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div style="padding:8px 16px; background:#FFFBEB; border: 1px solid #FDE68A; border-radius:var(--radius-md); text-align:center; min-width:110px;">
+                  <span style="font-size:24px; font-weight:700; color:#B45309; display:block;">{{ data?.role_specific?.latest_purchase_need?.items_requiring_restock || 0 }}</span>
+                  <span style="font-size:10px; color:#92400E; font-weight:600;">manquants</span>
+                </div>
+                <div style="padding:8px 16px; background:#F0FDF4; border: 1px solid #BBF7D0; border-radius:var(--radius-md); text-align:center; min-width:110px;">
+                  <span style="font-size:24px; font-weight:700; color:#15803D; display:block;">{{ data?.role_specific?.latest_purchase_need?.total_items || 0 }}</span>
+                  <span style="font-size:10px; color:#166534; font-weight:600;">analysés</span>
+                </div>
+                <p style="flex:1; font-size:12.5px; color:var(--text-secondary); margin:0; line-height:1.4;">
+                  {{ data?.role_specific?.latest_purchase_need?.items_requiring_restock }} ingrédients sont en quantité insuffisante pour assurer la semaine. La liste a été transmise au magasin.
+                </p>
+              </div>
+              <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+                <button class="btn btn-secondary btn-sm" routerLink="/purchase-needs">Voir les détails</button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Right Deck Column -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Widget A: Ingredient Availability Rate -->
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div><h3>Disponibilité des Ingrédients</h3><span>Matières premières avec stock positif</span></div>
+            </div>
+            <div class="gauge-wrap" style="padding: 0;">
+              <div class="gauge-container" style="width: 130px; height: 130px;">
+                <svg viewBox="0 0 120 120" class="gauge-svg">
+                  <circle cx="60" cy="60" r="52" fill="none" stroke="#E2E8F0" stroke-width="8" />
+                  <circle cx="60" cy="60" r="52" fill="none"
+                          [attr.stroke]="getGaugeColor(data?.role_specific?.availability_rate)"
+                          stroke-width="8" stroke-linecap="round"
+                          [attr.stroke-dasharray]="getGaugeDashArray(data?.role_specific?.availability_rate)"
+                          transform="rotate(-90, 60, 60)" />
+                </svg>
+                <div class="gauge-center">
+                  <span class="gauge-value" style="font-size: 24px;">{{ data?.role_specific?.availability_rate || 0 }}<small>%</small></span>
+                  <span class="gauge-label" style="font-size: 9px;">dispo</span>
+                </div>
+              </div>
+              <div class="gauge-meta" style="margin-top: 6px;">
+                <strong style="color: var(--text-primary);">{{ data?.role_specific?.available_ingredients || 0 }} / {{ data?.role_specific?.total_ingredients || 0 }}</strong>
+                <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 2px;">matières premières actives</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Widget D1: Sous-Seuil Alert -->
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div><h3>Alertes Sous-Seuil (Menu)</h3><span>Ingrédients planifiés manquant de stock</span></div>
+            </div>
+            <div class="recos-list">
+              @for (ing of data?.role_specific?.sous_seuil_ingredients || []; track ing.ingredient_name) {
+                <div class="reco-item">
+                  <div class="reco-meta">
+                    <strong>{{ ing.ingredient_name }}</strong>
+                    <span>Actuel: {{ ing.current_stock }} {{ ing.unit }} (Seuil: {{ ing.min_threshold }} {{ ing.unit }})</span>
+                  </div>
+                  <div class="reco-action">
+                    <span class="reco-qty danger" style="font-size: 11px;">{{ ing.current_stock }} / {{ ing.min_threshold }}</span>
+                    <div class="reco-bar-shell" style="width: 80px; margin: 0;">
+                      <div class="reco-bar-fill danger" [style.width.%]="(ing.current_stock / ing.min_threshold) * 100"></div>
+                    </div>
+                  </div>
+                </div>
+              }
+              @if (!data?.role_specific?.sous_seuil_ingredients?.length) {
+                <div class="empty-cell" style="text-align:center; padding:16px; color:var(--text-muted);">
+                  Aucun ingrédient sous le seuil d'alerte pour les menus.
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Critical Ingredients (Global) -->
+          <div class="deck-card">
+            <div class="deck-card-header">
+              <div><h3>Alerte Stocks Critiques (Global)</h3><span>Toutes matières premières sous le seuil d'alerte</span></div>
             </div>
             <div class="recos-list">
               @for (c of data?.role_specific?.critical_ingredients || []; track c.id) {
                 <div class="reco-item">
                   <div class="reco-meta">
                     <strong>{{ c.product?.name }}</strong>
-                    <span>Matière Première</span>
+                    <span>Seuil critique global</span>
                   </div>
-                  <div class="reco-bar-shell">
-                    <div class="reco-bar-fill warn" [style.width.%]="(c.quantity / c.min_threshold) * 100"></div>
+                  <div class="reco-action">
+                    <span class="reco-qty warn" style="font-size: 11px;">{{ c.quantity }} / {{ c.min_threshold }} {{ c.product?.unit }}</span>
+                    <div class="reco-bar-shell" style="width: 80px; margin: 0;">
+                      <div class="reco-bar-fill warn" [style.width.%]="(c.quantity / c.min_threshold) * 100"></div>
+                    </div>
                   </div>
-                  <span class="reco-qty warn">{{ c.quantity }} / {{ c.min_threshold }} {{ c.unit }}</span>
                 </div>
               }
               @if (!data?.role_specific?.critical_ingredients?.length) {
-                <div class="empty-cell">Tous les ingrédients sont optimaux.</div>
+                <div class="empty-cell" style="text-align:center; padding:16px; color:var(--text-muted);">
+                  Tous les stocks globaux sont optimaux.
+                </div>
               }
             </div>
           </div>
         </div>
-      }
+
+      </div>
     }
 
     <!-- ═══════════════════════════════════════════════════════
@@ -1166,104 +1282,7 @@
         <div class="fs-badge">CAISSE</div>
         <div class="fs-mission">
           <h1 class="fs-callsign">{{ userName }}</h1>
-          <p class="fs-briefing">Consultez vos statistiques de vente quotidiennes en direct de votre terminal et gérez vos encaissements clients.</p>
-        </div>
-        <div class="fs-instruments">
-          <div class="instrument">
-            <span class="instrument-label">Mes Ventes</span>
-            <span class="instrument-value">{{ data?.role_specific?.my_sales_today || 0 | number:'1.2-2' }}</span>
-            <span class="instrument-unit">TND</span>
-          </div>
-          <div class="instrument">
-            <span class="instrument-label">Reçus</span>
-            <span class="instrument-value">{{ data?.role_specific?.my_sales_count_today || 0 }}</span>
-            <span class="instrument-unit">tickets</span>
-          </div>
-          <div class="instrument">
-            <span class="instrument-label">Panier Moyen</span>
-            <span class="instrument-value">{{ getMyAverageSale() | number:'1.2-2' }}</span>
-            <span class="instrument-unit">TND</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="instrument-cluster">
-        <div class="kpi-card kpi-revenue">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header"><span class="kpi-label">Chiffre d'affaires</span></div>
-          <span class="kpi-value">{{ data?.role_specific?.my_sales_today || 0 | number:'1.2-2' }} <small>TND</small></span>
-          <div class="kpi-meta">Encaissé aujourd'hui</div>
-        </div>
-        <div class="kpi-card kpi-orders">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header"><span class="kpi-label">Tickets validés</span></div>
-          <span class="kpi-value">{{ data?.role_specific?.my_sales_count_today || 0 }}</span>
-          <div class="kpi-meta">Total reçus</div>
-        </div>
-        <div class="kpi-card kpi-processed">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header"><span class="kpi-label">Panier moyen</span></div>
-          <span class="kpi-value">{{ getMyAverageSale() | number:'1.2-2' }} <small>TND</small></span>
-          <div class="kpi-meta">Par client</div>
-        </div>
-        <div class="kpi-card kpi-waste">
-          <div class="kpi-glow"></div>
-          <div class="kpi-header"><span class="kpi-label">Méthode préférée</span></div>
-          <span class="kpi-value" style="font-size:18px;">{{ getMyPaymentBreakdownDominant() }}</span>
-          <div class="kpi-meta">Mode de paiement</div>
-        </div>
-      </div>
-
-      <div class="analytics-deck">
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div><h3>Répartition des Encaissements</h3><span>Analyse des modes de paiement</span></div>
-          </div>
-          @if (data?.role_specific?.my_payment_breakdown?.length) {
-            <div class="recos-list" style="padding:8px 0;">
-              @for (p of data?.role_specific?.my_payment_breakdown || []; track p.payment_method) {
-                <div class="reco-item">
-                  <div class="reco-meta">
-                    <strong>{{ p.payment_method === 'cash' ? 'Espèces' : p.payment_method === 'card' ? 'Carte' : 'Autre' }}</strong>
-                    <span>{{ getPaymentShare(p.total) | number:'1.0-0' }}% des encaissements</span>
-                  </div>
-                  <div class="reco-bar-shell">
-                    <div class="reco-bar-fill" style="background:linear-gradient(90deg, #0D9488, #2DD4BF);" [style.width.%]="getPaymentShare(p.total)"></div>
-                  </div>
-                  <span class="reco-qty">{{ p.total | number:'1.2-2' }} TND</span>
-                </div>
-              }
-            </div>
-          } @else {
-            <div class="chart-empty">Aucune transaction aujourd'hui.</div>
-          }
-        </div>
-
-        <div class="deck-card">
-          <div class="deck-card-header">
-            <div><h3>5 Dernières Ventes</h3><span>Transactions enregistrées</span></div>
-          </div>
-          <div class="table-scroll">
-            <table class="dash-table">
-              <thead>
-                <tr><th>#</th><th>POS</th><th>Montant</th><th>Mode</th><th>Heure</th></tr>
-              </thead>
-              <tbody>
-                @for (s of data?.role_specific?.my_recent_sales || []; track s.id) {
-                  <tr>
-                    <td class="td-mono">#{{ s.id }}</td>
-                    <td>{{ s.point_de_vente?.name || 'POS' }}</td>
-                    <td><strong style="color:#0D9488;">{{ s.total_amount | number:'1.2-2' }} TND</strong></td>
-                    <td><span class="status-tag">{{ s.payment_method | uppercase }}</span></td>
-                    <td class="td-mono">{{ s.created_at | date:'HH:mm' }}</td>
-                  </tr>
-                }
-                @if (!data?.role_specific?.my_recent_sales?.length) {
-                  <tr><td colspan="5" class="empty-cell">Aucune transaction récente.</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
+          <p class="fs-briefing">{{ data?.role_specific?.message || 'Bienvenue sur votre espace.' }}</p>
         </div>
       </div>
     }

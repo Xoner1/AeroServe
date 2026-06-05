@@ -124,9 +124,13 @@ if ($role->name === 'CAISSIER') {
             'avatar'     => $avatarPath,
         ]);
 
-        Mail::to($user->email)->send(
-            new UserCreatedMail($user, $request->password, $role->name)
-        );
+        try {
+            Mail::to($user->email)->send(
+                new UserCreatedMail($user, $request->password, $role->name)
+            );
+        } catch (\Exception $e) {
+            \Log::error('Error sending user creation email: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Utilisateur créé avec succès.',
@@ -209,52 +213,19 @@ if ($role->name === 'CAISSIER') {
 
     // ─── Caissier management ──────────────────────────────────────────────────
 
-    public function createCaissier(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'first_name' => 'required|string|max:255',
-            'last_name'  => 'required|string|max:255',
-            'email'      => 'required|email|unique:users,email',
-            'phone'      => 'nullable|string|max:20',
-            'pdv_id'     => 'nullable|exists:points_de_vente,id',
-            'password'   => 'required|min:8',
-            'age'        => 'nullable|integer|min:18|max:70',
-            'experience' => 'nullable|boolean',
-            'bio'        => 'nullable|string|max:1000',
-        ]);
 
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $caissierRole = Role::where('name', 'CAISSIER')->firstOrFail();
-
-        $user = User::create([
-            'first_name' => $request->first_name,
-            'last_name'  => $request->last_name,
-            'email'      => $request->email,
-            'phone'      => $request->phone,
-            'pdv_id'     => $request->pdv_id,
-            'password'   => Hash::make($request->password),
-            'role_id'    => $caissierRole->id,
-            'status'     => 'en_attente',
-            'age'        => $request->age,
-            'experience' => $request->experience ?? false,
-            'bio'        => $request->bio,
-        ]);
-
-        return response()->json([
-            'message' => 'Caissier créé avec succès.',
-            'user' => $user->load('role')
-        ], 201);
-    }
 
     public function listCaissiers(): JsonResponse
     {
-        $caissiers = User::whereHas('role', fn($q) => $q->where('name', 'CAISSIER'))
+        $query = User::whereHas('role', fn($q) => $q->where('name', 'CAISSIER'))
             ->with('role', 'pointDeVente')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->orderBy('created_at', 'desc');
+
+        if (auth()->user()->role->name === 'CAISSIER') {
+            $query->where('id', auth()->id());
+        }
+
+        $caissiers = $query->get();
 
         return response()->json($caissiers);
     }
@@ -267,17 +238,23 @@ if ($role->name === 'CAISSIER') {
         }
 
         $request->validate([
-            'status' => 'required|in:active,en_attente,inactive',
+            'status' => 'required|in:active,inactive',
         ]);
 
-        // Cannot set back to en_attente if already active or inactive
-        if ($request->status === 'en_attente' && in_array($user->status, ['active', 'inactive'])) {
-            return response()->json([
-                'message' => 'Impossible de remettre un caissier en attente s\'il est déjà actif ou inactif.'
-            ], 422);
-        }
-
+        $oldStatus = $user->status;
         $user->update(['status' => $request->status]);
+
+        if ($oldStatus !== 'inactive' && $request->status === 'inactive') {
+            $superAdmins = User::whereHas('role', fn($q) => $q->where('name', 'SUPER_ADMIN'))->get();
+            foreach ($superAdmins as $admin) {
+                \App\Models\Notification::create([
+                    'user_id' => $admin->id,
+                    'title' => 'Caissier Suspendu',
+                    'message' => "Le caissier {$user->first_name} {$user->last_name} a été suspendu par l'administration. Veuillez vérifier son statut.",
+                    'type' => 'alert'
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Statut du caissier mis à jour.',
@@ -285,40 +262,7 @@ if ($role->name === 'CAISSIER') {
         ]);
     }
 
-    public function approveCaissier(User $user): JsonResponse
-    {
-        if ($user->role?->name !== 'CAISSIER') {
-            return response()->json(['message' => 'Cet utilisateur n\'est pas un caissier.'], 422);
-        }
-        $user->update(['status' => 'active']);
-        return response()->json([
-            'message' => 'Caissier approuvé.',
-            'user' => $user->fresh()->load('role'),
-        ]);
-    }
 
-    public function rejectCaissier(User $user): JsonResponse
-    {
-        if ($user->role?->name !== 'CAISSIER') {
-            return response()->json(['message' => 'Cet utilisateur n\'est pas un caissier.'], 422);
-        }
-        $user->update(['status' => 'inactive']);
-        return response()->json([
-            'message' => 'Caissier rejeté.',
-            'user' => $user->fresh()->load('role'),
-        ]);
-    }
-
-    public function pendingCaissiers(): JsonResponse
-    {
-        $pending = User::whereHas('role', fn($q) => $q->where('name', 'CAISSIER'))
-            ->where('status', 'en_attente')
-            ->with('role', 'pointDeVente')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($pending);
-    }
 
     public function deleteCaissier(User $user): JsonResponse
     {

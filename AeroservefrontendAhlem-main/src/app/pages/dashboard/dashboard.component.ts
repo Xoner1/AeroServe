@@ -39,8 +39,13 @@ export class DashboardComponent implements OnInit {
   forecasts: any[] = [];
   anomalies: any[] = [];
   recommendations: any[] = [];
+  aiReportText: string = '';
   loadingIA = false;
   showScanner = false;
+
+  // F&B specific attributes
+  recentOrders: any[] = [];
+  lowStockItems: any[] = [];
 
   constructor(private api: ApiService, private auth: AuthService) {}
 
@@ -68,6 +73,11 @@ export class DashboardComponent implements OnInit {
         // Load IA Stock prediction data if Super Admin or Achat role
         if (this.userRole === 'RESPONSABLE_ACHAT' || this.userRole === 'SUPER_ADMIN') {
           this.loadIAData();
+        }
+
+        // Load F&B specific lists if F&B Manager
+        if (this.userRole === 'RESPONSABLE_FB') {
+          this.loadFBData();
         }
       },
       error: () => { this.loading = false; },
@@ -112,57 +122,31 @@ export class DashboardComponent implements OnInit {
       },
       error: () => { this.loadingIA = false; }
     });
-  }
-
-  setSalesPeriod(period: 'day' | 'week' | 'month'): void {
-    this.salesPeriod = period;
-    this.loading = true;
-    this.loadDashboard();
-  }
-
-  getMaxProductQty(): number {
-    return Math.max(...(this.data?.popular_products || []).map((p: any) => Number(p.total_sold)), 1);
-  }
-
-  getProductBarWidth(qty: number): number {
-    return (Number(qty) / this.getMaxProductQty()) * 100;
-  }
-
-  // ─── DAILY SALES SVG PATH GENERATOR ───
-  getSalesLinePath(): string {
-    const daily = this.data?.daily_sales || [];
-    if (daily.length < 2) return '';
-    const N = daily.length;
-    return daily.map((d: any, i: number) => {
-      const x = (i / (N - 1)) * 430 + 40;
-      const y = 150 - (Number(d.total) / this.maxSale) * 110;
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-  }
-
-  getSalesAreaPath(): string {
-    const daily = this.data?.daily_sales || [];
-    if (daily.length < 2) return '';
-    const N = daily.length;
-    const points = daily.map((d: any, i: number) => {
-      const x = (i / (N - 1)) * 430 + 40;
-      const y = 150 - (Number(d.total) / this.maxSale) * 110;
-      return `${x},${y}`;
+    this.api.get<any>('stock-ai-report').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => this.aiReportText = res.report || ''
     });
-    const startX = 40;
-    const endX = 470;
-    return `M ${startX} 150 L ${points.join(' L ')} L ${endX} 150 Z`;
   }
 
-  getSalesX(i: number): number {
-    const daily = this.data?.daily_sales || [];
-    if (daily.length < 2) return 40;
-    return (i / (daily.length - 1)) * 430 + 40;
+  loadFBData(): void {
+    // Fetch recent internal orders
+    this.api.get<any>('internal-orders').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        const list = res.data || res;
+        if (Array.isArray(list)) {
+          this.recentOrders = list.slice(0, 5);
+        }
+      }
+    });
+
+    // Fetch low stock items
+    this.api.get<any[]>('stocks/alerts/low').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: res => {
+        this.lowStockItems = res || [];
+      }
+    });
   }
 
-  getSalesY(total: number): number {
-    return 150 - (Number(total) / this.maxSale) * 110;
-  }
+
 
   // ─── WASTE TREND SVG PATH GENERATOR ───
   getWasteLinePath(): string {
@@ -200,35 +184,7 @@ export class DashboardComponent implements OnInit {
     return 150 - (Number(total) / this.maxWaste) * 110;
   }
 
-  // ─── CONIC GRADIENT DONUT CHART GENERATOR ───
-  getDonutGradient(): string {
-    const pdvSales = this.data?.sales_by_pdv || [];
-    if (pdvSales.length === 0) return '#E5E4E0 0% 100%';
-    
-    const colors = ['#0D9488', '#D4924A', '#C4A882', '#C0483A', '#D4E8D0', '#EDE9E2'];
-    let accumulatedPercent = 0;
-    
-    const slices = pdvSales.map((s: any, idx: number) => {
-      const share = this.getPdvShare(s.total);
-      const color = colors[idx % colors.length];
-      const start = accumulatedPercent;
-      accumulatedPercent += share;
-      return `${color} ${start}% ${accumulatedPercent}%`;
-    });
-    
-    return slices.join(', ');
-  }
 
-  getDonutColor(idx: number): string {
-    const colors = ['#0D9488', '#D4924A', '#C4A882', '#C0483A', '#D4E8D0', '#EDE9E2'];
-    return colors[idx % colors.length];
-  }
-
-  getPdvShare(total: number): number {
-    const grandTotal = Number(this.data?.total_sales || 0);
-    if (!grandTotal) return 0;
-    return Math.max((Number(total) / grandTotal) * 100, 2);
-  }
 
   getKitchenLoadShare(): number {
     const totalLoad = Number(this.data?.kitchen_load || 0) + Number(this.data?.warehouse_load || 0);
@@ -265,25 +221,7 @@ export class DashboardComponent implements OnInit {
     return found?.product?.name || '-';
   }
 
-  // ─── CAISSIER HELPERS ───
-  getMyAverageSale(): number {
-    const count = Number(this.data?.role_specific?.my_sales_count_today || 0);
-    const total = Number(this.data?.role_specific?.my_sales_today || 0);
-    return count > 0 ? total / count : 0;
-  }
 
-  getPaymentShare(total: number): number {
-    const grandTotal = Number(this.data?.role_specific?.my_sales_today || 0);
-    return grandTotal > 0 ? (Number(total) / grandTotal) * 100 : 0;
-  }
-
-  getMyPaymentBreakdownDominant(): string {
-    const breakdown = this.data?.role_specific?.my_payment_breakdown || [];
-    if (!breakdown.length) return 'Aucun';
-    const sorted = [...breakdown].sort((a: any, b: any) => Number(b.total) - Number(a.total));
-    const dominant = sorted[0]?.payment_method;
-    return dominant === 'cash' ? 'Espèces (Cash) ' : dominant === 'card' ? 'Carte Bancaire ' : dominant || 'Autre';
-  }
 
   placeAIOrder(r: any): void {
     Swal.fire({

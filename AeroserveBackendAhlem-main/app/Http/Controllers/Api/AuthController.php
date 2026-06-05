@@ -87,7 +87,7 @@ class AuthController extends Controller
             'phone'       => 'sometimes|nullable|string|max:20',
             'bio'         => 'sometimes|nullable|string|max:500',
             'age'         => 'sometimes|nullable|integer|min:0|max:120',
-            'avatar'      => 'sometimes|file|image|mimes:jpg,jpeg,png|max:2048',
+            'avatar'      => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $data = $request->only([

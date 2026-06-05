@@ -278,7 +278,11 @@ export class Users implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage = '', 3000);
       },
       error: (err) => {
-        this.formError = err.error?.message || 'Something went wrong';
+        if (err.error?.errors) {
+          this.formError = Object.values(err.error.errors).flat().join(' ');
+        } else {
+          this.formError = err.error?.message || 'Something went wrong';
+        }
       }
     });
   }

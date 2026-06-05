@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { Planning, PointDeVente } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
+import { AuthService } from '../../core/services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -79,50 +80,43 @@ import Swal from 'sweetalert2';
                     @for (day of weekDays; track day) {
                       <td class="day-cell-grid">
                         <div class="shifts-container-grid">
-                          <!-- MATIN -->
-                          <div class="shift-pill matin" 
-                               [class.assigned]="getShiftPlanning(c.id, day, 'MATIN')"
-                               [class.off]="getShiftPlanning(c.id, day, 'MATIN')?.day_status === 'OFF'"
-                               [class.conge]="getShiftPlanning(c.id, day, 'MATIN')?.day_status === 'CONGE'"
-                               (click)="openShiftModal(c, day, 'MATIN')">
-                            <span class="shift-dot"></span>
-                            <div class="shift-details">
-                              <span class="shift-title-text">Matin</span>
-                              <span class="shift-desc-text">
-                                {{ getShiftLabel(c.id, day, 'MATIN') }}
-                              </span>
+                          <!-- ACTIVE SHIFTS ONLY -->
+                          @for (plan of getDayPlannings(c.id, day); track plan.id) {
+                            <div class="shift-pill" 
+                                 [class.assigned]="true"
+                                 [class.off]="plan.day_status === 'OFF'"
+                                 [class.conge]="plan.day_status === 'CONGE'"
+                                 [class.readonly]="isCaissier"
+                                 (click)="openShiftModal(c, day, plan.shift, plan)">
+                              <span class="shift-dot"></span>
+                              <div class="shift-details">
+                                <span class="shift-title-text">
+                                  {{ plan.shift === 'MATIN' ? 'Matin' : plan.shift === 'APRES_MIDI' ? 'Après-midi' : 'Soir' }}
+                                </span>
+                                <span class="shift-desc-text">
+                                  @if (plan.day_status === 'OFF') {
+                                    Repos
+                                  } @else if (plan.day_status === 'CONGE') {
+                                    Congé
+                                  } @else {
+                                    {{ plan.point_de_vente?.name || 'Non spécifié' }}
+                                    <span class="shift-hours">({{ formatTime(plan.start_time) }} - {{ formatTime(plan.end_time) }})</span>
+                                  }
+                                </span>
+                              </div>
                             </div>
-                          </div>
+                          }
 
-                          <!-- APRES-MIDI -->
-                          <div class="shift-pill apres-midi" 
-                               [class.assigned]="getShiftPlanning(c.id, day, 'APRES_MIDI')"
-                               [class.off]="getShiftPlanning(c.id, day, 'APRES_MIDI')?.day_status === 'OFF'"
-                               [class.conge]="getShiftPlanning(c.id, day, 'APRES_MIDI')?.day_status === 'CONGE'"
-                               (click)="openShiftModal(c, day, 'APRES_MIDI')">
-                            <span class="shift-dot"></span>
-                            <div class="shift-details">
-                              <span class="shift-title-text">Après-midi</span>
-                              <span class="shift-desc-text">
-                                {{ getShiftLabel(c.id, day, 'APRES_MIDI') }}
-                              </span>
-                            </div>
-                          </div>
-
-                          <!-- SOIR -->
-                          <div class="shift-pill soir" 
-                               [class.assigned]="getShiftPlanning(c.id, day, 'SOIR')"
-                               [class.off]="getShiftPlanning(c.id, day, 'SOIR')?.day_status === 'OFF'"
-                               [class.conge]="getShiftPlanning(c.id, day, 'SOIR')?.day_status === 'CONGE'"
-                               (click)="openShiftModal(c, day, 'SOIR')">
-                            <span class="shift-dot"></span>
-                            <div class="shift-details">
-                              <span class="shift-title-text">Soir</span>
-                              <span class="shift-desc-text">
-                                {{ getShiftLabel(c.id, day, 'SOIR') }}
-                              </span>
-                            </div>
-                          </div>
+                          <!-- NO SHIFT BUTTON OR PLACEHOLDER -->
+                          @if (getDayPlannings(c.id, day).length === 0) {
+                            @if (!isCaissier) {
+                              <button class="btn-add-shift" (click)="openShiftModal(c, day, 'MATIN')">
+                                + Affecter
+                              </button>
+                            } @else {
+                              <span class="no-shift-placeholder">Repos</span>
+                            }
+                          }
                         </div>
                       </td>
                     }
@@ -161,8 +155,17 @@ import Swal from 'sweetalert2';
                   </div>
 
                   <div class="form-group">
-                    <label>Date & Shift</label>
-                    <input type="text" [value]="formattedDateAndShift" disabled class="disabled-input" />
+                    <label>Date</label>
+                    <input type="text" [value]="formattedDateOnly" disabled class="disabled-input" />
+                  </div>
+
+                  <div class="form-group">
+                    <label>Shift *</label>
+                    <select [(ngModel)]="form.shift" name="shift" required [disabled]="editing" (change)="onShiftChange()">
+                      <option value="MATIN">Matin (08:00 - 16:00)</option>
+                      <option value="APRES_MIDI">Après-midi (16:00 - 00:00)</option>
+                      <option value="SOIR">Soir (00:00 - 08:00)</option>
+                    </select>
                   </div>
 
                   <div class="form-group">
@@ -258,7 +261,18 @@ import Swal from 'sweetalert2';
       border-color: transparent;
     }
     
-    .table-wrap { overflow-x: auto; }
+    .table-container {
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      max-width: 100%;
+      border-radius: var(--radius-md);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
     
     .grid-table {
       width: 100%;
@@ -283,7 +297,7 @@ import Swal from 'sweetalert2';
     }
 
     .day-col-header {
-      min-width: 140px;
+      min-width: 130px;
       text-align: center;
     }
     
@@ -315,12 +329,14 @@ import Swal from 'sweetalert2';
       z-index: 10;
       padding: 10px !important;
       border: 1px solid var(--border) !important;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.02);
     }
 
     .day-cell-grid {
       background: var(--surface);
       border-radius: var(--radius-md);
       border: 1px solid var(--border) !important;
+      min-height: 80px;
     }
 
     .cashier-info-block { display: flex; align-items: center; gap: 8px; }
@@ -337,7 +353,7 @@ import Swal from 'sweetalert2';
 
     .shift-pill {
       background: var(--surface);
-      border: 1px dashed var(--border);
+      border: 1px solid var(--border);
       border-radius: var(--radius-sm);
       padding: 6px 8px;
       cursor: pointer;
@@ -347,10 +363,14 @@ import Swal from 'sweetalert2';
       transition: all var(--transition);
     }
 
-    .shift-pill:hover {
+    .shift-pill:hover:not(.readonly) {
       border-color: var(--accent);
-      background: var(--bg-secondary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       transform: translateY(-1px);
+    }
+    
+    .shift-pill.readonly {
+      cursor: default;
     }
 
     .shift-dot {
@@ -378,19 +398,17 @@ import Swal from 'sweetalert2';
       font-size: 11px;
       color: var(--text-secondary);
       font-weight: 500;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Assigned State */
-    .shift-pill.assigned {
-      background: #FFFBEB;
-      border: 1.5px solid #FCD34D;
-      
-      .shift-dot { background: var(--color-warning); }
-      .shift-title-text { color: #B45309; }
-      .shift-desc-text { color: #B45309; font-weight: 600; }
+    .shift-hours {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 1px;
     }
 
-    /* Active ON State */
+    /* Active ON State (In service) */
     .shift-pill.assigned:not(.off):not(.conge) {
       background: #F0FDF4;
       border: 1.5px solid var(--color-success);
@@ -398,6 +416,7 @@ import Swal from 'sweetalert2';
       .shift-dot { background: var(--color-success); }
       .shift-title-text { color: #15803D; }
       .shift-desc-text { color: #15803D; font-weight: 600; }
+      .shift-hours { color: #166534; font-weight: 400; }
     }
 
     /* Repos OFF State */
@@ -418,6 +437,40 @@ import Swal from 'sweetalert2';
       .shift-dot { background: var(--color-info); }
       .shift-title-text { color: #1D4ED8; }
       .shift-desc-text { color: #1D4ED8; }
+    }
+
+    /* Add Shift Button */
+    .btn-add-shift {
+      width: 100%;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 8px 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all var(--transition);
+    }
+    .btn-add-shift:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(79, 70, 229, 0.04);
+      transform: translateY(-1px);
+    }
+
+    /* No Shift Placeholder for cashier view */
+    .no-shift-placeholder {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 8px;
+      display: block;
+      font-style: italic;
     }
     
     .error-banner { background: #FEE2E2; border-left: 4px solid var(--color-error); color: #B91C1C; padding: 10px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; margin-bottom: 16px; }
@@ -454,10 +507,15 @@ export class PlanningsComponent implements OnInit {
     end_time: '' 
   };
   validationError = '';
+  isCaissier = false;
+  currentUser: any = null;
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private auth: AuthService) {}
 
   ngOnInit(): void {
+    this.currentUser = this.auth.getCurrentUser();
+    this.isCaissier = this.currentUser?.role?.name === 'CAISSIER';
+
     this.calculateWeekDays();
     this.load();
     this.loadDropdownData();
@@ -531,7 +589,11 @@ export class PlanningsComponent implements OnInit {
       next: res => {
         const list = res.data || res;
         if (Array.isArray(list)) {
-          this.cashiers = list.filter(c => c.status === 'active');
+          let activeCashiers = list.filter(c => c.status === 'active');
+          if (this.isCaissier && this.currentUser) {
+            activeCashiers = activeCashiers.filter(c => c.id === this.currentUser.id);
+          }
+          this.cashiers = activeCashiers;
         }
       }
     });
@@ -554,22 +616,28 @@ export class PlanningsComponent implements OnInit {
     });
   }
 
-  getShiftPlanning(cashierId: number, day: Date, shift: string): any {
-    const dayStr = this.formatDateString(day);
-    return this.plannings.find(p => {
-      const pDate = new Date(p.date);
-      return p.caissier_id === cashierId && 
-             this.formatDateString(pDate) === dayStr && 
-             p.shift === shift;
-    });
+  getCleanDateString(dateVal: any): string {
+    if (!dateVal) return '';
+    if (typeof dateVal === 'string') {
+      if (dateVal.includes('T')) {
+        return dateVal.split('T')[0];
+      }
+      return dateVal;
+    }
+    const d = new Date(dateVal);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
-  getShiftLabel(cashierId: number, day: Date, shift: string): string {
-    const plan = this.getShiftPlanning(cashierId, day, shift);
-    if (!plan) return '+ Affecter';
-    if (plan.day_status === 'OFF') return ' Repos';
-    if (plan.day_status === 'CONGE') return ' Congé';
-    return plan.point_de_vente?.name || ' Non spécifié';
+  getDayPlannings(cashierId: number, day: Date): any[] {
+    const dayStr = this.getCleanDateString(day);
+    return this.plannings.filter(p => {
+      const pCashierId = p.user_id || p.caissier_id || p.caissier?.id;
+      const pDateStr = this.getCleanDateString(p.date);
+      return pCashierId === cashierId && pDateStr === dayStr;
+    });
   }
 
   getInitials(user: any): string {
@@ -588,17 +656,15 @@ export class PlanningsComponent implements OnInit {
     return cashier ? `${cashier.first_name} ${cashier.last_name}` : 'Caissier';
   }
 
-  get formattedDateAndShift(): string {
+  get formattedDateOnly(): string {
     if (!this.form.date) return '';
     const d = new Date(this.form.date);
     const months = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc'];
-    const formattedDate = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
-    const shiftLabel = this.form.shift === 'MATIN' ? 'Matin ' : this.form.shift === 'APRES_MIDI' ? 'Après-midi ' : 'Soir ';
-    return `${formattedDate} (${shiftLabel})`;
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
 
-  openShiftModal(cashier: any, day: Date, shift: string): void {
-    const existing = this.getShiftPlanning(cashier.id, day, shift);
+  openShiftModal(cashier: any, day: Date, shift: string, existing?: any): void {
+    if (this.isCaissier) return;
     const dateStr = this.formatDateString(day);
 
     if (existing) {
@@ -644,47 +710,29 @@ export class PlanningsComponent implements OnInit {
 
   closeModal(): void { this.showModal = false; }
 
-  onStatusChange(): void {
-    if (this.form.day_status !== 'ON') {
-      this.form.pdv_id = null;
-      this.form.start_time = '';
-      this.form.end_time = '';
-    } else {
-      // Restore default times
+  onShiftChange(): void {
+    if (this.form.day_status === 'ON') {
       if (this.form.shift === 'MATIN') {
         this.form.start_time = '08:00';
         this.form.end_time = '16:00';
       } else if (this.form.shift === 'APRES_MIDI') {
         this.form.start_time = '16:00';
         this.form.end_time = '00:00';
-      } else {
+      } else if (this.form.shift === 'SOIR') {
         this.form.start_time = '00:00';
         this.form.end_time = '08:00';
       }
     }
   }
 
-  private getWeekBounds(dateStr: string): { start: Date; end: Date } {
-    const d = new Date(dateStr);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d);
-    monday.setDate(diff);
-    monday.setHours(0, 0, 0, 0);
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    sunday.setHours(23, 59, 59, 999);
-    return { start: monday, end: sunday };
-  }
-
-  private hasOverlappingWeek(cashierId: number, dateStr: string): boolean {
-    const { start, end } = this.getWeekBounds(dateStr);
-    return this.plannings.some(p => {
-      if (p.caissier_id !== cashierId) return false;
-      if (this.editing && p.id === this.editId) return false;
-      const pDate = new Date(p.date);
-      return pDate >= start && pDate <= end;
-    });
+  onStatusChange(): void {
+    if (this.form.day_status !== 'ON') {
+      this.form.pdv_id = null;
+      this.form.start_time = '';
+      this.form.end_time = '';
+    } else {
+      this.onShiftChange();
+    }
   }
 
   save(): void {
@@ -699,14 +747,6 @@ export class PlanningsComponent implements OnInit {
         this.validationError = 'Veuillez renseigner les horaires de début et de fin.';
         return;
       }
-    }
-
-    // Block overlapping week planning
-    if (this.form.date && this.hasOverlappingWeek(this.form.caissier_id, this.form.date)) {
-      const { start, end } = this.getWeekBounds(this.form.date);
-      const fmt = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-      this.validationError = `Ce caissier a déjà un planning pour la semaine du ${fmt(start)} au ${fmt(end)}. Veuillez supprimer l'ancien planning avant d'en créer un nouveau.`;
-      return;
     }
 
     const payload = {

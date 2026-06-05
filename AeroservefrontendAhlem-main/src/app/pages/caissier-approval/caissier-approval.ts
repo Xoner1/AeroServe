@@ -25,7 +25,6 @@ export class CaissierApprovalComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
 columns = [
-  { title: 'en_attente', tasks: [] as Caissier[] },
   { title: 'active', tasks: [] as Caissier[] },
   { title: 'inactive', tasks: [] as Caissier[] }
 ];
@@ -40,9 +39,8 @@ columns = [
       next: (res: any) => {
         const users = res.data || res;
 
-        this.columns[0].tasks = users.filter((u: Caissier) => u.status === 'en_attente');
-        this.columns[1].tasks = users.filter((u: Caissier) => u.status === 'active');
-        this.columns[2].tasks = users.filter((u: Caissier) => u.status === 'inactive');
+        this.columns[0].tasks = users.filter((u: Caissier) => u.status === 'active');
+        this.columns[1].tasks = users.filter((u: Caissier) => u.status === 'inactive');
       },
       error: (err) => {
         console.error(err);
@@ -66,12 +64,6 @@ columns = [
     }
 
     const newStatus = column.title;
-
-    // Prevent dragging back to en_attente if already active or inactive
-    if (newStatus === 'en_attente' && (user.status === 'active' || user.status === 'inactive')) {
-      this.showToast('Impossible de remettre un caissier en attente une fois activé ou désactivé.', 'error');
-      return;
-    }
 
     // move UI
     transferArrayItem(

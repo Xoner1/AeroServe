@@ -599,6 +599,185 @@ import { environment } from '../../../environments/environment';
 
       &:hover { background: #FCA5A5; }
     }
+
+    /* ─── Intelligent Assistant (Chatbot) ─── */
+    .chat-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 300;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .chat-drawer {
+      width: 100%;
+      max-width: 400px;
+      height: 100%;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #E2E8F0;
+      animation: slideLeft 0.2s ease-out;
+    }
+
+    @keyframes slideLeft {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
+
+    .chat-header {
+      padding: 16px;
+      background: var(--bg-sidebar);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      h4 { font-size: 13px; font-weight: 600; color: #FFFFFF; margin: 0; }
+      span { font-size: 10px; color: #94A3B8; display: block; }
+    }
+
+    .chat-avatar-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-close {
+      color: #94A3B8;
+      font-size: 16px;
+      cursor: pointer;
+      background: none;
+      border: none;
+
+      &:hover { color: #FFFFFF; }
+    }
+
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background: #F8FAFC;
+    }
+
+    .chat-messages { display: flex; flex-direction: column; gap: 12px; }
+
+    .chat-bubble {
+      display: flex;
+      justify-content: flex-start;
+
+      &.self {
+        justify-content: flex-end;
+
+        .bubble-content {
+          background: var(--accent);
+          color: var(--text-inverse);
+          border: none;
+          border-radius: 12px 12px 2px 12px;
+        }
+      }
+    }
+
+    .bubble-content {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 12px 12px 12px 2px;
+      background: var(--surface);
+      border: 1px solid #E2E8F0;
+      color: var(--text-primary);
+      font-size: 12.5px;
+      line-height: 1.4;
+
+      p { margin: 0; }
+    }
+
+    .loading-bubble { display: flex; gap: 4px; padding: 10px 16px; align-items: center; }
+    .loading-bubble .dot {
+      width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%;
+      animation: chatBounce 1.4s infinite ease-in-out both;
+    }
+    .loading-bubble .dot:nth-child(1) { animation-delay: -0.32s; }
+    .loading-bubble .dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes chatBounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1.0); }
+    }
+
+    .chat-chips {
+      padding: 8px 12px;
+      background: var(--surface);
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      border-top: 1px solid #F1F5F9;
+
+      &::-webkit-scrollbar { display: none; }
+
+      button {
+        background: #F1F5F9;
+        border: 1px solid #E2E8F0;
+        border-radius: 999px;
+        padding: 4px 10px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        font-weight: 500;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all var(--transition);
+
+        &:hover { background: #E2E8F0; color: var(--text-primary); }
+      }
+    }
+
+    .chat-footer {
+      padding: 12px;
+      background: var(--surface);
+      border-top: 1px solid #F1F5F9;
+      display: flex;
+      gap: 8px;
+
+      input {
+        flex: 1;
+        padding: 10px 14px;
+        border: 1px solid #E2E8F0;
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        background: #F8FAFC;
+        outline: none;
+
+        &:focus { border-color: var(--accent); background: var(--surface); }
+      }
+    }
+
+    .chat-send {
+      background: var(--accent);
+      color: #FFFFFF;
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      transition: all var(--transition);
+
+      &:hover { background: #0F766E; }
+    }
   `]
 })
 export class ProductsComponent implements OnInit {
@@ -707,7 +886,7 @@ export class ProductsComponent implements OnInit {
     if (this.userRole === 'CHEF_CUISINE') {
       this.filterType = 'food';
     } else if (this.userRole === 'CHEF_MAGASIN') {
-      this.filterType = 'commercial';
+      this.filterType = 'reserve';
     }
     
     // Default filter pending for RESPONSABLE_ACHAT
@@ -723,7 +902,11 @@ export class ProductsComponent implements OnInit {
   // ================= PRODUCTS =================
   load(): void {
     this.loading = true;
-    this.api.get<any>('products').subscribe({
+    const params: any = { no_paginate: true };
+    if (this.isChefCuisine) {
+      params.all_types = true;
+    }
+    this.api.get<any>('products', params).subscribe({
       next: res => {
         this.products = res.data || res;
         this.applyFilter();
@@ -772,9 +955,12 @@ export class ProductsComponent implements OnInit {
 
   // ================= FILTER =================
   applyFilter(): void {
-    let filtered = this.filterType
-      ? this.products.filter(p => p.type === this.filterType)
-      : [...this.products];
+    let filtered = [...this.products];
+    if (this.filterType === 'reserve') {
+      filtered = filtered.filter(p => p.type === 'commercial' || p.type === 'matiere_premiere');
+    } else if (this.filterType) {
+      filtered = filtered.filter(p => p.type === this.filterType);
+    }
     if (this.filterApprovalStatus) {
       filtered = filtered.filter(p => p.approval_status === this.filterApprovalStatus);
     }

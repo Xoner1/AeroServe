@@ -91,11 +91,6 @@ public function pdvsResponsable()
         return $this->hasMany(Planning::class, 'user_id');
     }
 
-    public function sales(): HasMany
-    {
-        return $this->hasMany(Sale::class, 'user_id');
-    }
-
     public function shifts(): HasMany
     {
         return $this->hasMany(Planning::class, 'user_id');
@@ -116,6 +111,6 @@ public function pdvsResponsable()
         if (!$this->avatar || $this->avatar === 'null') {
             return null;
         }
-        return rtrim(config('app.url'), '/') . '/storage/' . $this->avatar;
+        return url('storage/' . $this->avatar);
     }
 }

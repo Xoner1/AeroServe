@@ -30,68 +30,149 @@ interface WeekPlan {
   imports: [CommonModule, FormsModule, PageLoadingComponent],
   template: `
     @if (loading) {
-      <app-page-loading variant="cards" />
+      <app-page-loading variant="table" [rows]="10" />
     } @else {
       <div class="page">
+        <!-- HEADER -->
         <div class="page-header">
           <div>
             <h2>Menus Hebdomadaires</h2>
-            <p class="subtitle">Planifiez les repas de la semaine, soumettez pour validation des stocks</p>
+            <p class="subtitle">Planifiez les repas de la semaine et suivez l'etat des stocks</p>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:12px;">
             <button class="btn btn-secondary" (click)="openCloneModal()">📋 Cloner une semaine</button>
             <button class="btn btn-primary" (click)="openModal()">+ Nouveau Menu</button>
           </div>
         </div>
 
-        <div class="cards-grid">
-          @for (menu of menus; track menu.id) {
-            <div class="menu-card" [class.active]="menu.status === 'VALIDE'">
-              <div class="menu-header">
-                <span class="menu-icon">📅</span>
-                <span class="badge"
-                      [class.badge-neutral]="menu.status === 'BROUILLON'"
-                      [class.badge-success]="menu.status === 'VALIDE'"
-                      [class.badge-error]="menu.status === 'REFUSE'">
-                  {{ menu.status === 'BROUILLON' ? 'Brouillon' : menu.status === 'VALIDE' ? 'Validé' : 'Refusé' }}
-                </span>
-              </div>
-              <h3>{{ menu.name }}</h3>
-              <p class="menu-dates">
-                Du {{ menu.start_date | date:'dd/MM/yyyy' }} au {{ menu.end_date | date:'dd/MM/yyyy' }}
-                @if (menu.staff_count) { · {{ menu.staff_count }} personnes }
-              </p>
+        <div class="menus-workspace">
+          <!-- SIDEBAR LIST (Left) -->
+          <div class="menus-sidebar">
+            <h3 class="sidebar-title">Calendrier des Menus</h3>
+            <div class="menu-list">
+              @for (menu of menus; track menu.id) {
+                <div class="menu-list-item" [class.active]="selectedMenu?.id === menu.id" (click)="selectMenu(menu)">
+                  <div class="item-header">
+                    <span class="item-icon">📅</span>
+                    <span class="badge"
+                          [class.badge-neutral]="menu.status === 'BROUILLON'"
+                          [class.badge-success]="menu.status === 'VALIDE'"
+                          [class.badge-error]="menu.status === 'REFUSE'">
+                      {{ menu.status === 'BROUILLON' ? 'Brouillon' : menu.status === 'VALIDE' ? 'Valide' : 'Refuse' }}
+                    </span>
+                  </div>
+                  <h4 class="item-name">{{ menu.name }}</h4>
+                  <span class="item-dates">Du {{ menu.start_date | date:'dd/MM' }} au {{ menu.end_date | date:'dd/MM' }}</span>
+                </div>
+              }
+              @if (menus.length === 0) {
+                <div class="empty-sidebar">Aucun menu</div>
+              }
+            </div>
+          </div>
 
-              <div class="menu-preview-courses">
-                <span class="course-pill">🍲 Soupes: {{ getCourseCount(menu, 'breakfast') }}</span>
-                <span class="course-pill">🥗 Salades: {{ getCourseCount(menu, 'snack') }}</span>
-                <span class="course-pill">🍽️ Plats: {{ getCourseCount(menu, 'lunch') }}</span>
-                <span class="course-pill">🍰 Desserts: {{ getCourseCount(menu, 'dinner') }}</span>
+          <!-- DETAILED PREVIEW (Right) -->
+          <div class="menu-preview-panel">
+            @if (selectedMenu) {
+              <div class="preview-header">
+                <div class="preview-title-block">
+                  <span class="preview-icon">📅</span>
+                  <div>
+                    <h3>{{ selectedMenu.name }}</h3>
+                    <p class="preview-dates">Semaine du {{ selectedMenu.start_date | date:'dd/MM/yyyy' }} au {{ selectedMenu.end_date | date:'dd/MM/yyyy' }}</p>
+                  </div>
+                </div>
+                
+                <div class="preview-actions">
+                  @if (selectedMenu.status === 'BROUILLON') {
+                    <button class="btn btn-secondary" (click)="editMenu(selectedMenu)">Modifier</button>
+                    <button class="btn btn-primary" style="background:var(--accent);" (click)="submitMenu(selectedMenu)">Soumettre</button>
+                  }
+                  <button class="btn btn-danger" style="padding:0 12px;" (click)="deleteMenu(selectedMenu.id)">Supprimer</button>
+                </div>
               </div>
 
-              @if (menu.comment) {
-                <div class="menu-comment">{{ menu.comment }}</div>
+              <!-- KPIs -->
+              <div class="preview-kpis">
+                <div class="kpi-box">
+                  <span class="kpi-label">👥 Staff Planifie</span>
+                  <span class="kpi-value">{{ selectedMenu.staff_count || 0 }} pers.</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-label">🍲 Total Plats</span>
+                  <span class="kpi-value">{{ (selectedMenu.items || []).length }} plats</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-label">🏷️ Statut</span>
+                  <span class="badge"
+                        [class.badge-neutral]="selectedMenu.status === 'BROUILLON'"
+                        [class.badge-success]="selectedMenu.status === 'VALIDE'"
+                        [class.badge-error]="selectedMenu.status === 'REFUSE'">
+                    {{ selectedMenu.status === 'BROUILLON' ? 'Brouillon' : selectedMenu.status === 'VALIDE' ? 'Valide' : 'Refuse' }}
+                  </span>
+                </div>
+              </div>
+
+              @if (selectedMenu.comment) {
+                <div class="preview-comment-box">
+                  <strong>⚠️ Note/Motif de rejet :</strong>
+                  <p>{{ selectedMenu.comment }}</p>
+                </div>
               }
 
-              <div class="menu-actions">
-                @if (menu.status === 'BROUILLON') {
-                  <button class="btn btn-secondary" style="flex:1;" (click)="editMenu(menu)">Modifier</button>
-                  <button class="btn btn-primary" style="flex:1; background:var(--accent);" (click)="submitMenu(menu)">Soumettre</button>
-                  <button class="btn btn-danger" style="padding:0 12px;" (click)="deleteMenu(menu.id)">Supprimer</button>
-                } @else {
-                  <button class="btn btn-secondary" style="flex:1;" (click)="viewMenu(menu)">Détails</button>
-                  <button class="btn btn-danger" style="padding:0 12px;" (click)="deleteMenu(menu.id)">Supprimer</button>
-                }
+              <!-- WEEKLY DISHES GRID -->
+              <div class="weekly-schedule-grid">
+                <h4 class="section-title">Fiche de Planification des Plats</h4>
+                <div class="grid-table-container">
+                  <table class="grid-table">
+                    <thead>
+                      <tr>
+                        <th>Repas</th>
+                        @for (day of daysList; track day.key) {
+                          <th>{{ day.label }}</th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="meal-header-cell">🍲 Soupe</td>
+                        @for (day of daysList; track day.key) {
+                          <td class="dish-cell">{{ getDishName(selectedMenu, day.key, 'breakfast') }}</td>
+                        }
+                      </tr>
+                      <tr>
+                        <td class="meal-header-cell">🥗 Salade</td>
+                        @for (day of daysList; track day.key) {
+                          <td class="dish-cell">{{ getDishName(selectedMenu, day.key, 'snack') }}</td>
+                        }
+                      </tr>
+                      <tr>
+                        <td class="meal-header-cell">🍽️ Plat Principal</td>
+                        @for (day of daysList; track day.key) {
+                          <td class="dish-cell">{{ getDishName(selectedMenu, day.key, 'lunch') }}</td>
+                        }
+                      </tr>
+                      <tr>
+                        <td class="meal-header-cell">🍰 Dessert</td>
+                        @for (day of daysList; track day.key) {
+                          <td class="dish-cell">{{ getDishName(selectedMenu, day.key, 'dinner') }}</td>
+                        }
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          }
-          @if (menus.length === 0) {
-            <div class="empty-state" style="grid-column:1/-1;">
-              Aucun menu hebdomadaire enregistré. Cliquez sur "+ Nouveau Menu" pour commencer.
-            </div>
-          }
+            } @else {
+              <div class="empty-preview-state">
+                <div class="empty-icon">📂</div>
+                <h3>Selectionnez un menu</h3>
+                <p>Choisissez un menu hebdomadaire dans la liste de gauche pour afficher les details de sa planification.</p>
+              </div>
+            }
+          </div>
         </div>
 
+        <!-- CREATE/EDIT MODAL -->
         @if (showModal) {
           <div class="modal-overlay" (click)="closeModal()">
             <div class="modal-card modal-wide" (click)="$event.stopPropagation()">
@@ -104,14 +185,14 @@ interface WeekPlan {
               <form (ngSubmit)="save()">
                 <div class="modal-body">
                   <div class="form-section">
-                    <h4>Informations Générales</h4>
+                    <h4>Informations Generales</h4>
                     <div class="form-group">
                       <label>Nom du Menu *</label>
                       <input [(ngModel)]="form.name" name="name" placeholder="Ex: Menu Hiver - Semaine 45" required />
                     </div>
                     <div class="form-row">
                       <div class="form-group">
-                        <label>Début de la semaine *</label>
+                        <label>Debut de la semaine *</label>
                         <input type="date" [(ngModel)]="form.start_date" name="start_date" required />
                       </div>
                       <div class="form-group">
@@ -146,7 +227,7 @@ interface WeekPlan {
                       <div class="course-slot">
                         <div class="slot-label">Soupe *</div>
                         <select [(ngModel)]="weekPlan[activeTab].breakfast" name="breakfast_{{activeTab}}" required>
-                          <option [value]="0">-- Sélectionner --</option>
+                          <option [value]="0">-- Selectionner --</option>
                           @for (p of foodProducts; track p.id) {
                             <option [value]="p.id">{{ p.name }}</option>
                           }
@@ -156,7 +237,7 @@ interface WeekPlan {
                       <div class="course-slot">
                         <div class="slot-label">Salade *</div>
                         <select [(ngModel)]="weekPlan[activeTab].snack" name="snack_{{activeTab}}" required>
-                          <option [value]="0">-- Sélectionner --</option>
+                          <option [value]="0">-- Selectionner --</option>
                           @for (p of foodProducts; track p.id) {
                             <option [value]="p.id">{{ p.name }}</option>
                           }
@@ -166,7 +247,7 @@ interface WeekPlan {
                       <div class="course-slot">
                         <div class="slot-label">Plat Principal *</div>
                         <select [(ngModel)]="weekPlan[activeTab].lunch" name="lunch_{{activeTab}}" required>
-                          <option [value]="0">-- Sélectionner --</option>
+                          <option [value]="0">-- Selectionner --</option>
                           @for (p of foodProducts; track p.id) {
                             <option [value]="p.id">{{ p.name }}</option>
                           }
@@ -176,7 +257,7 @@ interface WeekPlan {
                       <div class="course-slot">
                         <div class="slot-label">Dessert *</div>
                         <select [(ngModel)]="weekPlan[activeTab].dinner" name="dinner_{{activeTab}}" required>
-                          <option [value]="0">-- Sélectionner --</option>
+                          <option [value]="0">-- Selectionner --</option>
                           @for (p of foodProducts; track p.id) {
                             <option [value]="p.id">{{ p.name }}</option>
                           }
@@ -189,7 +270,7 @@ interface WeekPlan {
                 <div class="modal-footer">
                   <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
                   <button type="submit" class="btn btn-primary">
-                    {{ editing ? 'Sauvegarder le brouillon' : 'Créer le brouillon' }}
+                    {{ editing ? 'Sauvegarder le brouillon' : 'Creer le brouillon' }}
                   </button>
                 </div>
               </form>
@@ -197,6 +278,7 @@ interface WeekPlan {
           </div>
         }
 
+        <!-- CLONE MODAL -->
         @if (showCloneModal) {
           <div class="modal-overlay" (click)="closeCloneModal()">
             <div class="modal-card" (click)="$event.stopPropagation()">
@@ -208,7 +290,7 @@ interface WeekPlan {
                 <div class="form-section">
                   <h4>Menu source</h4>
                   <div class="form-group">
-                    <label>Sélectionner un menu existant *</label>
+                    <label>Selectionner un menu existant *</label>
                     <select [(ngModel)]="cloneForm.source_menu_id" name="clone_source" required>
                       <option [value]="0">-- Choisir --</option>
                       @for (m of menus; track m.id) {
@@ -221,7 +303,7 @@ interface WeekPlan {
                   <h4>Semaine cible</h4>
                   <div class="form-row">
                     <div class="form-group">
-                      <label>Début *</label>
+                      <label>Debut *</label>
                       <input type="date" [(ngModel)]="cloneForm.target_week_start" name="clone_start" required />
                     </div>
                     <div class="form-group">
@@ -244,51 +326,6 @@ interface WeekPlan {
             </div>
           </div>
         }
-
-        @if (showDetailModal && selectedMenu) {
-          <div class="modal-overlay" (click)="closeDetailModal()">
-            <div class="modal-card modal-wide" (click)="$event.stopPropagation()">
-              <div class="modal-header">
-                <h3>{{ selectedMenu.name }}</h3>
-                <button (click)="closeDetailModal()" style="font-size:16px;">✕</button>
-              </div>
-              <div class="modal-body">
-                <p><strong>Semaine:</strong> {{ selectedMenu.start_date | date:'dd/MM/yyyy' }} — {{ selectedMenu.end_date | date:'dd/MM/yyyy' }}</p>
-                <p><strong>Staff:</strong> {{ selectedMenu.staff_count }} personnes</p>
-                <p>
-                  <strong>Statut:</strong>
-                  <span class="badge"
-                        [class.badge-neutral]="selectedMenu.status === 'BROUILLON'"
-                        [class.badge-success]="selectedMenu.status === 'VALIDE'"
-                        [class.badge-error]="selectedMenu.status === 'REFUSE'">
-                    {{ selectedMenu.status === 'BROUILLON' ? 'Brouillon' : selectedMenu.status === 'VALIDE' ? 'Validé' : 'Refusé' }}
-                  </span>
-                </p>
-                @if (selectedMenu.comment) {
-                  <div class="menu-comment">{{ selectedMenu.comment }}</div>
-                }
-                <h4 style="margin-top:16px;">Plats</h4>
-                <table class="premium-table">
-                  <thead><tr><th>Jour</th><th>Soupe</th><th>Salade</th><th>Plat</th><th>Dessert</th></tr></thead>
-                  <tbody>
-                    @for (day of daysList; track day.key) {
-                      <tr>
-                        <td><strong>{{ day.label }}</strong></td>
-                        <td>{{ getDishName(selectedMenu, day.key, 'breakfast') }}</td>
-                        <td>{{ getDishName(selectedMenu, day.key, 'snack') }}</td>
-                        <td>{{ getDishName(selectedMenu, day.key, 'lunch') }}</td>
-                        <td>{{ getDishName(selectedMenu, day.key, 'dinner') }}</td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-              <div class="modal-footer">
-                <button class="btn btn-secondary" (click)="closeDetailModal()">Fermer</button>
-              </div>
-            </div>
-          </div>
-        }
       </div>
     }
   `,
@@ -298,53 +335,242 @@ interface WeekPlan {
     .page-header h2 { margin: 0; font-size: 24px; font-weight: 600; color: var(--text-primary); }
     .subtitle { margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary); }
 
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
-
-    .menu-card {
+    .menus-workspace {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 24px;
+      min-height: calc(100vh - 200px);
+      align-items: stretch;
+    }
+    
+    .menus-sidebar {
       background: var(--surface);
       border-radius: var(--radius-lg);
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
       border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+    .sidebar-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 12px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .menu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .menu-list-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      cursor: pointer;
       transition: all var(--transition);
       display: flex;
       flex-direction: column;
+      gap: 4px;
     }
-    .menu-card:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--shadow-md); }
-    .menu-card.active { border-color: var(--accent); background: #F0FDF4; }
-
-    .menu-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .menu-icon { font-size: 20px; }
-    .menu-card h3 { margin: 0 0 4px; font-size: 16px; font-weight: 600; color: var(--text-primary); }
-    .menu-dates { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 12px; }
-
-    .menu-preview-courses {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 16px;
-      background: var(--bg-secondary);
-      padding: 12px;
-      border-radius: var(--radius-md);
-      font-size: 12px;
+    .menu-list-item:hover {
+      border-color: var(--accent);
+      background: var(--surface);
+      transform: translateX(2px);
+    }
+    .menu-list-item.active {
+      border-color: var(--accent);
+      background: #F0FDF4;
+      box-shadow: var(--shadow-sm);
+    }
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-icon {
+      font-size: 16px;
+    }
+    .item-name {
+      margin: 4px 0 0 0;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .item-dates {
+      font-size: 11.5px;
       color: var(--text-secondary);
     }
-    .course-pill { display: flex; align-items: center; gap: 4px; }
+    .empty-sidebar {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
 
-    .menu-comment {
+    .menu-preview-panel {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 16px;
+    }
+    .preview-title-block {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .preview-icon {
+      font-size: 28px;
+    }
+    .preview-title-block h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .preview-dates {
+      margin: 2px 0 0 0;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+    .preview-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .preview-kpis {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .kpi-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .kpi-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .preview-comment-box {
       background: #FEF2F2;
       border: 1px solid #FECACA;
       border-radius: var(--radius-md);
-      padding: 10px;
-      font-size: 11px;
+      padding: 12px 16px;
+      font-size: 12.5px;
       color: #991B1B;
-      white-space: pre-wrap;
-      margin-bottom: 12px;
-      max-height: 100px;
-      overflow-y: auto;
+    }
+    .preview-comment-box p {
+      margin: 4px 0 0 0;
     }
 
-    .menu-actions { display: flex; gap: 8px; margin-top: auto; }
+    .weekly-schedule-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .section-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .grid-table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+    }
+    .grid-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .grid-table th {
+      background: #F8FAFC;
+      color: var(--text-secondary);
+      font-weight: 600;
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      border-right: 1px solid var(--border-light);
+    }
+    .grid-table th:last-child {
+      border-right: none;
+    }
+    .grid-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-light);
+      border-right: 1px solid var(--border-light);
+      color: var(--text-secondary);
+    }
+    .grid-table td:last-child {
+      border-right: none;
+    }
+    .grid-table tr:last-child td {
+      border-bottom: none;
+    }
+    .meal-header-cell {
+      font-weight: 700;
+      background: #F8FAFC;
+      color: var(--text-primary) !important;
+      width: 120px;
+    }
+    .dish-cell {
+      min-width: 100px;
+      font-weight: 500;
+    }
+
+    .empty-preview-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 80px 24px;
+      text-align: center;
+      flex: 1;
+    }
+    .empty-icon {
+      font-size: 40px;
+    }
+    .empty-preview-state h3 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .empty-preview-state p {
+      margin: 0;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      max-width: 300px;
+    }
 
     .modal-wide { max-width: 680px; }
 
@@ -399,20 +625,6 @@ interface WeekPlan {
     .slot-label { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); }
     .course-slot select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-md); font-size: 13px; outline: none; }
     .course-slot select:focus { border-color: var(--accent); }
-
-    .empty-state {
-      background: var(--surface);
-      border: 1px dashed var(--border);
-      border-radius: var(--radius-lg);
-      padding: 40px;
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
-
-    .premium-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
-    .premium-table th { text-align: left; padding: 8px 10px; background: #F8FAFC; color: var(--text-secondary); font-weight: 600; border-bottom: 1px solid #E2E8F0; }
-    .premium-table td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; color: var(--text-secondary); }
   `]
 })
 export class MenusComponent implements OnInit {
@@ -468,12 +680,31 @@ export class MenusComponent implements OnInit {
     return found ? found.label : key;
   }
 
+  selectMenu(menu: Menu): void {
+    this.selectedMenu = menu;
+  }
+
   load(): void {
     this.loading = true;
     this.api.get<any>('menus').subscribe({
       next: res => {
         this.menus = res.data || res;
         this.loading = false;
+        
+        // Auto-select first menu
+        if (this.menus.length > 0) {
+          if (this.editId) {
+            const updated = this.menus.find(m => m.id === this.editId);
+            if (updated) this.selectedMenu = updated;
+          } else if (this.selectedMenu) {
+            const current = this.menus.find(m => m.id === this.selectedMenu!.id);
+            this.selectedMenu = current || this.menus[0];
+          } else {
+            this.selectedMenu = this.menus[0];
+          }
+        } else {
+          this.selectedMenu = null;
+        }
       },
       error: () => { this.loading = false; },
       complete: () => { this.loading = false; }
@@ -481,7 +712,7 @@ export class MenusComponent implements OnInit {
   }
 
   loadAllProducts(): void {
-    this.api.get<any>('products').subscribe(res => {
+    this.api.get<any>('products', { no_paginate: true }).subscribe(res => {
       this.allProducts = res.data || res;
       this.foodProducts = this.allProducts.filter(p => p.type === 'food' && p.approval_status === 'approved');
     });
@@ -800,6 +1031,9 @@ export class MenusComponent implements OnInit {
               icon: 'success',
               confirmButtonColor: '#0D9488'
             });
+            if (this.selectedMenu?.id === id) {
+              this.selectedMenu = null;
+            }
             this.load();
           },
           error: (err: any) => {

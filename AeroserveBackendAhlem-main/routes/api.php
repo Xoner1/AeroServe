@@ -12,7 +12,7 @@ use App\Http\Controllers\Api\PurchaseNeedController;
 use App\Http\Controllers\Api\PlanningController;
 use App\Http\Controllers\Api\PointDeVenteController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\SaleController;
+
 use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\StockForecastController;
 use App\Http\Controllers\Api\UserController;
@@ -66,8 +66,6 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::get('/airports', [PointDeVenteController::class, 'airports']);
 
         Route::get('/caissiers/pending', [UserController::class, 'pendingCaissiers']);
-        Route::put('/users/{user}/approve', [UserController::class, 'approveCaissier']);
-        Route::put('/users/{user}/reject', [UserController::class, 'rejectCaissier']);
 
         Route::get('/users/check-email', [UserController::class, 'checkEmail']);
     });
@@ -78,16 +76,18 @@ Route::middleware(['jwt.auth'])->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:RESPONSABLE_FB,SUPER_ADMIN')->group(function () {
-        Route::post('/caissiers', [UserController::class, 'createCaissier']);
-        Route::get('/caissier', [UserController::class, 'listCaissiers']);
         Route::put('/caissiers/{user}/status', [UserController::class, 'updateCaissierStatus']);
         Route::put('/users/{user}/caissier', [UserController::class, 'updateCaissier']);
         Route::delete('/users/{user}/caissier', [UserController::class, 'deleteCaissier']);
+    });
 
-        Route::post('/products/by-categories', [InternalOrderController::class, 'getProductsByCategories']);
-
-        Route::apiResource('internal-orders', InternalOrderController::class)->only(['index', 'store', 'show', 'destroy']);
-
+    /*
+    |----------------------------------------------------------------------
+    | Planning & Point De Vente (Access: SUPER_ADMIN, RESPONSABLE_FB, CAISSIER)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:SUPER_ADMIN,RESPONSABLE_FB,CAISSIER')->group(function () {
+        Route::get('/caissier', [UserController::class, 'listCaissiers']);
         Route::apiResource('plannings', PlanningController::class);
         Route::post('/plannings/bulk', [PlanningController::class, 'bulkStore']);
         Route::get('/points-de-vente', [PointDeVenteController::class, 'index']);
@@ -123,11 +123,15 @@ Route::middleware(['jwt.auth'])->group(function () {
     | Chef Magasin (exclusif : stocks)
     |----------------------------------------------------------------------
     */
-    Route::middleware('role:CHEF_MAGASIN,SUPER_ADMIN,RESPONSABLE_FB')->group(function () {
+    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,SUPER_ADMIN,RESPONSABLE_FB')->group(function () {
         Route::apiResource('stocks', StockController::class)->only(['index', 'show']);
         Route::post('/stocks/{stock}/movements', [StockController::class, 'addMovement']);
         Route::get('/stocks/{stock}/movements', [StockController::class, 'movements']);
         Route::put('/stocks/{stock}/threshold', [StockController::class, 'updateThreshold']);
+
+        Route::post('/products/by-categories', [InternalOrderController::class, 'getProductsByCategories']);
+        Route::post('/internal-orders', [InternalOrderController::class, 'store']);
+        Route::delete('/internal-orders/{internalOrder}', [InternalOrderController::class, 'destroy']);
     });
 
     /*
@@ -136,7 +140,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     | ↳ Remplace les deux blocs séparés qui causaient un conflit de routes
     |----------------------------------------------------------------------
     */
-    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,SUPER_ADMIN')->group(function () {
+    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,RESPONSABLE_ACHAT,SUPER_ADMIN')->group(function () {
         Route::apiResource('products', ProductController::class);
         Route::put('/products/{product}/toggle-active', [ProductController::class, 'toggleActive']);
 
@@ -162,6 +166,7 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::get('/stock-forecast', [StockForecastController::class, 'forecast']);
         Route::get('/stock-anomalies', [StockForecastController::class, 'anomalies']);
         Route::get('/stock-recommendations', [StockForecastController::class, 'recommendations']);
+        Route::get('/stock-ai-report', [StockForecastController::class, 'aiReport']);
         Route::put('/products/{product}/approve', [ProductController::class, 'approveProduct']);
         Route::post('/categories', [ProductController::class, 'storeCategory']);
         Route::put('/categories/{category}', [ProductController::class, 'updateCategory']);
@@ -174,7 +179,7 @@ Route::middleware(['jwt.auth'])->group(function () {
     |----------------------------------------------------------------------
     */
     Route::middleware('role:CAISSIER,SUPER_ADMIN')->group(function () {
-        Route::apiResource('sales', SaleController::class)->only(['index', 'store', 'show']);
+
     });
 
     /*

@@ -8,6 +8,8 @@ use App\Models\StockMovement;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class StockForecastController extends Controller
 {
@@ -154,5 +156,98 @@ class StockForecastController extends Controller
         }
 
         return response()->json($recommendations);
+    }
+
+    /**
+     * Rapport d'analyse généré par l'IA (OpenAI ou Groq)
+     */
+    public function aiReport(): JsonResponse
+    {
+        $recommendationsResponse = $this->recommendations();
+        $recommendations = json_decode($recommendationsResponse->getContent(), true);
+
+        if (empty($recommendations)) {
+            return response()->json([
+                'success' => true,
+                'report' => "Le stock est actuellement stable. Il n'y a aucune recommandation critique d'achat pour le moment.",
+                'source' => 'system'
+            ]);
+        }
+
+        $context = "Données actuelles de stock critique et recommandations d'achats :\n";
+        foreach ($recommendations as $rec) {
+            $context .= "- {$rec['name']} ({$rec['type']}) : Stock actuel = {$rec['current_stock']} {$rec['unit']}. " .
+                        "S'épuise dans {$rec['days_left']} jours. " .
+                        "Quantité recommandée à commander: {$rec['recommended_qty']} {$rec['unit']}.\n";
+        }
+
+        $openaiKey = config('services.openai.key');
+        $groqKey = config('services.groq.key');
+
+        $systemPrompt = "Tu es un expert en gestion de stock et logistique pour un restaurant (AeroServe).\n" .
+                        "Analyse les données suivantes et génère un résumé narratif professionnel et concis (environ 3 à 5 phrases) pour le responsable des achats. " .
+                        "Mets en évidence les urgences absolues. Utilise un ton professionnel en français.";
+
+        // 1. Try OpenAI
+        if ($openaiKey && $openaiKey !== 'null' && !empty($openaiKey)) {
+            try {
+                $response = Http::withHeaders([
+                    'Authorization' => "Bearer {$openaiKey}",
+                    'Content-Type' => 'application/json',
+                ])->post("https://api.openai.com/v1/chat/completions", [
+                    'model' => 'gpt-4o-mini',
+                    'messages' => [
+                        ['role' => 'system', 'content' => $systemPrompt],
+                        ['role' => 'user', 'content' => $context]
+                    ],
+                    'temperature' => 0.4,
+                    'max_tokens' => 300
+                ]);
+
+                if ($response->successful()) {
+                    return response()->json([
+                        'success' => true,
+                        'report' => trim($response->json('choices.0.message.content')),
+                        'source' => 'openai'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('OpenAI Stock AI error: ' . $e->getMessage());
+            }
+        }
+
+        // 2. Try Groq
+        if ($groqKey && $groqKey !== 'null' && !empty($groqKey)) {
+            try {
+                $response = Http::withHeaders([
+                    'Authorization' => "Bearer {$groqKey}",
+                    'Content-Type' => 'application/json',
+                ])->post("https://api.groq.com/openai/v1/chat/completions", [
+                    'model' => 'llama-3.1-8b-instant',
+                    'messages' => [
+                        ['role' => 'system', 'content' => $systemPrompt],
+                        ['role' => 'user', 'content' => $context]
+                    ],
+                    'temperature' => 0.4,
+                    'max_tokens' => 300
+                ]);
+
+                if ($response->successful()) {
+                    return response()->json([
+                        'success' => true,
+                        'report' => trim($response->json('choices.0.message.content')),
+                        'source' => 'groq'
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Groq Stock AI error: ' . $e->getMessage());
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'report' => "Veuillez vérifier les alertes de stock manuel. L'IA est actuellement indisponible.",
+            'source' => 'system'
+        ]);
     }
 }

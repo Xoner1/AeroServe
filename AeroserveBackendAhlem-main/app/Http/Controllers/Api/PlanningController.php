@@ -22,7 +22,9 @@ class PlanningController extends Controller
             $query->where('date', '<=', $request->date_to);
         }
 
-        if ($request->has('caissier_id')) {
+        if (auth()->user()->role->name === 'CAISSIER') {
+            $query->where('user_id', auth()->id());
+        } elseif ($request->has('caissier_id')) {
             $query->where('user_id', $request->caissier_id);
         }
 
@@ -57,26 +59,31 @@ class PlanningController extends Controller
                 return response()->json(['message' => 'Le point de vente est obligatoire pour un shift actif.'], 422);
             }
             
-            // Get existing shifts for the day and shift
-            $existingShifts = Planning::where('user_id', $caissierId)
+            // Get existing shifts for the day and shift for max PDV limit
+            $sameShiftShifts = Planning::where('user_id', $caissierId)
                 ->where('date', $date)
                 ->where('shift', $shift)
                 ->where('is_day_off', false)
                 ->get();
 
             // Enforce max 2 PDVs per shift
-            $pdvIds = array_unique(array_merge($existingShifts->pluck('pdv_id')->toArray(), [$request->pdv_id]));
+            $pdvIds = array_unique(array_merge($sameShiftShifts->pluck('pdv_id')->toArray(), [$request->pdv_id]));
             if (count($pdvIds) > 2) {
                 return response()->json([
                     'message' => 'Un caissier ne peut pas être affecté à plus de 2 points de vente différents pour le même shift.'
                 ], 422);
             }
 
-            // Check for time overlaps inside the same shift
+            // Check for time overlaps against ALL shifts for the day
+            $allDayShifts = Planning::where('user_id', $caissierId)
+                ->where('date', $date)
+                ->where('is_day_off', false)
+                ->get();
+
             $start = $request->start_time;
             $end = $request->end_time;
             if ($start && $end) {
-                foreach ($existingShifts as $s) {
+                foreach ($allDayShifts as $s) {
                     if ($s->start_time && $s->end_time) {
                         if ($start < $s->end_time && $s->start_time < $end) {
                             return response()->json([
@@ -135,8 +142,8 @@ class PlanningController extends Controller
                 return response()->json(['message' => 'Le point de vente est obligatoire pour un shift actif.'], 422);
             }
             
-            // Get other shifts for the day and shift
-            $existingShifts = Planning::where('user_id', $caissierId)
+            // Get other shifts for the day and shift for max PDV limit
+            $sameShiftShifts = Planning::where('user_id', $caissierId)
                 ->where('date', $date)
                 ->where('shift', $shift)
                 ->where('id', '!=', $planning->id)
@@ -144,16 +151,22 @@ class PlanningController extends Controller
                 ->get();
 
             // Enforce max 2 PDVs per shift
-            $pdvIds = array_unique(array_merge($existingShifts->pluck('pdv_id')->toArray(), [$pdvId]));
+            $pdvIds = array_unique(array_merge($sameShiftShifts->pluck('pdv_id')->toArray(), [$pdvId]));
             if (count($pdvIds) > 2) {
                 return response()->json([
                     'message' => 'Un caissier ne peut pas être affecté à plus de 2 points de vente différents pour le même shift.'
                 ], 422);
             }
 
-            // Check for time overlaps
+            // Check for time overlaps against ALL shifts for the day
+            $allDayShifts = Planning::where('user_id', $caissierId)
+                ->where('date', $date)
+                ->where('id', '!=', $planning->id)
+                ->where('is_day_off', false)
+                ->get();
+
             if ($start && $end) {
-                foreach ($existingShifts as $s) {
+                foreach ($allDayShifts as $s) {
                     if ($s->start_time && $s->end_time) {
                         if ($start < $s->end_time && $s->start_time < $end) {
                             return response()->json([

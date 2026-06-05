@@ -181,9 +181,9 @@ class SampleDataSeeder extends Seeder
 
         foreach ([
             [$eau, 120, 20, 'piece'],
-            [$poulet, 45, 10, 'kg'],
+            [$poulet, 4.0, 10, 'kg'], // Low stock to simulate shortfall
             [$pain, 200, 30, 'piece'],
-            [$salade, 35, 8, 'kg'],
+            [$salade, 1.0, 8, 'kg'],  // Low stock to simulate shortfall
             [$sandwich, 60, 12, 'piece'],
         ] as [$product, $qty, $threshold, $unit]) {
             $stock = $product->stock()->firstOrCreate([], [
@@ -246,6 +246,9 @@ class SampleDataSeeder extends Seeder
             ['product_id' => $sandwich->id, 'day_of_week' => 'monday'],
             ['meal_type' => 'lunch']
         );
+
+        // Generate purchase needs calculation for the seeded menu (Feature 6)
+        \App\Http\Controllers\Api\PurchaseNeedController::generateForMenu($menu);
 
         Planning::firstOrCreate(
             ['user_id' => $caissier->id, 'date' => now()->toDateString()],

@@ -10,6 +10,10 @@ export function roleGuard(...allowedRoles: string[]): CanActivateFn {
     if (auth.getUserRole() === 'SUPER_ADMIN' || auth.hasRole(...allowedRoles)) {
       return true;
     }
+    
+    if (auth.getUserRole() === 'CAISSIER') {
+      return router.createUrlTree(['/plannings']);
+    }
     return router.createUrlTree(['/dashboard']);
   };
 }

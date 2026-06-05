@@ -17,9 +17,14 @@ use Illuminate\Support\Facades\DB;
 class PointDeVenteController extends Controller
 {
   public function index()
-{
-    return PointDeVente::with(['airport', 'responsableFb'])->get();
-}
+  {
+      $user = auth()->user();
+      $query = PointDeVente::with(['airport', 'responsableFb']);
+      if ($user && $user->role?->name === 'RESPONSABLE_FB') {
+          $query->where('responsable_fb_id', $user->id);
+      }
+      return $query->get();
+  }
 
 public function store(Request $request): JsonResponse
 {
@@ -46,11 +51,11 @@ public function store(Request $request): JsonResponse
                     abort(422, 'Selected user is not a RESPONSABLE_FB.');
                 }
 
-                // 3. One PDV per responsible (STRICT RULE)
-                $exists = PointDeVente::where('responsable_fb_id', $responsableId)->exists();
+                // 3. Max 2 PDV per responsible (STRICT RULE)
+                $count = PointDeVente::where('responsable_fb_id', $responsableId)->count();
 
-                if ($exists) {
-                    abort(422, 'This responsible FB is already assigned to a point de vente.');
+                if ($count >= 2) {
+                    abort(422, 'This responsible FB is already assigned to maximum 2 points de vente.');
                 }
             }
 
@@ -107,13 +112,13 @@ public function update(Request $request, $id)
 
     if ($request->has('responsable_fb_id') && $newResponsable != $oldResponsable) {
 
-        $exists = PointDeVente::where('responsable_fb_id', $newResponsable)
+        $count = PointDeVente::where('responsable_fb_id', $newResponsable)
             ->where('id', '!=', $pointDeVente->id)
-            ->exists();
+            ->count();
 
-        if ($exists) {
+        if ($count >= 2) {
             return response()->json([
-                'message' => 'This responsable is already assigned to another point de vente.'
+                'message' => 'This responsable is already assigned to maximum 2 points de vente.'
             ], 422);
         }
     }
