@@ -42,18 +42,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
   navItems: NavItem[] = [
     { label: 'Tableau de bord', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE'] },
     { label: 'Utilisateurs', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
-    { label: 'Approbation Caissiers', icon: 'UserCheck', route: '/caissiers-approval', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB'] },
+    { label: 'Approbation Caissiers', icon: 'UserCheck', route: '/caissiers-approval', roles: ['RESPONSABLE_FB'] },
 
     { label: 'Points de vente', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
-    { label: 'Produits', icon: 'Package', route: '/products', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Validation Produits', icon: 'CheckCircle', route: '/products-validation', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['SUPER_ADMIN', 'CHEF_MAGASIN', 'CHEF_CUISINE'] },
-    { label: 'Commandes Internes', icon: 'ShoppingCart', route: '/internal-orders', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
-    { label: 'Menus Hebdomadaires', icon: 'UtensilsCrossed', route: '/menus', roles: ['SUPER_ADMIN', 'CHEF_CUISINE'] },
-    { label: 'Besoins d\'Achat', icon: 'Receipt', route: '/purchase-needs', roles: ['SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN'] },
-    { label: 'Plannings & Horaires', icon: 'Calendar', route: '/plannings', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CAISSIER'] },
-    { label: 'Rapports d\'Hygiène', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['SUPER_ADMIN', 'RESPONSABLE_HYGIENE'] },
-    { label: 'Catégories', icon: 'Tag', route: '/category', roles: ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Produits', icon: 'Package', route: '/products', roles: ['CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Validation Produits', icon: 'CheckCircle', route: '/products-validation', roles: ['RESPONSABLE_ACHAT'] },
+    { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['CHEF_MAGASIN', 'CHEF_CUISINE'] },
+    { label: 'Commandes Internes', icon: 'ShoppingCart', route: '/internal-orders', roles: ['RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Menus Hebdomadaires', icon: 'UtensilsCrossed', route: '/menus', roles: ['CHEF_CUISINE'] },
+    { label: 'Besoins d\'Achat', icon: 'Receipt', route: '/purchase-needs', roles: ['CHEF_CUISINE', 'CHEF_MAGASIN'] },
+    { label: 'Plannings & Horaires', icon: 'Calendar', route: '/plannings', roles: ['RESPONSABLE_FB', 'CAISSIER'] },
+    { label: 'Rapports d\'Hygiène', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['RESPONSABLE_HYGIENE'] },
+    { label: 'Catégories', icon: 'Tag', route: '/category', roles: ['RESPONSABLE_ACHAT'] },
 
     { label: 'Mon profil', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] }
   ];

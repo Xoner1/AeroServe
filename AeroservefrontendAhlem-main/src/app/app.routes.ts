@@ -46,47 +46,47 @@ export const routes: Routes = [
 
       {
         path: 'caissiers-approval',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_FB')],
+        canActivate: [roleGuard('RESPONSABLE_FB')],
         loadComponent: () => import('./pages/caissier-approval/caissier-approval').then(m => m.CaissierApprovalComponent)
       },
       {
         path: 'plannings',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_FB', 'CAISSIER')],
+        canActivate: [roleGuard('RESPONSABLE_FB', 'CAISSIER')],
         loadComponent: () => import('./pages/plannings/plannings.component').then(m => m.PlanningsComponent)
       },
 
       /* SUPER_ADMIN + CHEF_CUISINE + CHEF_MAGASIN + RESPONSABLE_ACHAT (products) */
       {
         path: 'products',
-        canActivate: [roleGuard('SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT')],
+        canActivate: [roleGuard('CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT')],
         loadComponent: () => import('./pages/products/products.component').then(m => m.ProductsComponent)
       },
 
       /* Stocks: SUPER_ADMIN + CHEF_MAGASIN + CHEF_CUISINE */
       {
         path: 'stocks',
-        canActivate: [roleGuard('SUPER_ADMIN', 'CHEF_MAGASIN', 'CHEF_CUISINE')],
+        canActivate: [roleGuard('CHEF_MAGASIN', 'CHEF_CUISINE')],
         loadComponent: () => import('./pages/stocks/stocks.component').then(m => m.StocksComponent)
       },
 
       /* Internal orders: SUPER_ADMIN + RESPONSABLE_FB + CHEF_CUISINE + CHEF_MAGASIN + RESPONSABLE_ACHAT */
       {
         path: 'internal-orders',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT')],
+        canActivate: [roleGuard('RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT')],
         loadComponent: () => import('./pages/internal-orders/internal-orders.component').then(m => m.InternalOrdersComponent)
       },
 
       /* Menus: SUPER_ADMIN + CHEF_CUISINE only */
       {
         path: 'menus',
-        canActivate: [roleGuard('SUPER_ADMIN', 'CHEF_CUISINE')],
+        canActivate: [roleGuard('CHEF_CUISINE')],
         loadComponent: () => import('./pages/menus/menus.component').then(m => m.MenusComponent)
       },
 
       /* Purchase Needs: SUPER_ADMIN + CHEF_CUISINE + CHEF_MAGASIN */
       {
         path: 'purchase-needs',
-        canActivate: [roleGuard('SUPER_ADMIN', 'CHEF_CUISINE', 'CHEF_MAGASIN')],
+        canActivate: [roleGuard('CHEF_CUISINE', 'CHEF_MAGASIN')],
         loadComponent: () => import('./pages/purchase-needs/purchase-needs.component').then(m => m.PurchaseNeedsComponent)
       },
 
@@ -95,21 +95,21 @@ export const routes: Routes = [
       /* Hygiene Reports: SUPER_ADMIN + RESPONSABLE_HYGIENE */
       {
         path: 'hygiene-reports',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_HYGIENE')],
+        canActivate: [roleGuard('RESPONSABLE_HYGIENE')],
         loadComponent: () => import('./pages/hygiene-reports/hygiene-reports.component').then(m => m.HygieneReportsComponent)
       },
 
       /* Category: SUPER_ADMIN + RESPONSABLE_ACHAT */
       {
         path: 'category',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_ACHAT')],
+        canActivate: [roleGuard('RESPONSABLE_ACHAT')],
         loadComponent: () => import('./pages/category/category').then(m => m.CategoryComponent)
       },
 
       /* Products Validation: SUPER_ADMIN + RESPONSABLE_ACHAT */
       {
         path: 'products-validation',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESPONSABLE_ACHAT')],
+        canActivate: [roleGuard('RESPONSABLE_ACHAT')],
         loadComponent: () => import('./pages/products/products.component').then(m => m.ProductsComponent),
         data: { validationMode: true }
       },

@@ -7,7 +7,7 @@ export function roleGuard(...allowedRoles: string[]): CanActivateFn {
     const auth = inject(AuthService);
     const router = inject(Router);
 
-    if (auth.getUserRole() === 'SUPER_ADMIN' || auth.hasRole(...allowedRoles)) {
+    if (auth.hasRole(...allowedRoles)) {
       return true;
     }
     
