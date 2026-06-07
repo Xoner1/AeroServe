@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class CheckIngredientStock extends Command
 {
     protected $signature = 'stock:check-ingredients';
+
     protected $description = 'Check ingredient stock levels and auto-activate/deactivate FOOD products';
 
     public function handle(): int
@@ -22,7 +23,7 @@ class CheckIngredientStock extends Command
         foreach ($foodProducts as $product) {
             $shouldBeActive = true;
             foreach ($product->ingredients as $ingredient) {
-                if (!$ingredient->stock || $ingredient->stock->quantity <= 0) {
+                if (! $ingredient->stock || $ingredient->stock->quantity <= 0) {
                     $shouldBeActive = false;
                     break;
                 }

@@ -7,7 +7,6 @@ use App\Models\Product;
 use App\Models\StockMovement;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -31,9 +30,9 @@ class StockForecastController extends Controller
             $totalWithdrawn = StockMovement::whereHas('stock', function ($q) use ($product) {
                 $q->where('product_id', $product->id);
             })
-            ->where('type', 'out')
-            ->where('created_at', '>=', $thirtyDaysAgo)
-            ->sum('quantity');
+                ->where('type', 'out')
+                ->where('created_at', '>=', $thirtyDaysAgo)
+                ->sum('quantity');
 
             $dailyAvg = round($totalWithdrawn / 30, 2);
             $daysLeft = null;
@@ -58,7 +57,7 @@ class StockForecastController extends Controller
                 'unit' => $unit,
                 'daily_average' => $dailyAvg,
                 'days_left' => $daysLeft === 999 ? '∞' : $daysLeft,
-                'status' => $status
+                'status' => $status,
             ];
         }
 
@@ -81,9 +80,9 @@ class StockForecastController extends Controller
             $totalWithdrawn = StockMovement::whereHas('stock', function ($q) use ($product) {
                 $q->where('product_id', $product->id);
             })
-            ->where('type', 'out')
-            ->where('created_at', '>=', $thirtyDaysAgo)
-            ->sum('quantity');
+                ->where('type', 'out')
+                ->where('created_at', '>=', $thirtyDaysAgo)
+                ->sum('quantity');
 
             $dailyAvg = $totalWithdrawn / 30;
 
@@ -91,9 +90,9 @@ class StockForecastController extends Controller
             $todayWithdrawn = StockMovement::whereHas('stock', function ($q) use ($product) {
                 $q->where('product_id', $product->id);
             })
-            ->where('type', 'out')
-            ->where('created_at', '>=', $todayStart)
-            ->sum('quantity');
+                ->where('type', 'out')
+                ->where('created_at', '>=', $todayStart)
+                ->sum('quantity');
 
             if ($dailyAvg > 0.5 && $todayWithdrawn > ($dailyAvg * 3)) {
                 $anomalies[] = [
@@ -102,7 +101,7 @@ class StockForecastController extends Controller
                     'daily_average' => round($dailyAvg, 2),
                     'today_consumption' => $todayWithdrawn,
                     'ratio' => round($todayWithdrawn / $dailyAvg, 1),
-                    'message' => "Surconsommation détectée: la quantité sortie aujourd'hui est " . round($todayWithdrawn / $dailyAvg, 1) . " fois supérieure à la moyenne habituelle."
+                    'message' => "Surconsommation détectée: la quantité sortie aujourd'hui est ".round($todayWithdrawn / $dailyAvg, 1).' fois supérieure à la moyenne habituelle.',
                 ];
             }
         }
@@ -127,9 +126,9 @@ class StockForecastController extends Controller
             $totalWithdrawn = StockMovement::whereHas('stock', function ($q) use ($product) {
                 $q->where('product_id', $product->id);
             })
-            ->where('type', 'out')
-            ->where('created_at', '>=', $thirtyDaysAgo)
-            ->sum('quantity');
+                ->where('type', 'out')
+                ->where('created_at', '>=', $thirtyDaysAgo)
+                ->sum('quantity');
 
             $dailyAvg = $totalWithdrawn / 30;
 
@@ -148,7 +147,7 @@ class StockForecastController extends Controller
                             'unit' => $unit,
                             'days_left' => round($daysLeft, 1),
                             'recommended_qty' => $recommendedQty,
-                            'reason' => "Le stock actuel de " . round($currentStock) . " {$unit} risque d'être épuisé d'ici " . round($daysLeft, 1) . " jours."
+                            'reason' => 'Le stock actuel de '.round($currentStock)." {$unit} risque d'être épuisé d'ici ".round($daysLeft, 1).' jours.',
                         ];
                     }
                 }
@@ -170,84 +169,84 @@ class StockForecastController extends Controller
             return response()->json([
                 'success' => true,
                 'report' => "Le stock est actuellement stable. Il n'y a aucune recommandation critique d'achat pour le moment.",
-                'source' => 'system'
+                'source' => 'system',
             ]);
         }
 
         $context = "Données actuelles de stock critique et recommandations d'achats :\n";
         foreach ($recommendations as $rec) {
-            $context .= "- {$rec['name']} ({$rec['type']}) : Stock actuel = {$rec['current_stock']} {$rec['unit']}. " .
-                        "S'épuise dans {$rec['days_left']} jours. " .
+            $context .= "- {$rec['name']} ({$rec['type']}) : Stock actuel = {$rec['current_stock']} {$rec['unit']}. ".
+                        "S'épuise dans {$rec['days_left']} jours. ".
                         "Quantité recommandée à commander: {$rec['recommended_qty']} {$rec['unit']}.\n";
         }
 
         $openaiKey = config('services.openai.key');
         $groqKey = config('services.groq.key');
 
-        $systemPrompt = "Tu es un expert en gestion de stock et logistique pour un restaurant (AeroServe).\n" .
-                        "Analyse les données suivantes et génère un résumé narratif professionnel et concis (environ 3 à 5 phrases) pour le responsable des achats. " .
-                        "Mets en évidence les urgences absolues. Utilise un ton professionnel en français.";
+        $systemPrompt = "Tu es un expert en gestion de stock et logistique pour un restaurant (AeroServe).\n".
+                        'Analyse les données suivantes et génère un résumé narratif professionnel et concis (environ 3 à 5 phrases) pour le responsable des achats. '.
+                        'Mets en évidence les urgences absolues. Utilise un ton professionnel en français.';
 
         // 1. Try OpenAI
-        if ($openaiKey && $openaiKey !== 'null' && !empty($openaiKey)) {
+        if ($openaiKey && $openaiKey !== 'null' && ! empty($openaiKey)) {
             try {
                 $response = Http::withHeaders([
                     'Authorization' => "Bearer {$openaiKey}",
                     'Content-Type' => 'application/json',
-                ])->post("https://api.openai.com/v1/chat/completions", [
+                ])->post('https://api.openai.com/v1/chat/completions', [
                     'model' => 'gpt-4o-mini',
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $context]
+                        ['role' => 'user', 'content' => $context],
                     ],
                     'temperature' => 0.4,
-                    'max_tokens' => 300
+                    'max_tokens' => 300,
                 ]);
 
                 if ($response->successful()) {
                     return response()->json([
                         'success' => true,
                         'report' => trim($response->json('choices.0.message.content')),
-                        'source' => 'openai'
+                        'source' => 'openai',
                     ]);
                 }
             } catch (\Exception $e) {
-                Log::error('OpenAI Stock AI error: ' . $e->getMessage());
+                Log::error('OpenAI Stock AI error: '.$e->getMessage());
             }
         }
 
         // 2. Try Groq
-        if ($groqKey && $groqKey !== 'null' && !empty($groqKey)) {
+        if ($groqKey && $groqKey !== 'null' && ! empty($groqKey)) {
             try {
                 $response = Http::withHeaders([
                     'Authorization' => "Bearer {$groqKey}",
                     'Content-Type' => 'application/json',
-                ])->post("https://api.groq.com/openai/v1/chat/completions", [
+                ])->post('https://api.groq.com/openai/v1/chat/completions', [
                     'model' => 'llama-3.1-8b-instant',
                     'messages' => [
                         ['role' => 'system', 'content' => $systemPrompt],
-                        ['role' => 'user', 'content' => $context]
+                        ['role' => 'user', 'content' => $context],
                     ],
                     'temperature' => 0.4,
-                    'max_tokens' => 300
+                    'max_tokens' => 300,
                 ]);
 
                 if ($response->successful()) {
                     return response()->json([
                         'success' => true,
                         'report' => trim($response->json('choices.0.message.content')),
-                        'source' => 'groq'
+                        'source' => 'groq',
                     ]);
                 }
             } catch (\Exception $e) {
-                Log::error('Groq Stock AI error: ' . $e->getMessage());
+                Log::error('Groq Stock AI error: '.$e->getMessage());
             }
         }
 
         return response()->json([
             'success' => true,
             'report' => "Veuillez vérifier les alertes de stock manuel. L'IA est actuellement indisponible.",
-            'source' => 'system'
+            'source' => 'system',
         ]);
     }
 }

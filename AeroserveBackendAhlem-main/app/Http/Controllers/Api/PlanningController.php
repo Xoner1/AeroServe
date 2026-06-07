@@ -4,12 +4,32 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Planning;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PlanningController extends Controller
 {
+    private function determineShiftFromTime(?string $startTime): string
+    {
+        if (! $startTime) {
+            return 'MATIN';
+        }
+
+        $hour = (int) explode(':', $startTime)[0];
+
+        if ($hour < 12) {
+            return 'MATIN';
+        }
+
+        if ($hour < 17) {
+            return 'APRES_MIDI';
+        }
+
+        return 'SOIR';
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Planning::with('caissier.role', 'pointDeVente', 'createdBy');
@@ -43,7 +63,7 @@ class PlanningController extends Controller
             'date' => 'required|date',
             'is_day_off' => 'sometimes|boolean',
             'start_time' => 'nullable|date_format:H:i',
-            'end_time' => 'nullable|date_format:H:i|after:start_time',
+            'end_time' => 'nullable|date_format:H:i',
             'shift' => 'sometimes|in:MATIN,APRES_MIDI,SOIR',
             'day_status' => 'sometimes|in:ON,OFF,CONGE',
         ]);
@@ -52,13 +72,14 @@ class PlanningController extends Controller
         $caissierId = $request->caissier_id;
         $dayStatus = $request->day_status ?? ($request->boolean('is_day_off') ? 'OFF' : 'ON');
         $isDayOff = ($dayStatus === 'OFF' || $dayStatus === 'CONGE');
-        $shift = $request->shift ?? 'MATIN';
+        $startTime = $isDayOff ? null : $request->start_time;
+        $shift = $request->shift ?? $this->determineShiftFromTime($startTime);
 
-        if (!$isDayOff) {
-            if (!$request->pdv_id) {
+        if (! $isDayOff) {
+            if (! $request->pdv_id) {
                 return response()->json(['message' => 'Le point de vente est obligatoire pour un shift actif.'], 422);
             }
-            
+
             // Get existing shifts for the day and shift for max PDV limit
             $sameShiftShifts = Planning::where('user_id', $caissierId)
                 ->where('date', $date)
@@ -70,7 +91,7 @@ class PlanningController extends Controller
             $pdvIds = array_unique(array_merge($sameShiftShifts->pluck('pdv_id')->toArray(), [$request->pdv_id]));
             if (count($pdvIds) > 2) {
                 return response()->json([
-                    'message' => 'Un caissier ne peut pas être affecté à plus de 2 points de vente différents pour le même shift.'
+                    'message' => 'Un caissier ne peut pas être affecté à plus de 2 points de vente différents pour le même shift.',
                 ], 422);
             }
 
@@ -83,11 +104,27 @@ class PlanningController extends Controller
             $start = $request->start_time;
             $end = $request->end_time;
             if ($start && $end) {
+                if ($start === $end) {
+                    return response()->json(['message' => "L'heure de fin doit être différente de l'heure de début."], 422);
+                }
+
+                $sStart = Carbon::parse($date.' '.$start);
+                $sEnd = Carbon::parse($date.' '.$end);
+                if ($sEnd->lessThanOrEqualTo($sStart)) {
+                    $sEnd->addDay();
+                }
+
                 foreach ($allDayShifts as $s) {
                     if ($s->start_time && $s->end_time) {
-                        if ($start < $s->end_time && $s->start_time < $end) {
+                        $dbStart = Carbon::parse($s->date.' '.$s->start_time);
+                        $dbEnd = Carbon::parse($s->date.' '.$s->end_time);
+                        if ($dbEnd->lessThanOrEqualTo($dbStart)) {
+                            $dbEnd->addDay();
+                        }
+
+                        if ($sStart->lessThan($dbEnd) && $dbStart->lessThan($sEnd)) {
                             return response()->json([
-                                'message' => "Conflit d'horaires : ce shift chevauche une affectation existante."
+                                'message' => "Conflit d'horaires : ce shift chevauche une affectation existante.",
                             ], 422);
                         }
                     }
@@ -132,16 +169,22 @@ class PlanningController extends Controller
         $caissierId = $planning->user_id;
         $dayStatus = $request->day_status ?? ($request->has('is_day_off') ? ($request->boolean('is_day_off') ? 'OFF' : 'ON') : $planning->day_status);
         $isDayOff = ($dayStatus === 'OFF' || $dayStatus === 'CONGE');
-        $shift = $request->shift ?? $planning->shift;
-        $pdvId = $request->has('pdv_id') ? $request->pdv_id : $planning->pdv_id;
         $start = $request->start_time ?? $planning->start_time;
         $end = $request->end_time ?? $planning->end_time;
+        if ($request->has('shift')) {
+            $shift = $request->shift;
+        } elseif ($request->has('start_time')) {
+            $shift = $this->determineShiftFromTime($start);
+        } else {
+            $shift = $planning->shift;
+        }
+        $pdvId = $request->has('pdv_id') ? $request->pdv_id : $planning->pdv_id;
 
-        if (!$isDayOff) {
-            if (!$pdvId) {
+        if (! $isDayOff) {
+            if (! $pdvId) {
                 return response()->json(['message' => 'Le point de vente est obligatoire pour un shift actif.'], 422);
             }
-            
+
             // Get other shifts for the day and shift for max PDV limit
             $sameShiftShifts = Planning::where('user_id', $caissierId)
                 ->where('date', $date)
@@ -154,7 +197,7 @@ class PlanningController extends Controller
             $pdvIds = array_unique(array_merge($sameShiftShifts->pluck('pdv_id')->toArray(), [$pdvId]));
             if (count($pdvIds) > 2) {
                 return response()->json([
-                    'message' => 'Un caissier ne peut pas être affecté à plus de 2 points de vente différents pour le même shift.'
+                    'message' => 'Un caissier ne peut pas être affecté à plus de 2 points de vente différents pour le même shift.',
                 ], 422);
             }
 
@@ -166,11 +209,27 @@ class PlanningController extends Controller
                 ->get();
 
             if ($start && $end) {
+                if ($start === $end) {
+                    return response()->json(['message' => "L'heure de fin doit être différente de l'heure de début."], 422);
+                }
+
+                $sStart = Carbon::parse($date.' '.$start);
+                $sEnd = Carbon::parse($date.' '.$end);
+                if ($sEnd->lessThanOrEqualTo($sStart)) {
+                    $sEnd->addDay();
+                }
+
                 foreach ($allDayShifts as $s) {
                     if ($s->start_time && $s->end_time) {
-                        if ($start < $s->end_time && $s->start_time < $end) {
+                        $dbStart = Carbon::parse($s->date.' '.$s->start_time);
+                        $dbEnd = Carbon::parse($s->date.' '.$s->end_time);
+                        if ($dbEnd->lessThanOrEqualTo($dbStart)) {
+                            $dbEnd->addDay();
+                        }
+
+                        if ($sStart->lessThan($dbEnd) && $dbStart->lessThan($sEnd)) {
                             return response()->json([
-                                'message' => "Conflit d'horaires : ce shift chevauche une affectation existante."
+                                'message' => "Conflit d'horaires : ce shift chevauche une affectation existante.",
                             ], 422);
                         }
                     }
@@ -216,7 +275,7 @@ class PlanningController extends Controller
         ]);
 
         $incoming = $request->plannings;
-        
+
         // 1. Group by week to validate full-week constraint
         $firstPlan = $incoming[0];
         $dateTime = new \DateTime($firstPlan['date']);
@@ -232,7 +291,7 @@ class PlanningController extends Controller
             $planDate = $plan['date'];
             if ($planDate < $startOfWeekStr || $planDate > $endOfWeekStr) {
                 return response()->json([
-                    'message' => 'Toutes les affectations doivent appartenir à la même semaine calendrier (du ' . $startOfWeekStr . ' au ' . $endOfWeekStr . ').'
+                    'message' => 'Toutes les affectations doivent appartenir à la même semaine calendrier (du '.$startOfWeekStr.' au '.$endOfWeekStr.').',
                 ], 422);
             }
         }
@@ -253,9 +312,9 @@ class PlanningController extends Controller
                 // Group by shift
                 $byShift = [];
                 foreach ($dayPlans as $p) {
-                    $dayStatus = $p['day_status'] ?? (!empty($p['is_day_off']) ? 'OFF' : 'ON');
+                    $dayStatus = $p['day_status'] ?? (! empty($p['is_day_off']) ? 'OFF' : 'ON');
                     if ($dayStatus === 'ON') {
-                        $shiftVal = $p['shift'] ?? 'MATIN';
+                        $shiftVal = $p['shift'] ?? $this->determineShiftFromTime($p['start_time'] ?? null);
                         $byShift[$shiftVal][] = $p;
                     }
                 }
@@ -265,7 +324,7 @@ class PlanningController extends Controller
                     $pdvIds = array_unique(array_filter(array_column($activeShifts, 'pdv_id')));
                     if (count($pdvIds) > 2) {
                         return response()->json([
-                            'message' => "Un caissier ne peut pas être affecté à plus de 2 points de vente dans le shift {$sVal} le même jour ({$date})."
+                            'message' => "Un caissier ne peut pas être affecté à plus de 2 points de vente dans le shift {$sVal} le même jour ({$date}).",
                         ], 422);
                     }
 
@@ -275,11 +334,27 @@ class PlanningController extends Controller
                         for ($j = $i + 1; $j < $shiftsCount; $j++) {
                             $s1 = $activeShifts[$i];
                             $s2 = $activeShifts[$j];
-                            
-                            if (!empty($s1['start_time']) && !empty($s1['end_time']) && !empty($s2['start_time']) && !empty($s2['end_time'])) {
-                                if ($s1['start_time'] < $s2['end_time'] && $s2['start_time'] < $s1['end_time']) {
+
+                            if (! empty($s1['start_time']) && ! empty($s1['end_time']) && ! empty($s2['start_time']) && ! empty($s2['end_time'])) {
+                                if ($s1['start_time'] === $s2['end_time']) {
+                                    continue;
+                                }
+
+                                $s1Start = Carbon::parse($date.' '.$s1['start_time']);
+                                $s1End = Carbon::parse($date.' '.$s1['end_time']);
+                                if ($s1End->lessThanOrEqualTo($s1Start)) {
+                                    $s1End->addDay();
+                                }
+
+                                $s2Start = Carbon::parse($date.' '.$s2['start_time']);
+                                $s2End = Carbon::parse($date.' '.$s2['end_time']);
+                                if ($s2End->lessThanOrEqualTo($s2Start)) {
+                                    $s2End->addDay();
+                                }
+
+                                if ($s1Start->lessThan($s2End) && $s2Start->lessThan($s1End)) {
                                     return response()->json([
-                                        'message' => "Conflit d'horaires : Deux shifts se chevauchent dans le shift {$sVal} le {$date} pour le même caissier."
+                                        'message' => "Conflit d'horaires : Deux shifts se chevauchent dans le shift {$sVal} le {$date} pour le même caissier.",
                                     ], 422);
                                 }
                             }
@@ -300,9 +375,9 @@ class PlanningController extends Controller
             // Perform bulk insertions
             $created = [];
             foreach ($incoming as $plan) {
-                $dayStatus = $plan['day_status'] ?? (!empty($plan['is_day_off']) ? 'OFF' : 'ON');
+                $dayStatus = $plan['day_status'] ?? (! empty($plan['is_day_off']) ? 'OFF' : 'ON');
                 $isDayOff = ($dayStatus === 'OFF' || $dayStatus === 'CONGE');
-                $shift = $plan['shift'] ?? 'MATIN';
+                $shift = $plan['shift'] ?? $this->determineShiftFromTime($plan['start_time'] ?? null);
 
                 $created[] = Planning::create([
                     'user_id' => $plan['caissier_id'],
@@ -321,7 +396,7 @@ class PlanningController extends Controller
         });
 
         return response()->json([
-            'message' => count($created) . ' affectations enregistrées pour la semaine.',
+            'message' => count($created).' affectations enregistrées pour la semaine.',
             'plannings' => $created,
         ], 201);
     }

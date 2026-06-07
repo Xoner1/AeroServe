@@ -7,15 +7,15 @@ use App\Models\InternalOrder;
 use App\Models\Notification;
 use App\Models\Product;
 use App\Models\User;
+use App\Traits\FifoStockTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-use App\Traits\FifoStockTrait;
-
 class InternalOrderController extends Controller
 {
     use FifoStockTrait;
+
     public function index(Request $request): JsonResponse
     {
         $query = InternalOrder::with('creator', 'assignee', 'pointDeVente', 'items.product');
@@ -38,20 +38,21 @@ class InternalOrderController extends Controller
             $pdvIds = $user->pdvsResponsable()->pluck('id')->toArray();
             $query->where(function ($q) use ($user, $pdvIds) {
                 $q->where('created_by', $user->id)
-                  ->orWhereIn('pdv_id', $pdvIds);
+                    ->orWhereIn('pdv_id', $pdvIds);
             });
         } elseif ($user->role?->name === 'CHEF_CUISINE') {
             $query->where(function ($q) use ($user) {
-                $q->where(function ($sq) use ($user) {
-                    $sq->where('type', 'food')->where('assigned_to', $user->id);
-                })->orWhere('created_by', $user->id);
+                $q->where('type', 'food')
+                    ->orWhere('created_by', $user->id);
             });
         } elseif ($user->role?->name === 'CHEF_MAGASIN') {
             $query->where(function ($q) use ($user) {
-                $q->where(function ($sq) use ($user) {
-                    $sq->where('type', 'commercial')->where('assigned_to', $user->id);
-                })->orWhere('created_by', $user->id);
+                $q->where('type', 'commercial')
+                    ->orWhere('created_by', $user->id);
             });
+        } elseif ($user->role?->name === 'RESPONSABLE_ACHAT') {
+            // Responsable Achat can view orders directed to the store (type = commercial)
+            $query->where('type', 'commercial');
         } else {
             // Other roles (e.g. CAISSIER) can only see orders created by them
             $query->where('created_by', $user->id);
@@ -74,7 +75,7 @@ class InternalOrderController extends Controller
             ->get();
 
         return response()->json([
-            'data' => $products
+            'data' => $products,
         ]);
     }
 
@@ -91,7 +92,7 @@ class InternalOrderController extends Controller
             'items.*.quantity_requested' => 'required|numeric|min:0.01',
         ]);
 
-        // assignation automatique chef
+        // assignation automatique
         $assignedRole = $request->type === 'food'
             ? 'CHEF_CUISINE'
             : 'CHEF_MAGASIN';
@@ -117,7 +118,7 @@ class InternalOrderController extends Controller
             $product = Product::find($item['product_id']);
 
             // securite metier
-            if (!$product || !$product->is_active || $product->approval_status !== 'approved') {
+            if (! $product || ! $product->is_active || $product->approval_status !== 'approved') {
                 continue;
             }
 
@@ -136,19 +137,19 @@ class InternalOrderController extends Controller
                 'message' => "A new internal order of type {$order->type} has been created and assigned to you.",
                 'type' => 'info',
                 'is_read' => false,
-                'data' => ['order_id' => $order->id]
+                'data' => ['order_id' => $order->id],
             ]);
         }
 
         return response()->json([
             'message' => 'Commande créée avec succès',
-            'order' => $order->load('items.product', 'assignee')
+            'order' => $order->load('items.product', 'assignee'),
         ], 201);
     }
 
     public function show(InternalOrder $internalOrder): JsonResponse
     {
-        if (!$this->authorizeOrder($internalOrder)) {
+        if (! $this->authorizeOrder($internalOrder)) {
             return response()->json(['message' => 'Accès non autorisé à cette commande.'], 403);
         }
 
@@ -159,14 +160,14 @@ class InternalOrderController extends Controller
 
     public function updateStatus(Request $request, InternalOrder $internalOrder): JsonResponse
     {
-        if (!$this->authorizeOrder($internalOrder)) {
+        if (! $this->authorizeOrder($internalOrder)) {
             return response()->json(['message' => 'Accès non autorisé à cette commande.'], 403);
         }
 
-        // Prevent caissier from updating status
+        // Prevent caissier and responsable achat from updating status
         /** @var User $user */
         $user = Auth::user();
-        if ($user->role?->name === 'CAISSIER') {
+        if ($user->isCaissier() || $user->role?->name === 'RESPONSABLE_ACHAT') {
             return response()->json([
                 'message' => 'Vous n\'êtes pas autorisé à modifier le statut de la commande.',
             ], 403);
@@ -190,24 +191,32 @@ class InternalOrderController extends Controller
 
     public function fulfillItem(Request $request, InternalOrder $internalOrder, int $itemId): JsonResponse
     {
-        if (!$this->authorizeOrder($internalOrder)) {
+        if (! $this->authorizeOrder($internalOrder)) {
             return response()->json(['message' => 'Accès non autorisé à cette commande.'], 403);
+        }
+
+        /** @var User $user */
+        $user = Auth::user();
+        if ($user->role?->name === 'RESPONSABLE_ACHAT') {
+            return response()->json([
+                'message' => 'Vous n\'êtes pas autorisé à modifier les quantités de la commande.',
+            ], 403);
         }
 
         $item = $internalOrder->items()->findOrFail($itemId);
 
         $request->validate([
-            'quantity_fulfilled' => 'required|numeric|min:0|max:' . $item->quantity_requested,
+            'quantity_fulfilled' => 'required|numeric|min:0|max:'.$item->quantity_requested,
         ]);
 
         $oldStatus = $internalOrder->status;
         $diff = $request->quantity_fulfilled - $item->quantity_fulfilled;
-        
+
         $item->update(['quantity_fulfilled' => $request->quantity_fulfilled]);
 
         // Deduct from stock if quantity increased
         if ($diff > 0 && $item->product && $item->product->stock) {
-            $this->fifoDeduction($item->product->stock, $diff, 'Internal Order #' . $internalOrder->id);
+            $this->fifoDeduction($item->product->stock, $diff, 'Internal Order #'.$internalOrder->id);
         }
 
         // Auto-update order status based on fulfillment
@@ -237,19 +246,19 @@ class InternalOrderController extends Controller
     private function notifyOrderStatusChanged(InternalOrder $order, string $oldStatus): void
     {
         $message = "La commande interne #{$order->id} a changé de statut : {$oldStatus} → {$order->status}.";
-        $data    = ['order_id' => $order->id];
+        $data = ['order_id' => $order->id];
 
         // Notify all RESPONSABLE_FB users by role
-        $fbUsers = User::whereHas('role', fn($q) => $q->where('name', 'RESPONSABLE_FB'))->get();
+        $fbUsers = User::whereHas('role', fn ($q) => $q->where('name', 'RESPONSABLE_FB'))->get();
         foreach ($fbUsers as $fbUser) {
             if ($fbUser->id !== Auth::id()) {
                 Notification::create([
                     'user_id' => $fbUser->id,
-                    'title'   => 'Statut de commande mis à jour',
+                    'title' => 'Statut de commande mis à jour',
                     'message' => $message,
-                    'type'    => 'info',
+                    'type' => 'info',
                     'is_read' => false,
-                    'data'    => $data,
+                    'data' => $data,
                 ]);
             }
         }
@@ -258,18 +267,18 @@ class InternalOrderController extends Controller
         if ($order->assigned_to && $order->assigned_to !== Auth::id()) {
             Notification::create([
                 'user_id' => $order->assigned_to,
-                'title'   => 'Statut de commande mis à jour',
+                'title' => 'Statut de commande mis à jour',
                 'message' => $message,
-                'type'    => 'info',
+                'type' => 'info',
                 'is_read' => false,
-                'data'    => $data,
+                'data' => $data,
             ]);
         }
     }
 
     public function destroy(InternalOrder $internalOrder): JsonResponse
     {
-        if (!$this->authorizeOrder($internalOrder)) {
+        if (! $this->authorizeOrder($internalOrder)) {
             return response()->json(['message' => 'Accès non autorisé à cette commande.'], 403);
         }
 
@@ -282,7 +291,7 @@ class InternalOrderController extends Controller
     {
         /** @var User|null $user */
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return false;
         }
         if ($user->role?->name === 'SUPER_ADMIN') {
@@ -300,6 +309,16 @@ class InternalOrderController extends Controller
                 return true;
             }
         }
+        if ($user->role?->name === 'CHEF_MAGASIN') {
+            return $order->type === 'commercial';
+        }
+        if ($user->role?->name === 'CHEF_CUISINE') {
+            return $order->type === 'food';
+        }
+        if ($user->role?->name === 'RESPONSABLE_ACHAT') {
+            return $order->type === 'commercial';
+        }
+
         return false;
     }
 }

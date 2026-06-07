@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\Role;
 use App\Models\Airport;
+use App\Models\Notification;
 use App\Models\PointDeVente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,6 +67,18 @@ public function store(Request $request): JsonResponse
                 'location' => $request->location,
             ]);
         });
+
+        // Notify the assigned Responsable FB
+        if ($request->responsable_fb_id) {
+            Notification::create([
+                'user_id' => $request->responsable_fb_id,
+                'title'   => 'Attribution — Point de vente',
+                'message' => "Vous avez ete assigne(e) comme Responsable F&B du point de vente \"{$pdv->name}\".",
+                'type'    => 'info',
+                'is_read' => false,
+                'data'    => ['pdv_id' => $pdv->id],
+            ]);
+        }
 
         return response()->json([
             'message' => 'Point de vente created successfully',
@@ -132,6 +145,18 @@ public function update(Request $request, $id)
             ? $newResponsable
             : $oldResponsable,
     ]);
+
+    // Notify new Responsable FB if the assignment changed
+    if ($request->has('responsable_fb_id') && $newResponsable && $newResponsable != $oldResponsable) {
+        Notification::create([
+            'user_id' => $newResponsable,
+            'title'   => 'Attribution — Point de vente',
+            'message' => "Vous avez ete assigne(e) comme Responsable F&B du point de vente \"{$pointDeVente->name}\".",
+            'type'    => 'info',
+            'is_read' => false,
+            'data'    => ['pdv_id' => $pointDeVente->id],
+        ]);
+    }
 
     return response()->json([
         'message' => 'Updated successfully',

@@ -22,48 +22,48 @@ class CommentController extends Controller
         ]);
 
         $typeMap = [
-            'internal_order' => \App\Models\InternalOrder::class,
-            'product' => \App\Models\Product::class,
+            'internal_order' => InternalOrder::class,
+            'product' => Product::class,
         ];
 
         // Strict F&B order comment security checks
         if ($request->commentable_type === 'internal_order') {
-            $order = \App\Models\InternalOrder::find($request->commentable_id);
-            if (!$order) {
+            $order = InternalOrder::find($request->commentable_id);
+            if (! $order) {
                 return response()->json(['message' => 'Commande introuvable.'], 404);
             }
             $userRole = auth()->user()->role?->name;
             if ($userRole === 'RESPONSABLE_FB') {
                 return response()->json([
-                    'message' => 'Le Responsable F&B n\'est pas autorisé à ajouter des commentaires sur les commandes.'
+                    'message' => 'Le Responsable F&B n\'est pas autorisé à ajouter des commentaires sur les commandes.',
                 ], 403);
             }
-            if (!in_array($userRole, ['CHEF_CUISINE', 'CHEF_MAGASIN', 'SUPER_ADMIN'])) {
+            if (! in_array($userRole, ['CHEF_CUISINE', 'CHEF_MAGASIN', 'SUPER_ADMIN'])) {
                 return response()->json([
-                    'message' => 'Seuls le Chef Cuisine et le Chef Magasin concernés sont autorisés à commenter cette commande.'
+                    'message' => 'Seuls le Chef Cuisine et le Chef Magasin concernés sont autorisés à commenter cette commande.',
                 ], 403);
             }
             // Participant-based check: user must be creator or assignee of this order
             $allowedUserIds = array_filter([$order->created_by, $order->assigned_to]);
-            if (!in_array(auth()->id(), $allowedUserIds) && $userRole !== 'SUPER_ADMIN') {
+            if (! in_array(auth()->id(), $allowedUserIds) && $userRole !== 'SUPER_ADMIN') {
                 return response()->json([
-                    'message' => 'Vous n\'êtes pas un participant à cette commande.'
+                    'message' => 'Vous n\'êtes pas un participant à cette commande.',
                 ], 403);
             }
         }
 
         // Product comment security: only admins, responsible_achat, chefs, or product creator can post
         if ($request->commentable_type === 'product') {
-            $product = \App\Models\Product::find($request->commentable_id);
-            if (!$product) {
+            $product = Product::find($request->commentable_id);
+            if (! $product) {
                 return response()->json(['message' => 'Produit introuvable.'], 404);
             }
             $userRole = auth()->user()->role?->name;
             $isCreator = $product->created_by === auth()->id();
             $hasPrivilege = in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_ACHAT', 'CHEF_CUISINE', 'CHEF_MAGASIN']);
-            if (!$isCreator && !$hasPrivilege) {
+            if (! $isCreator && ! $hasPrivilege) {
                 return response()->json([
-                    'message' => 'Vous n\'êtes pas autorisé à commenter ce produit.'
+                    'message' => 'Vous n\'êtes pas autorisé à commenter ce produit.',
                 ], 403);
             }
         }
@@ -76,9 +76,9 @@ class CommentController extends Controller
         ]);
 
         // Send notifications
-        $userName = auth()->user()->first_name . ' ' . auth()->user()->last_name;
+        $userName = auth()->user()->first_name.' '.auth()->user()->last_name;
         if ($request->commentable_type === 'internal_order') {
-            $order = \App\Models\InternalOrder::find($request->commentable_id);
+            $order = InternalOrder::find($request->commentable_id);
             if ($order) {
                 // Notify creator (F&B) if not current user
                 if ($order->created_by && $order->created_by !== auth()->id()) {
@@ -88,7 +88,7 @@ class CommentController extends Controller
                         'message' => "{$userName} added a comment on Order #{$order->id}: \"{$comment->body}\"",
                         'type' => 'comment',
                         'is_read' => false,
-                        'data' => ['order_id' => $order->id]
+                        'data' => ['order_id' => $order->id],
                     ]);
                 }
                 // Notify assignee (Chef Cuisine / Chef Magasin) if not current user
@@ -99,12 +99,12 @@ class CommentController extends Controller
                         'message' => "{$userName} added a comment on Order #{$order->id}: \"{$comment->body}\"",
                         'type' => 'comment',
                         'is_read' => false,
-                        'data' => ['order_id' => $order->id]
+                        'data' => ['order_id' => $order->id],
                     ]);
                 }
             }
         } elseif ($request->commentable_type === 'product') {
-            $product = \App\Models\Product::find($request->commentable_id);
+            $product = Product::find($request->commentable_id);
             if ($product) {
                 // Notify product creator if not current user
                 if ($product->created_by && $product->created_by !== auth()->id()) {
@@ -114,12 +114,12 @@ class CommentController extends Controller
                         'message' => "{$userName} added a comment on Product \"{$product->name}\": \"{$comment->body}\"",
                         'type' => 'comment',
                         'is_read' => false,
-                        'data' => ['product_id' => $product->id]
+                        'data' => ['product_id' => $product->id],
                     ]);
                 }
 
                 // Notify Responsable Achat if not current user
-                $purchasingUsers = User::whereHas('role', fn($q) => $q->where('name', 'RESPONSABLE_ACHAT'))->get();
+                $purchasingUsers = User::whereHas('role', fn ($q) => $q->where('name', 'RESPONSABLE_ACHAT'))->get();
                 foreach ($purchasingUsers as $pu) {
                     if ($pu->id !== auth()->id()) {
                         Notification::create([
@@ -128,7 +128,7 @@ class CommentController extends Controller
                             'message' => "{$userName} added a comment on Product \"{$product->name}\": \"{$comment->body}\"",
                             'type' => 'comment',
                             'is_read' => false,
-                            'data' => ['product_id' => $product->id]
+                            'data' => ['product_id' => $product->id],
                         ]);
                     }
                 }
@@ -149,8 +149,8 @@ class CommentController extends Controller
         ]);
 
         $typeMap = [
-            'internal_order' => \App\Models\InternalOrder::class,
-            'product' => \App\Models\Product::class,
+            'internal_order' => InternalOrder::class,
+            'product' => Product::class,
         ];
 
         $user = auth()->user();
@@ -167,7 +167,7 @@ class CommentController extends Controller
             if ($order) {
                 // Only order participants (creator, assignee) + CHEF_CUISINE/CHEF_MAGASIN can see comments
                 $allowedUserIds = array_filter([$order->created_by, $order->assigned_to]);
-                if (!in_array($user->id, $allowedUserIds)) {
+                if (! in_array($user->id, $allowedUserIds)) {
                     // Return empty - user is not a participant
                     return response()->json([]);
                 }
@@ -177,7 +177,7 @@ class CommentController extends Controller
         }
 
         // Role-based filtering for product comments
-        if ($request->commentable_type === 'product' && !in_array($role, ['SUPER_ADMIN', 'RESPONSABLE_ACHAT', 'CHEF_CUISINE', 'CHEF_MAGASIN'])) {
+        if ($request->commentable_type === 'product' && ! in_array($role, ['SUPER_ADMIN', 'RESPONSABLE_ACHAT', 'CHEF_CUISINE', 'CHEF_MAGASIN'])) {
             $product = Product::find($request->commentable_id);
             if ($product && $product->created_by !== $user->id) {
                 return response()->json([]);

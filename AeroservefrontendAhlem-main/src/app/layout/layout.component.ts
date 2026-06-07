@@ -50,9 +50,10 @@ export class LayoutComponent implements OnInit, OnDestroy {
     { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['CHEF_MAGASIN', 'CHEF_CUISINE'] },
     { label: 'Commandes Internes', icon: 'ShoppingCart', route: '/internal-orders', roles: ['RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
     { label: 'Menus Hebdomadaires', icon: 'UtensilsCrossed', route: '/menus', roles: ['CHEF_CUISINE'] },
-    { label: 'Besoins d\'Achat', icon: 'Receipt', route: '/purchase-needs', roles: ['CHEF_CUISINE', 'CHEF_MAGASIN'] },
+    { label: 'Besoins d\'Achat', icon: 'Receipt', route: '/purchase-needs', roles: ['CHEF_CUISINE'] },
     { label: 'Plannings & Horaires', icon: 'Calendar', route: '/plannings', roles: ['RESPONSABLE_FB', 'CAISSIER'] },
     { label: 'Rapports d\'Hygiène', icon: 'ShieldCheck', route: '/hygiene-reports', roles: ['RESPONSABLE_HYGIENE'] },
+    { label: 'Produits Alimentaires', icon: 'CheckCircle', route: '/hygiene-products', roles: ['RESPONSABLE_HYGIENE'] },
     { label: 'Catégories', icon: 'Tag', route: '/category', roles: ['RESPONSABLE_ACHAT'] },
 
     { label: 'Mon profil', icon: 'User', route: '/profile', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE', 'CAISSIER'] }
@@ -152,6 +153,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
       '/category': 'Category',
       '/reports': 'Reports',
       '/hygiene-reports': 'Hygiene Reports',
+      '/hygiene-products': 'Food Products Surveillance',
     };
 
     const path = '/' + (this.router.url.split('?')[0].split('/')[1] || 'dashboard');

@@ -18,7 +18,7 @@ class NotificationCreated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('notifications.' . $this->notification->user_id),
+            new PrivateChannel('notifications.'.$this->notification->user_id),
         ];
     }
 

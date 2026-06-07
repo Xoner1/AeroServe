@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PointDeVente extends Model
 {
-protected $table = 'points_de_vente';
+    protected $table = 'points_de_vente';
+
     protected $fillable = [
         'name',
         'airport_id',
@@ -33,14 +34,14 @@ protected $table = 'points_de_vente';
     {
         return $this->hasMany(User::class, 'pdv_id');
     }
-public function responsableFb()
-{
-    return $this->belongsTo(User::class, 'responsable_fb_id');
-}
+
+    public function responsableFb()
+    {
+        return $this->belongsTo(User::class, 'responsable_fb_id');
+    }
+
     public function plannings(): HasMany
     {
         return $this->hasMany(Planning::class, 'pdv_id');
     }
-
-
 }

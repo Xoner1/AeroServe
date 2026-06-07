@@ -25,8 +25,9 @@ export class CaissierApprovalComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
 
 columns = [
-  { title: 'active', tasks: [] as Caissier[] },
-  { title: 'inactive', tasks: [] as Caissier[] }
+  { title: 'En attente', status: 'en_attente', tasks: [] as Caissier[] },
+  { title: 'Actifs', status: 'active', tasks: [] as Caissier[] },
+  { title: 'Inactifs', status: 'inactive', tasks: [] as Caissier[] }
 ];
   constructor(private api: ApiService) {}
 
@@ -39,8 +40,9 @@ columns = [
       next: (res: any) => {
         const users = res.data || res;
 
-        this.columns[0].tasks = users.filter((u: Caissier) => u.status === 'active');
-        this.columns[1].tasks = users.filter((u: Caissier) => u.status === 'inactive');
+        this.columns[0].tasks = users.filter((u: Caissier) => u.status === 'en_attente');
+        this.columns[1].tasks = users.filter((u: Caissier) => u.status === 'active');
+        this.columns[2].tasks = users.filter((u: Caissier) => u.status === 'inactive');
       },
       error: (err) => {
         console.error(err);
@@ -63,7 +65,7 @@ columns = [
       return;
     }
 
-    const newStatus = column.title;
+    const newStatus = column.status;
 
     // move UI
     transferArrayItem(

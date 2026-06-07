@@ -183,7 +183,7 @@ import { environment } from '../../../environments/environment';
                       <label>Type</label>
                       @if (isChefCuisine) {
                         <input value="Food" disabled class="form-input-locked" />
-                      } @else if (isChefMagasin) {
+                      } @else if (isChefMagasin || isResponsableAchat) {
                         <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
                           <option value="commercial">Commercial</option>
                           <option value="matiere_premiere">Matière première</option>
@@ -227,16 +227,16 @@ import { environment } from '../../../environments/environment';
                     <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Notes complémentaires..."></textarea>
                   </div>
 
-                  <!-- ALLERGENS (hidden for restricted roles) -->
-                  @if (!isRestrictedRole) {
+                  <!-- ALLERGENS (hidden for restricted roles or non-food products or Responsable Achat) -->
+                  @if (form.type === 'food' && !isRestrictedRole && !isResponsableAchat) {
                     <div class="form-group">
                       <label>Allergènes (séparés par des virgules)</label>
                       <input [(ngModel)]="form.allergens_text" name="allergens" [disabled]="isLockedField('allergens')" placeholder="Ex: gluten, lactose, fruits à coque" />
                     </div>
                   }
 
-                  <!-- EXPIRATION -->
-                  @if (!isRestrictedRole) {
+                  <!-- EXPIRATION (hidden for restricted roles or non-food products or Responsable Achat) -->
+                  @if (form.type === 'food' && !isRestrictedRole && !isResponsableAchat) {
                     <div class="form-group">
                       <label>Date limite de consommation (DLC)</label>
                       <input type="date" [(ngModel)]="form.expiration_date" name="expiration_date" [disabled]="isLockedField('expiration_date')" />
@@ -861,6 +861,10 @@ export class ProductsComponent implements OnInit {
     return this.userRole === 'CHEF_MAGASIN';
   }
 
+  get isResponsableAchat(): boolean {
+    return this.userRole === 'RESPONSABLE_ACHAT';
+  }
+
   get isRestrictedRole(): boolean {
     return this.isChefCuisine || this.isChefMagasin;
   }
@@ -889,10 +893,8 @@ export class ProductsComponent implements OnInit {
       this.filterType = 'reserve';
     }
     
-    // Default filter pending for RESPONSABLE_ACHAT
+    // Default filter pending for validationMode
     if (this.validationMode) {
-      this.filterApprovalStatus = 'pending';
-    } else if (this.userRole === 'RESPONSABLE_ACHAT') {
       this.filterApprovalStatus = 'pending';
     }
     this.load();
@@ -943,7 +945,7 @@ export class ProductsComponent implements OnInit {
 
   get availableIngredients(): Product[] {
     return this.products.filter(p =>
-      (p.type === 'commercial' || p.type === 'matiere_premiere') &&
+      p.type === 'matiere_premiere' &&
       p.approval_status === 'approved'
     );
   }
@@ -1055,6 +1057,7 @@ export class ProductsComponent implements OnInit {
 
   isLockedField(fieldName: string): boolean {
     if (!this.editing) return false;
+    if (this.isChefCuisine) return false;
     if (this.selectedProductApprovalStatus === 'approved') {
       const editableFields = ['description', 'usage_status', 'image', 'allergens'];
       return !editableFields.includes(fieldName);
@@ -1072,14 +1075,7 @@ export class ProductsComponent implements OnInit {
   }
 
   save(): void {
-    if (this.form.type === 'food') {
-      const foodCat = this.categories.find(c => c.type === 'food');
-      if (foodCat) {
-        this.form.category_id = foodCat.id;
-      }
-    }
-
-    if (!this.form.name || !this.form.type || !this.form.category_id) {
+    if (!this.form.name || !this.form.type || (this.form.type !== 'food' && !this.form.category_id)) {
       Swal.fire({
         title: 'Formulaire incomplet',
         text: 'Veuillez remplir tous les champs obligatoires.',
@@ -1144,10 +1140,12 @@ export class ProductsComponent implements OnInit {
 
     if (!this.isRestrictedRole) {
       formData.append('price', String(this.form.price || 0));
-      formData.append('expiration_date', this.form.expiration_date || '');
-      if (this.form.allergens_text) {
-        const allergens = this.form.allergens_text.split(',').map((a: string) => a.trim()).filter(Boolean);
-        allergens.forEach((a: string) => formData.append('allergens[]', a));
+      if (!this.isResponsableAchat) {
+        formData.append('expiration_date', this.form.expiration_date || '');
+        if (this.form.allergens_text) {
+          const allergens = this.form.allergens_text.split(',').map((a: string) => a.trim()).filter(Boolean);
+          allergens.forEach((a: string) => formData.append('allergens[]', a));
+        }
       }
     }
 
@@ -1208,15 +1206,7 @@ export class ProductsComponent implements OnInit {
       cancelButtonText: 'Annuler'
     }).then((result) => {
       if (result.isConfirmed) {
-        const formData = new FormData();
-        formData.append('approval_status', status);
-        formData.append('name', product.name);
-        formData.append('type', product.type);
-        if (product.category_id) {
-          formData.append('category_id', String(product.category_id));
-        }
-
-        this.api.put(`products/${product.id}`, formData).subscribe({
+        this.api.put(`products/${product.id}/approve`, { approval_status: status }).subscribe({
           next: () => {
             Swal.fire({
               title: 'Succès !',
@@ -1226,25 +1216,12 @@ export class ProductsComponent implements OnInit {
             });
             this.load();
           },
-          error: () => {
-            this.api.put(`products/${product.id}/status`, { status }).subscribe({
-              next: () => {
-                Swal.fire({
-                  title: 'Succès !',
-                  text: `Le produit a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
-                  icon: 'success',
-                  confirmButtonColor: '#0D9488'
-                });
-                this.load();
-              },
-              error: (err2) => {
-                Swal.fire({
-                  title: 'Erreur',
-                  text: err2.error?.message || 'Une erreur est survenue lors de la validation.',
-                  icon: 'error',
-                  confirmButtonColor: '#EF4444'
-                });
-              }
+          error: (err) => {
+            Swal.fire({
+              title: 'Erreur',
+              text: err.error?.message || 'Une erreur est survenue lors de la validation.',
+              icon: 'error',
+              confirmButtonColor: '#EF4444'
             });
           }
         });

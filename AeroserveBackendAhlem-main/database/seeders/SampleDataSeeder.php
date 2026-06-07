@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Http\Controllers\Api\PurchaseNeedController;
 use App\Models\Category;
 use App\Models\Comment;
 use App\Models\HygieneReport;
@@ -236,7 +237,7 @@ class SampleDataSeeder extends Seeder
             ['name' => 'Menu Semaine Standard'],
             [
                 'start_date' => $weekStart->toDateString(),
-                'end_date'   => $weekStart->copy()->endOfWeek()->toDateString(),
+                'end_date' => $weekStart->copy()->endOfWeek()->toDateString(),
                 'created_by' => $chefCuisine->id,
                 'is_active' => true,
             ]
@@ -248,7 +249,7 @@ class SampleDataSeeder extends Seeder
         );
 
         // Generate purchase needs calculation for the seeded menu (Feature 6)
-        \App\Http\Controllers\Api\PurchaseNeedController::generateForMenu($menu);
+        PurchaseNeedController::generateForMenu($menu);
 
         Planning::firstOrCreate(
             ['user_id' => $caissier->id, 'date' => now()->toDateString()],

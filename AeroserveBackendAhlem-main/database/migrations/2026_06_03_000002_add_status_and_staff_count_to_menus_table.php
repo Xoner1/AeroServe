@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('menus', function (Blueprint $table) {
-            if (!Schema::hasColumn('menus', 'status')) {
+            if (! Schema::hasColumn('menus', 'status')) {
                 $table->enum('status', ['BROUILLON', 'VALIDE', 'REFUSE'])->default('BROUILLON')->after('is_active');
             }
-            if (!Schema::hasColumn('menus', 'staff_count')) {
+            if (! Schema::hasColumn('menus', 'staff_count')) {
                 $table->integer('staff_count')->nullable()->after('status');
             }
-            if (!Schema::hasColumn('menus', 'comment')) {
+            if (! Schema::hasColumn('menus', 'comment')) {
                 $table->text('comment')->nullable()->after('staff_count');
             }
         });

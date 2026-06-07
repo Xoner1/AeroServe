@@ -6,22 +6,23 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('plannings', function (Blueprint $table) {
-            if (! Schema::hasColumn('plannings', 'shift')) {
-                $table->enum('shift', ['MATIN', 'APRES_MIDI', 'SOIR'])->default('MATIN')->after('date');
-            }
-            if (! Schema::hasColumn('plannings', 'day_status')) {
-                $table->enum('day_status', ['ON', 'OFF', 'CONGE'])->default('ON')->after('shift');
-            }
+            $table->foreignId('pdv_id')->nullable()->change();
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('plannings', function (Blueprint $table) {
-            $table->dropColumn(['shift', 'day_status']);
+            $table->foreignId('pdv_id')->nullable(false)->change();
         });
     }
 };

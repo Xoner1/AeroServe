@@ -2,9 +2,9 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 return new class extends Migration
@@ -13,17 +13,17 @@ return new class extends Migration
     {
         // 1. Add columns to users table
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'point_de_vente_id')) {
+            if (! Schema::hasColumn('users', 'point_de_vente_id')) {
                 $table->unsignedBigInteger('point_de_vente_id')->nullable();
                 $table->foreign('point_de_vente_id')->references('id')->on('points_de_vente')->onDelete('set null');
             }
-            if (!Schema::hasColumn('users', 'caissier_status')) {
+            if (! Schema::hasColumn('users', 'caissier_status')) {
                 $table->enum('caissier_status', ['en_attente', 'active', 'inactive'])->nullable();
             }
-            if (!Schema::hasColumn('users', 'caissier_role')) {
+            if (! Schema::hasColumn('users', 'caissier_role')) {
                 $table->string('caissier_role')->nullable();
             }
-            if (!Schema::hasColumn('users', 'username')) {
+            if (! Schema::hasColumn('users', 'username')) {
                 $table->string('username')->nullable();
             }
         });
@@ -34,18 +34,18 @@ return new class extends Migration
         if (Schema::hasTable('caissiers')) {
             foreach (DB::table('caissiers')->get() as $c) {
                 $newUserId = DB::table('users')->insertGetId([
-                    'first_name'         => $c->first_name,
-                    'last_name'          => $c->last_name,
-                    'email'              => $c->email,
-                    'username'           => Str::slug($c->first_name.'.'.$c->last_name),
-                    'phone'              => $c->phone,
-                    'password'           => Hash::make('password'),
-                    'caissier_role'      => 'CAISSIER',
-                    'is_active'          => ($c->status === 'active') ? 1 : 0,
-                    'point_de_vente_id'  => $c->point_de_vente_id,
-                    'caissier_status'    => $c->status,
-                    'created_at'         => now(),
-                    'updated_at'         => now(),
+                    'first_name' => $c->first_name,
+                    'last_name' => $c->last_name,
+                    'email' => $c->email,
+                    'username' => Str::slug($c->first_name.'.'.$c->last_name),
+                    'phone' => $c->phone,
+                    'password' => Hash::make('password'),
+                    'caissier_role' => 'CAISSIER',
+                    'is_active' => ($c->status === 'active') ? 1 : 0,
+                    'point_de_vente_id' => $c->point_de_vente_id,
+                    'caissier_status' => $c->status,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 $map[$c->id] = $newUserId;
             }
@@ -55,13 +55,13 @@ return new class extends Migration
         Schema::table('sales', function (Blueprint $table) {
             try {
                 $table->dropForeign(['caissier_id']);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Ignore if foreign key doesn't exist
             }
             $table->renameColumn('caissier_id', 'user_id');
         });
 
-        if (!empty($map)) {
+        if (! empty($map)) {
             foreach ($map as $oldId => $newId) {
                 DB::table('sales')->where('user_id', $oldId)->update(['user_id' => $newId]);
             }
@@ -75,13 +75,13 @@ return new class extends Migration
         Schema::table('plannings', function (Blueprint $table) {
             try {
                 $table->dropForeign(['caissier_id']);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Ignore if foreign key doesn't exist
             }
             $table->renameColumn('caissier_id', 'user_id');
         });
 
-        if (!empty($map)) {
+        if (! empty($map)) {
             foreach ($map as $oldId => $newId) {
                 DB::table('plannings')->where('user_id', $oldId)->update(['user_id' => $newId]);
             }
@@ -136,13 +136,13 @@ return new class extends Migration
             Schema::table('sales', function (Blueprint $table) {
                 try {
                     $table->dropForeign(['user_id']);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Ignore if foreign key doesn't exist
                 }
                 $table->renameColumn('user_id', 'caissier_id');
             });
 
-            if (!empty($map)) {
+            if (! empty($map)) {
                 foreach ($map as $newId => $oldId) {
                     DB::table('sales')->where('caissier_id', $newId)->update(['caissier_id' => $oldId]);
                 }
@@ -156,13 +156,13 @@ return new class extends Migration
             Schema::table('plannings', function (Blueprint $table) {
                 try {
                     $table->dropForeign(['user_id']);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Ignore if foreign key doesn't exist
                 }
                 $table->renameColumn('user_id', 'caissier_id');
             });
 
-            if (!empty($map)) {
+            if (! empty($map)) {
                 foreach ($map as $newId => $oldId) {
                     DB::table('plannings')->where('caissier_id', $newId)->update(['caissier_id' => $oldId]);
                 }
@@ -179,7 +179,8 @@ return new class extends Migration
             Schema::table('users', function (Blueprint $table) use ($col) {
                 try {
                     $table->dropForeign(['point_de_vente_id']);
-                } catch (\Exception $e) {}
+                } catch (Exception $e) {
+                }
                 $table->dropColumn(['point_de_vente_id', 'caissier_status', $col, 'username']);
             });
         }

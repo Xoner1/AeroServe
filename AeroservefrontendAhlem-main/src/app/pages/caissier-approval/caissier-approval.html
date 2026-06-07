@@ -21,7 +21,7 @@
 
   <!-- AVATAR -->
   <div class="avatar">
-    {{ c.first_name[0] }}{{ c.last_name[0] }}
+    {{ (c.first_name?.[0] || '') + (c.last_name?.[0] || '') }}
   </div>
 
   <div class="info">

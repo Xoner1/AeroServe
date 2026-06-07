@@ -8,41 +8,53 @@ use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Traits\FifoStockTrait;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
 {
     use FifoStockTrait;
+
     public function index(Request $request): JsonResponse
     {
         $query = Stock::with('product.category');
 
+        $user = auth()->user();
+        $role = $user->role?->name;
+
         // Stock should only show approved products
-        $query->whereHas('product', fn($q) => $q->where('approval_status', 'approved'));
+        $query->whereHas('product', fn ($q) => $q->where('approval_status', 'approved'));
+
+        // Chef Magasin: only see stocks of COMMERCIAL and MATIERE_PREMIERE products
+        if ($role === 'CHEF_MAGASIN') {
+            $query->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+        }
 
         if ($request->boolean('low_stock')) {
             $query->whereColumn('quantity', '<=', 'min_threshold');
         }
 
         $paginated = $query->paginate(15);
-        
-        // Calculate daily stats
-        $dailyInputs = StockMovement::where('type', 'in')
-            ->whereDate('created_at', today())
-            ->sum('quantity');
 
-        $dailyOutputs = StockMovement::where('type', 'out')
-            ->whereDate('created_at', today())
-            ->sum('quantity');
+        // Calculate daily stats (filtered by role if necessary)
+        $dailyInputsQuery = StockMovement::where('type', 'in')->whereDate('created_at', today());
+        $dailyOutputsQuery = StockMovement::where('type', 'out')->whereDate('created_at', today());
+        $totalStockQuery = Stock::whereHas('product', fn ($q) => $q->where('approval_status', 'approved'));
+        $criticalCountQuery = Stock::whereHas('product', fn ($q) => $q->where('approval_status', 'approved'))
+            ->whereColumn('quantity', '<=', 'min_threshold');
 
-        $totalStock = Stock::whereHas('product', fn($q) => $q->where('approval_status', 'approved'))
-            ->sum('quantity');
+        if ($role === 'CHEF_MAGASIN') {
+            $dailyInputsQuery->whereHas('stock.product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+            $dailyOutputsQuery->whereHas('stock.product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+            $totalStockQuery->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+            $criticalCountQuery->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+        }
 
-        $criticalCount = Stock::whereHas('product', fn($q) => $q->where('approval_status', 'approved'))
-            ->whereColumn('quantity', '<=', 'min_threshold')
-            ->count();
+        $dailyInputs = $dailyInputsQuery->sum('quantity');
+        $dailyOutputs = $dailyOutputsQuery->sum('quantity');
+        $totalStock = $totalStockQuery->sum('quantity');
+        $criticalCount = $criticalCountQuery->count();
 
         return response()->json([
             'data' => $paginated->items(),
@@ -54,8 +66,8 @@ class StockController extends Controller
                 'total_stock' => $totalStock,
                 'daily_inputs' => $dailyInputs,
                 'daily_outputs' => $dailyOutputs,
-                'critical_count' => $criticalCount
-            ]
+                'critical_count' => $criticalCount,
+            ],
         ]);
     }
 
@@ -74,6 +86,12 @@ class StockController extends Controller
             'reason' => 'nullable|string|max:500',
             'expiration_date' => 'nullable|date',
         ]);
+
+        if ($request->type === 'out' && $request->quantity > $stock->quantity) {
+            return response()->json([
+                'message' => 'Stock insuffisant. La quantité disponible est de '.$stock->quantity.' '.($stock->unit ?? 'unité(s)').'.',
+            ], 422);
+        }
 
         DB::transaction(function () use ($stock, $request) {
             if ($request->type === 'out') {
@@ -136,10 +154,18 @@ class StockController extends Controller
 
     public function lowStockAlerts(): JsonResponse
     {
-        $lowStocks = Stock::with('product')
-            ->whereHas('product', fn($q) => $q->where('approval_status', 'approved'))
-            ->whereColumn('quantity', '<=', 'min_threshold')
-            ->get();
+        $user = auth()->user();
+        $role = $user->role?->name;
+
+        $query = Stock::with('product')
+            ->whereHas('product', fn ($q) => $q->where('approval_status', 'approved'))
+            ->whereColumn('quantity', '<=', 'min_threshold');
+
+        if ($role === 'CHEF_MAGASIN') {
+            $query->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+        }
+
+        $lowStocks = $query->get();
 
         return response()->json($lowStocks);
     }
@@ -167,7 +193,7 @@ class StockController extends Controller
 
         if ($nearExpiry) {
             $productName = $stock->product?->name ?? 'Produit';
-            $users = User::whereHas('role', fn($q) => $q->whereIn('name', ['CHEF_MAGASIN', 'RESPONSABLE_HYGIENE']))->get();
+            $users = User::whereHas('role', fn ($q) => $q->whereIn('name', ['CHEF_MAGASIN', 'RESPONSABLE_HYGIENE']))->get();
 
             foreach ($users as $user) {
                 Notification::create([

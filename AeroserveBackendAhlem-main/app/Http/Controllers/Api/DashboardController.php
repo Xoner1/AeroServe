@@ -3,18 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
-
-use App\Models\Stock;
 use App\Models\InternalOrder;
+use App\Models\Menu;
+use App\Models\Product;
+use App\Models\PurchaseNeed;
+use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Models\User;
-use App\Models\Menu;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -23,7 +22,6 @@ class DashboardController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $role = $user->role?->name;
-
 
         $dateFrom = $request->input('date_from', now()->startOfMonth()->toDateString());
         $dateTo = $request->input('date_to', now()->toDateString());
@@ -50,11 +48,11 @@ class DashboardController extends Controller
 
         // ─── GASPILLAGE (WASTE) KPIs ───
         $wasteMovements = StockMovement::where('type', 'out')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('reason', 'LIKE', '%expir%')
-                  ->orWhere('reason', 'LIKE', '%waste%')
-                  ->orWhere('reason', 'LIKE', '%gaspill%')
-                  ->orWhere('reason', 'LIKE', '%perte%');
+                    ->orWhere('reason', 'LIKE', '%waste%')
+                    ->orWhere('reason', 'LIKE', '%gaspill%')
+                    ->orWhere('reason', 'LIKE', '%perte%');
             })
             ->whereBetween('created_at', [$dateFrom, $dateTo])
             ->sum('quantity');
@@ -68,15 +66,15 @@ class DashboardController extends Controller
         $totalWaste = $wasteMovements + $expiredBatches;
 
         $wasteTrend = StockMovement::select(
-                DB::raw('DATE(created_at) as date'),
-                DB::raw('SUM(quantity) as total')
-            )
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('SUM(quantity) as total')
+        )
             ->where('type', 'out')
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->where('reason', 'LIKE', '%expir%')
-                  ->orWhere('reason', 'LIKE', '%waste%')
-                  ->orWhere('reason', 'LIKE', '%perte%')
-                  ->orWhere('reason', 'LIKE', '%gaspill%');
+                    ->orWhere('reason', 'LIKE', '%waste%')
+                    ->orWhere('reason', 'LIKE', '%perte%')
+                    ->orWhere('reason', 'LIKE', '%gaspill%');
             })
             ->whereBetween('created_at', [$dateFrom, $dateTo])
             ->groupBy('date')
@@ -98,7 +96,7 @@ class DashboardController extends Controller
                 ->count();
             $availableIngredients = Product::where('type', 'matiere_premiere')
                 ->where('approval_status', 'approved')
-                ->whereHas('stock', fn($q) => $q->where('quantity', '>', 0))
+                ->whereHas('stock', fn ($q) => $q->where('quantity', '>', 0))
                 ->count();
             $availabilityRate = $totalIngredients > 0
                 ? round(($availableIngredients / $totalIngredients) * 100)
@@ -136,7 +134,7 @@ class DashboardController extends Controller
                     ->whereIn('product_id', $ingredientIds)
                     ->whereColumn('quantity', '<=', 'min_threshold')
                     ->get()
-                    ->map(fn($s) => [
+                    ->map(fn ($s) => [
                         'ingredient_name' => $s->product->name,
                         'current_stock' => (float) $s->quantity,
                         'min_threshold' => (float) $s->min_threshold,
@@ -146,15 +144,15 @@ class DashboardController extends Controller
 
             // ── Widget D2: Next-week menu check (read-only info; reminder is sent via scheduled job on Thursdays 20:00) ──
             $nextWeekStart = now()->addWeek()->startOfWeek()->toDateString();
-            $nextWeekEnd   = now()->addWeek()->endOfWeek()->toDateString();
-            $nextWeekMenu  = Menu::where('start_date', $nextWeekStart)
+            $nextWeekEnd = now()->addWeek()->endOfWeek()->toDateString();
+            $nextWeekMenu = Menu::where('start_date', $nextWeekStart)
                 ->where('end_date', $nextWeekEnd)
                 ->first();
 
             $roleData['recipes_count'] = Product::where('type', 'food')->where('approval_status', 'approved')->count();
             $roleData['active_menu'] = $currentWeekMenu;
             $roleData['critical_ingredients'] = Stock::with('product')
-                ->whereHas('product', fn($q) => $q->whereIn('type', ['matiere_premiere', 'commercial']))
+                ->whereHas('product', fn ($q) => $q->whereIn('type', ['matiere_premiere', 'commercial']))
                 ->whereColumn('quantity', '<=', 'min_threshold')
                 ->limit(5)
                 ->get();
@@ -169,8 +167,8 @@ class DashboardController extends Controller
             $roleData['current_menu_name'] = $currentWeekMenu?->name;
 
             // Widget A — purchase need from latest menu
-            $latestNeed = \App\Models\PurchaseNeed::with('items')
-                ->whereHas('menu', fn($q) => $q->where('created_by', $user->id))
+            $latestNeed = PurchaseNeed::with('items')
+                ->whereHas('menu', fn ($q) => $q->where('created_by', $user->id))
                 ->latest('generated_at')
                 ->first();
             $roleData['latest_purchase_need'] = $latestNeed ? [
@@ -188,7 +186,7 @@ class DashboardController extends Controller
             $roleData['sous_seuil_ingredients'] = $sousSeuilIngredients;
 
             // Widget D2 — next week menu info (FIX 3: reminder push is now a scheduled job, not a runtime flag)
-            $roleData['next_week_menu_planned'] = !is_null($nextWeekMenu);
+            $roleData['next_week_menu_planned'] = ! is_null($nextWeekMenu);
             $roleData['next_week_menu_name'] = $nextWeekMenu?->name;
         } elseif ($role === 'CAISSIER') {
             // Cashier no longer has sales
@@ -198,7 +196,7 @@ class DashboardController extends Controller
         return response()->json([
             'low_stock_count' => $lowStockCount,
             'expired_products_count' => $expiredCount,
-            
+
             // New metrics
             'active_users' => $activeUsers,
             'pending_orders' => $pendingOrders,

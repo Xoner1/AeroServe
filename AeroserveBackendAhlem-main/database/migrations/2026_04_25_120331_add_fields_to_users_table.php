@@ -5,22 +5,24 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
-{public function up()
 {
-    Schema::table('users', function (Blueprint $table) {
+    public function up()
+    {
+        Schema::table('users', function (Blueprint $table) {
 
-        $table->integer('age')->nullable();
-        $table->boolean('experience')->default(false);
-        $table->text('bio')->nullable();
+            $table->integer('age')->nullable();
+            $table->boolean('experience')->default(false);
+            $table->text('bio')->nullable();
 
-    });
-}
+        });
+    }
 
-public function down()
-{
-    Schema::table('users', function (Blueprint $table) {
+    public function down()
+    {
+        Schema::table('users', function (Blueprint $table) {
 
-        $table->dropColumn(['age', 'experience', 'bio']);
+            $table->dropColumn(['age', 'experience', 'bio']);
 
-    });
-}};
+        });
+    }
+};

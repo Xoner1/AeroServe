@@ -2,20 +2,15 @@
 
 namespace App\Traits;
 
+use App\Models\Notification;
 use App\Models\Stock;
 use App\Models\StockMovement;
 use App\Models\User;
-use App\Models\Notification;
 
 trait FifoStockTrait
 {
     /**
      * Deduct quantity from a stock using FIFO strategy and record the movement.
-     *
-     * @param Stock $stock
-     * @param float $quantityNeeded
-     * @param string|null $reason
-     * @return void
      */
     protected function fifoDeduction(Stock $stock, float $quantityNeeded, ?string $reason = null): void
     {
@@ -30,7 +25,9 @@ trait FifoStockTrait
         $remaining = $quantityNeeded;
 
         foreach ($batches as $batch) {
-            if ($remaining <= 0) break;
+            if ($remaining <= 0) {
+                break;
+            }
 
             if ($batch->quantity >= $remaining) {
                 $batch->decrement('quantity', $remaining);
@@ -62,7 +59,7 @@ trait FifoStockTrait
     {
         if ($stock->quantity <= $stock->min_threshold) {
             $productName = $stock->product?->name ?? 'Produit';
-            $users = User::whereHas('role', fn($q) => $q->whereIn('name', ['CHEF_MAGASIN', 'RESPONSABLE_ACHAT']))->get();
+            $users = User::whereHas('role', fn ($q) => $q->whereIn('name', ['CHEF_MAGASIN', 'RESPONSABLE_ACHAT']))->get();
 
             foreach ($users as $user) {
                 Notification::create([

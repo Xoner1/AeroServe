@@ -8,6 +8,7 @@ use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
 
 class HygieneReportController extends Controller
 {
@@ -93,6 +94,26 @@ class HygieneReportController extends Controller
         $hygieneReport->delete();
 
         return response()->json(['message' => 'Rapport supprimé.']);
+    }
+
+    public function export(): \Illuminate\Http\Response
+    {
+        $reports = HygieneReport::with('product', 'inspector')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $csv = "id,product,inspector,allergens_verified,expiration_verified,status,remarks,created_at\n";
+        foreach ($reports as $r) {
+            $productName = str_replace('"', '""', $r->product?->name ?? 'N/A');
+            $inspectorName = str_replace('"', '""', ($r->inspector?->first_name ?? '').' '.($r->inspector?->last_name ?? ''));
+            $remarks = str_replace('"', '""', $r->remarks ?? '');
+            $csv .= "\"{$r->id}\",\"{$productName}\",\"{$inspectorName}\",\"{$r->allergens_verified}\",\"{$r->expiration_verified}\",\"{$r->status}\",\"{$remarks}\",\"{$r->created_at}\"\n";
+        }
+
+        return Response::make($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="hygiene-reports-'.now()->format('Y-m-d').'.csv"',
+        ]);
     }
 
     private function notifyRoles(string $title, string $message, string $type, array $data = []): void

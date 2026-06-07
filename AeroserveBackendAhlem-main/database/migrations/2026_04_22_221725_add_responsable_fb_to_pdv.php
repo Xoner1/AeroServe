@@ -7,19 +7,20 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-{
-    Schema::table('points_de_vente', function (Blueprint $table) {
-        $table->foreignId('responsable_fb_id')
-            ->nullable()
-            ->constrained('users')
-            ->nullOnDelete();
-    });
-}
+    {
+        Schema::table('points_de_vente', function (Blueprint $table) {
+            $table->foreignId('responsable_fb_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+        });
+    }
 
-public function down(): void
-{
-    Schema::table('points_de_vente', function (Blueprint $table) {
-        $table->dropForeign(['responsable_fb_id']);
-        $table->dropColumn('responsable_fb_id');
-    });
-}};
+    public function down(): void
+    {
+        Schema::table('points_de_vente', function (Blueprint $table) {
+            $table->dropForeign(['responsable_fb_id']);
+            $table->dropColumn('responsable_fb_id');
+        });
+    }
+};

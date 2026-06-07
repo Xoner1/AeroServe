@@ -113,7 +113,8 @@ class ProductController extends Controller
 
         $data = $request->only(['name', 'description', 'type']);
         $data['created_by'] = $user->id;
-        $data['approval_status'] = 'pending';
+        // CHEF_CUISINE manages their own recipes: auto-approve without RESPONSABLE_ACHAT validation
+        $data['approval_status'] = ($role === 'CHEF_CUISINE') ? 'approved' : 'pending';
 
         if ($request->has('quantity_per_batch')) {
             $data['quantity_per_batch'] = $request->quantity_per_batch;

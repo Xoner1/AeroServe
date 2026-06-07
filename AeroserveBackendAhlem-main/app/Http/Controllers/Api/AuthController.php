@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\ResetPasswordMail;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,9 +26,9 @@ class AuthController extends Controller
 
         $credentials = $request->only('email', 'password');
 
-        if (!$token = JWTAuth::attempt($credentials)) {
+        if (! $token = JWTAuth::attempt($credentials)) {
             return response()->json([
-                'message' => 'Email ou mot de passe incorrect.'
+                'message' => 'Email ou mot de passe incorrect.',
             ], 401);
         }
 
@@ -34,14 +36,14 @@ class AuthController extends Controller
 
         if ($user->status !== 'active') {
             return response()->json([
-                'message' => 'Compte non actif.'
+                'message' => 'Compte non actif.',
             ], 403);
         }
 
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'user' => $user->load('role', 'pointDeVente.airport')
+            'user' => $user->load('role', 'pointDeVente.airport'),
         ]);
     }
 
@@ -50,7 +52,7 @@ class AuthController extends Controller
         $user = JWTAuth::user()->load('role', 'pointDeVente.airport');
 
         return response()->json([
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
@@ -59,14 +61,14 @@ class AuthController extends Controller
         JWTAuth::invalidate(JWTAuth::getToken());
 
         return response()->json([
-            'message' => 'Déconnexion réussie.'
+            'message' => 'Déconnexion réussie.',
         ]);
     }
 
     public function refresh(): JsonResponse
     {
         return response()->json([
-            'access_token' => JWTAuth::refresh(JWTAuth::getToken())
+            'access_token' => JWTAuth::refresh(JWTAuth::getToken()),
         ]);
     }
 
@@ -74,20 +76,20 @@ class AuthController extends Controller
     {
         $user = JWTAuth::user();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Unauthenticated'
+                'message' => 'Unauthenticated',
             ], 401);
         }
 
         $request->validate([
-            'first_name'  => 'sometimes|string|max:255',
-            'last_name'   => 'sometimes|string|max:255',
-            'email'       => 'sometimes|email|unique:users,email,' . $user->id,
-            'phone'       => 'sometimes|nullable|string|max:20',
-            'bio'         => 'sometimes|nullable|string|max:500',
-            'age'         => 'sometimes|nullable|integer|min:0|max:120',
-            'avatar'      => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'first_name' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,'.$user->id,
+            'phone' => 'sometimes|nullable|string|max:20',
+            'bio' => 'sometimes|nullable|string|max:500',
+            'age' => 'sometimes|nullable|integer|min:0|max:120',
+            'avatar' => 'sometimes|file|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $data = $request->only([
@@ -96,7 +98,7 @@ class AuthController extends Controller
             'email',
             'phone',
             'bio',
-            'age'
+            'age',
         ]);
 
         if ($request->hasFile('avatar')) {
@@ -108,7 +110,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user' => $user->fresh()->load('role', 'pointDeVente.airport')
+            'user' => $user->fresh()->load('role', 'pointDeVente.airport'),
         ]);
     }
 
@@ -121,7 +123,7 @@ class AuthController extends Controller
 
         $user = JWTAuth::user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return response()->json(['message' => 'Le mot de passe actuel est incorrect.'], 422);
         }
 
@@ -133,14 +135,14 @@ class AuthController extends Controller
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email'
+            'email' => 'required|email',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Si cet email existe, un lien de réinitialisation a été envoyé.'
+                'message' => 'Si cet email existe, un lien de réinitialisation a été envoyé.',
             ], 200);
         }
 
@@ -157,11 +159,11 @@ class AuthController extends Controller
         ]);
 
         Mail::to($user->email)->send(
-            new \App\Mail\ResetPasswordMail($token, $user->email)
+            new ResetPasswordMail($token, $user->email)
         );
 
         return response()->json([
-            'message' => 'Lien de réinitialisation envoyé par email'
+            'message' => 'Lien de réinitialisation envoyé par email',
         ]);
     }
 
@@ -176,28 +178,28 @@ class AuthController extends Controller
             ->where('token', $request->token)
             ->first();
 
-        if (!$record) {
+        if (! $record) {
             return response()->json([
-                'message' => 'Token invalide ou expiré'
+                'message' => 'Token invalide ou expiré',
             ], 400);
         }
 
-        if (isset($record->created_at) && \Carbon\Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
+        if (isset($record->created_at) && Carbon::parse($record->created_at)->addMinutes(60)->isPast()) {
             return response()->json([
-                'message' => 'Token expiré'
+                'message' => 'Token expiré',
             ], 400);
         }
 
         $user = User::where('email', $record->email)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'Utilisateur introuvable'
+                'message' => 'Utilisateur introuvable',
             ], 404);
         }
 
         $user->update([
-            'password' => bcrypt($request->password)
+            'password' => bcrypt($request->password),
         ]);
 
         DB::table('password_reset_tokens')
@@ -205,7 +207,7 @@ class AuthController extends Controller
             ->delete();
 
         return response()->json([
-            'message' => 'Mot de passe réinitialisé avec succès'
+            'message' => 'Mot de passe réinitialisé avec succès',
         ], 200);
     }
 }

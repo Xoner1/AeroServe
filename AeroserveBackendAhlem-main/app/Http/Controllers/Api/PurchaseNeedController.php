@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
-use App\Models\Product;
 use App\Models\PurchaseNeed;
 use App\Models\Stock;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseNeedController extends Controller
@@ -43,14 +41,16 @@ class PurchaseNeedController extends Controller
 
         foreach ($menu->items as $item) {
             $product = $item->product;
-            if (!$product || $product->type !== 'food') continue;
+            if (! $product || $product->type !== 'food') {
+                continue;
+            }
 
             foreach ($product->ingredients as $ingredient) {
                 $id = $ingredient->id;
                 $qtyPerPerson = (float) ($ingredient->pivot->quantity ?? 0);
                 $totalQty = $qtyPerPerson * $staffCount;
 
-                if (!isset($ingredientMap[$id])) {
+                if (! isset($ingredientMap[$id])) {
                     $ingredientMap[$id] = [
                         'qty' => 0,
                         'days' => 0,

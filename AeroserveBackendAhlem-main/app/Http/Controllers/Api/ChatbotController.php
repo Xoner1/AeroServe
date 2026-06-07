@@ -14,77 +14,67 @@ use App\Models\User;
 class ChatbotController extends Controller
 {
     /**
-     * Ask the AI chatbot about a specific food product.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
+     * Ask the AI chatbot — supports function calling for all three AI providers.
      */
     public function ask(Request $request): JsonResponse
     {
         $request->validate([
             'product_id' => 'nullable|exists:products,id',
-            'message' => 'required|string|max:1000',
+            'message'    => 'required|string|max:1000',
         ]);
 
         $productId = $request->input('product_id');
-        $message = $request->input('message');
+        $message   = $request->input('message');
 
-        // Fetch the authenticated user and role
         /** @var User|null $user */
-        $user = Auth::user();
+        $user     = Auth::user();
         $userRole = $user && $user->role ? $user->role->name : 'GUEST';
         $userName = $user ? "{$user->first_name} {$user->last_name}" : 'Utilisateur';
 
-        // 1. CASHIER SPECIFIC RESTRICTIONS
+        // ─── 1. CAISSIER RESTRICTIONS ──────────────────────────────────────────
         if ($userRole === 'CAISSIER') {
             if (!$productId) {
                 return response()->json([
-                    'success' => true,
+                    'success'  => true,
                     'response' => "Assistant Qualite et Sante (Mode Client) : Bonjour {$userName} !\n\nEn tant que Caissier, je suis configure pour repondre exclusivement aux questions des clients concernant la composition, les allergenes et la securite de nos plats et boissons.\n\nVeuillez scanner le code QR d'un produit ou le selectionner depuis sa fiche pour poser vos questions (ex: intolerance au gluten, lactose, arachides, diabete, etc.).",
-                    'source' => 'cashier_restriction_engine'
+                    'source'   => 'cashier_restriction_engine'
                 ]);
             }
 
             if ($this->isForbiddenForCashier($message)) {
                 return response()->json([
-                    'success' => true,
+                    'success'  => true,
                     'response' => "Acces limite : En tant que Caissier, vous pouvez uniquement poser des questions sur les allergenes, les ingredients ou la compatibilite sante de ce produit pour repondre aux clients. Les questions administratives, financieres ou logistiques (stocks, commandes, plannings, utilisateurs) ne sont pas autorisees pour ce role.",
-                    'source' => 'cashier_restriction_engine'
+                    'source'   => 'cashier_restriction_engine'
                 ]);
             }
         }
 
-        // 2. ROLE-BASED CONTEXT RESTRICTIONS FOR SYSTEM PROMPTS
+        // ─── 2. ROLE-BASED SYSTEM PROMPT ──────────────────────────────────────
         $roleDescriptions = [
-            'SUPER_ADMIN' => "Tu es le copilote global de AeroServe. Tu as acces a la gestion globale des utilisateurs, des points de vente et aux KPIs financiers. Tu peux repondre aux questions d'administration generale.",
-            'RESPONSABLE_FB' => "Tu es le responsable F&B de AeroServe. Tu as acces a la planification des shifts des caissiers, a la gestion operationnelle des points de vente, et a la commande d'articles. Tu ne dois pas divulguer d'informations confidentielles sur d'autres roles.",
-            'CHEF_CUISINE' => "Tu es le Chef de Cuisine. Tu t'occupes des recettes, des produits alimentaires (Food), des menus du personnel et des commandes de matieres premieres. Ne reponds jamais aux questions sur les statistiques de vente des points de vente, la comptabilite ou les salaires.",
-            'CHEF_MAGASIN' => "Tu es le Chef de Magasinier. Tu t'occupes de la gestion FIFO du stock en reserve, des lots perimes, et de la validation des commandes commerciales. Tu n'as pas acces aux recettes secretes de cuisine ou aux donnees financieres.",
-            'RESPONSABLE_ACHAT' => "Tu es le responsable Achat. Tu valides les produits soumis par le magasinier, configures les prix d'achat, geres les categories, et analyses les previsions d'approvisionnement IA.",
-            'RESPONSABLE_HYGIENE' => "Tu es le responsable Hygiene. Tu rediges les audits de securite alimentaire, declares les allergenes et signales les non-conformites.",
-            'CAISSIER' => "Tu es l'assistant nutritionnel du Caissier en contact avec les clients. Tu reponds exclusivement aux questions des clients sur la composition, les allergenes et la conformite sante du produit en te basant sur les fiches d'hygiene."
+            'SUPER_ADMIN'        => "Tu es le copilote global de AeroServe. Tu as acces a la gestion globale des utilisateurs, des points de vente et aux KPIs financiers. Tu peux repondre aux questions d'administration generale.",
+            'RESPONSABLE_FB'     => "Tu es le responsable F&B de AeroServe. Tu as acces a la planification des shifts des caissiers, a la gestion operationnelle des points de vente, et a la commande d'articles. Tu ne dois pas divulguer d'informations confidentielles sur d'autres roles.",
+            'CHEF_CUISINE'       => "Tu es le Chef de Cuisine. Tu t'occupes des recettes, des produits alimentaires (Food), des menus du personnel et des commandes de matieres premieres. Ne reponds jamais aux questions sur les statistiques de vente des points de vente, la comptabilite ou les salaires.",
+            'CHEF_MAGASIN'       => "Tu es le Chef de Magasinier. Tu t'occupes de la gestion FIFO du stock en reserve, des lots perimes, et de la validation des commandes commerciales. Tu n'as pas acces aux recettes secretes de cuisine ou aux donnees financieres.",
+            'RESPONSABLE_ACHAT'  => "Tu es le responsable Achat. Tu valides les produits soumis par le magasinier, configures les prix d'achat, geres les categories, et analyses les previsions d'approvisionnement IA.",
+            'RESPONSABLE_HYGIENE'=> "Tu es le responsable Hygiene. Tu rediges les audits de securite alimentaire, declares les allergenes et signales les non-conformites.",
+            'CAISSIER'           => "Tu es l'assistant nutritionnel du Caissier en contact avec les clients. Tu reponds exclusivement aux questions des clients sur la composition, les allergenes et la conformite sante du produit en te basant sur les fiches d'hygiene.",
         ];
 
         $roleInstruction = $roleDescriptions[$userRole] ?? "Tu es l'assistant de l'application AeroServe.";
+        $userContext     = $user ? $this->getUserContextText($user) : "Aucun contexte utilisateur.";
 
-        // Retrieve user account and shift context to enforce strict data isolation
-        $userContext = $user ? $this->getUserContextText($user) : "Aucun contexte utilisateur.";
-
-        $productContext = "";
+        $productContext      = "";
         $hygieneReportsContext = "";
 
         if ($productId) {
             $product = Product::with(['stock', 'hygieneReports'])->find($productId);
 
             if (!$product) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Produit non trouve.'
-                ], 404);
+                return response()->json(['success' => false, 'message' => 'Produit non trouve.'], 404);
             }
 
-            $ingredients = $product->description ?? 'Aucun ingredient specifie.';
-            
+            $ingredients   = $product->description ?? 'Aucun ingredient specifie.';
             $productContext = "Voici les details du produit alimentaire actuel :\n" .
                               "Produit: {$product->name}\n" .
                               "Type: {$product->type}\n" .
@@ -95,13 +85,12 @@ class ChatbotController extends Controller
                 $productContext .= "Date d'expiration: {$product->expiration_date}\n";
             }
 
-            // Load hygiene declarations pre-configured by Responsable Hygiene
             if ($product->hygieneReports->isNotEmpty()) {
                 $hygieneReportsContext = "\nDeclarations et audits du responsable Hygiene pour ce produit :\n";
                 foreach ($product->hygieneReports as $report) {
-                    $statusStr = $report->status;
+                    $statusStr   = $report->status;
                     $allergensStr = $report->allergens_verified ? "Allergenes verifies et valides" : "Allergenes non verifies";
-                    $expStr = $report->expiration_verified ? "Date d'expiration verifiee" : "Date d'expiration non verifiee";
+                    $expStr      = $report->expiration_verified ? "Date d'expiration verifiee" : "Date d'expiration non verifiee";
                     $hygieneReportsContext .= "- Statut: {$statusStr} | {$allergensStr} | {$expStr}\n";
                     if ($report->remarks) {
                         $hygieneReportsContext .= "  Remarques de l'officier d'hygiene: \"{$report->remarks}\"\n";
@@ -112,7 +101,7 @@ class ChatbotController extends Controller
             }
         }
 
-        // Build the system instructions for the LLM
+        // Build system role prompt
         if ($userRole === 'CAISSIER') {
             $systemRole = "Tu es l'assistant nutritionnel du Caissier de AeroServe en contact direct avec les clients.\n" .
                           "Tu dois repondre exclusivement aux questions des clients (rapportees par le caissier) concernant la composition, les allergenes et la compatibilite de ce produit avec les maladies ou regimes (ex: intolerance au gluten, au lactose, arachides, diabete, hypertension, etc.).\n" .
@@ -132,58 +121,100 @@ class ChatbotController extends Controller
                           ($productId ? $productContext . "\n" . $hygieneReportsContext . "\n" : "") .
                           "Directives strictes de securite :\n" .
                           "- {$roleInstruction}\n" .
+                          "- Tu ne dois repondre a AUCUNE question qui ne concerne pas directement l'application AeroServe (produits, stocks, commandes, plannings, menus, hygiene, utilisateurs, points de vente). Meme les salutations simples ou les questions hors-sujet doivent etre refusees poliment avec : 'Je suis desole, je suis uniquement un assistant operationnel pour l'application AeroServe.'\n" .
                           "- TU NE DOIS JAMAIS divulguer de donnees, de profils, d'e-mails, d'informations de stocks, de commandes ou de plannings concernant d'autres comptes ou roles.\n" .
                           "- Reste strictement cantonne aux sujets et perimetres autorises pour ton role.\n" .
                           "- Tu dois assister l'utilisateur connecte uniquement pour les taches requises par son propre travail.\n" .
                           "- Si l'utilisateur pose une question sur un autre compte, un autre utilisateur, ou en dehors de ses responsabilites professionnelles, refuse poliment d'y repondre en mentionnant la limite de ses droits.\n" .
                           "- Reponds de maniere concise, polie et dans la meme langue que celle de la question.\n" .
-                          "- N'utilise absolument aucun emoji dans tes reponses.";
+                          "- N'utilise absolument aucun emoji dans tes reponses.\n" .
+                          "- Tu as acces a des outils (tools/fonctions) pour interroger la base de donnees AeroServe en temps reel. Utilise-les pour repondre avec des donnees precises plutot que d'inventer des informations.";
         }
 
         $openaiKey = config('services.openai.key');
-        $groqKey = config('services.groq.key');
+        $groqKey   = config('services.groq.key');
         $geminiKey = config('services.gemini.key');
 
-        // 1. Try OpenAI
+        // ─── 3. OPENAI — Function Calling ──────────────────────────────────────
         if ($openaiKey && $openaiKey !== 'null' && !empty($openaiKey)) {
             try {
-                $url = "https://api.openai.com/v1/chat/completions";
+                $url   = "https://api.openai.com/v1/chat/completions";
+                $tools = $this->getToolDefinitions();
+
+                $messages = [
+                    ['role' => 'system', 'content' => $systemRole],
+                    ['role' => 'user',   'content' => $message],
+                ];
 
                 $response = Http::withHeaders([
                     'Authorization' => "Bearer {$openaiKey}",
-                    'Content-Type' => 'application/json',
+                    'Content-Type'  => 'application/json',
                 ])->post($url, [
-                    'model' => 'gpt-4o-mini',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemRole
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $message
-                        ]
-                    ],
+                    'model'       => 'gpt-4o-mini',
+                    'messages'    => $messages,
+                    'tools'       => $tools,
+                    'tool_choice' => 'auto',
                     'temperature' => 0.5,
-                    'max_tokens' => 500
+                    'max_tokens'  => 800,
                 ]);
 
                 if ($response->successful()) {
-                    $data = $response->json();
-                    $aiResponse = $data['choices'][0]['message']['content'] ?? null;
+                    $data   = $response->json();
+                    $choice = $data['choices'][0] ?? null;
 
-                    if ($aiResponse) {
-                        return response()->json([
-                            'success' => true,
-                            'response' => trim($aiResponse),
-                            'source' => 'openai'
+                    // Tool call requested by the model
+                    if ($choice && ($choice['finish_reason'] === 'tool_calls') && !empty($choice['message']['tool_calls'])) {
+                        $messages[] = $choice['message'];
+
+                        foreach ($choice['message']['tool_calls'] as $toolCall) {
+                            $toolName   = $toolCall['function']['name'];
+                            $toolArgs   = json_decode($toolCall['function']['arguments'], true) ?? [];
+                            $toolResult = $this->executeToolCall($toolName, $toolArgs);
+
+                            $messages[] = [
+                                'role'         => 'tool',
+                                'tool_call_id' => $toolCall['id'],
+                                'content'      => $toolResult,
+                            ];
+                        }
+
+                        // Second call with tool results
+                        $finalResp = Http::withHeaders([
+                            'Authorization' => "Bearer {$openaiKey}",
+                            'Content-Type'  => 'application/json',
+                        ])->post($url, [
+                            'model'       => 'gpt-4o-mini',
+                            'messages'    => $messages,
+                            'temperature' => 0.5,
+                            'max_tokens'  => 800,
                         ]);
+
+                        if ($finalResp->successful()) {
+                            $aiResponse = $finalResp->json()['choices'][0]['message']['content'] ?? null;
+                            if ($aiResponse) {
+                                return response()->json([
+                                    'success'  => true,
+                                    'response' => trim($aiResponse),
+                                    'source'   => 'openai_function_calling',
+                                ]);
+                            }
+                        }
+                    } elseif ($choice) {
+                        // Direct answer (no tool call needed)
+                        $aiResponse = $choice['message']['content'] ?? null;
+                        if ($aiResponse) {
+                            return response()->json([
+                                'success'  => true,
+                                'response' => trim($aiResponse),
+                                'source'   => 'openai',
+                            ]);
+                        }
                     }
                 }
 
                 Log::warning('OpenAI API call failed, falling back to Groq.', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body'   => $response->body(),
                 ]);
 
             } catch (\Exception $e) {
@@ -191,46 +222,83 @@ class ChatbotController extends Controller
             }
         }
 
-        // 2. Try Groq AI (Llama 3)
+        // ─── 4. GROQ — Function Calling (OpenAI-compatible) ───────────────────
         if ($groqKey && $groqKey !== 'null' && !empty($groqKey)) {
             try {
-                $url = "https://api.groq.com/openai/v1/chat/completions";
+                $url   = "https://api.groq.com/openai/v1/chat/completions";
+                $tools = $this->getToolDefinitions();
+
+                $messages = [
+                    ['role' => 'system', 'content' => $systemRole],
+                    ['role' => 'user',   'content' => $message],
+                ];
 
                 $response = Http::withHeaders([
                     'Authorization' => "Bearer {$groqKey}",
-                    'Content-Type' => 'application/json',
+                    'Content-Type'  => 'application/json',
                 ])->post($url, [
-                    'model' => 'llama-3.1-8b-instant',
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => $systemRole
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $message
-                        ]
-                    ],
+                    'model'       => 'llama-3.1-8b-instant',
+                    'messages'    => $messages,
+                    'tools'       => $tools,
+                    'tool_choice' => 'auto',
                     'temperature' => 0.6,
-                    'max_tokens' => 512
+                    'max_tokens'  => 800,
                 ]);
 
                 if ($response->successful()) {
-                    $data = $response->json();
-                    $aiResponse = $data['choices'][0]['message']['content'] ?? null;
+                    $data   = $response->json();
+                    $choice = $data['choices'][0] ?? null;
 
-                    if ($aiResponse) {
-                        return response()->json([
-                            'success' => true,
-                            'response' => trim($aiResponse),
-                            'source' => 'groq_ai'
+                    if ($choice && ($choice['finish_reason'] === 'tool_calls') && !empty($choice['message']['tool_calls'])) {
+                        $messages[] = $choice['message'];
+
+                        foreach ($choice['message']['tool_calls'] as $toolCall) {
+                            $toolName   = $toolCall['function']['name'];
+                            $toolArgs   = json_decode($toolCall['function']['arguments'], true) ?? [];
+                            $toolResult = $this->executeToolCall($toolName, $toolArgs);
+
+                            $messages[] = [
+                                'role'         => 'tool',
+                                'tool_call_id' => $toolCall['id'],
+                                'content'      => $toolResult,
+                            ];
+                        }
+
+                        $finalResp = Http::withHeaders([
+                            'Authorization' => "Bearer {$groqKey}",
+                            'Content-Type'  => 'application/json',
+                        ])->post($url, [
+                            'model'       => 'llama-3.1-8b-instant',
+                            'messages'    => $messages,
+                            'temperature' => 0.6,
+                            'max_tokens'  => 800,
                         ]);
+
+                        if ($finalResp->successful()) {
+                            $aiResponse = $finalResp->json()['choices'][0]['message']['content'] ?? null;
+                            if ($aiResponse) {
+                                return response()->json([
+                                    'success'  => true,
+                                    'response' => trim($aiResponse),
+                                    'source'   => 'groq_function_calling',
+                                ]);
+                            }
+                        }
+                    } elseif ($choice) {
+                        $aiResponse = $choice['message']['content'] ?? null;
+                        if ($aiResponse) {
+                            return response()->json([
+                                'success'  => true,
+                                'response' => trim($aiResponse),
+                                'source'   => 'groq_ai',
+                            ]);
+                        }
                     }
                 }
 
                 Log::warning('Groq API call failed, falling back to Gemini.', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body'   => $response->body(),
                 ]);
 
             } catch (\Exception $e) {
@@ -238,43 +306,88 @@ class ChatbotController extends Controller
             }
         }
 
-        // 3. Try Gemini AI
+        // ─── 5. GEMINI — Function Declarations ────────────────────────────────
         if ($geminiKey && $geminiKey !== 'null' && !empty($geminiKey)) {
             try {
-                $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}";
+                $url                  = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$geminiKey}";
+                $functionDeclarations = $this->getGeminiFunctionDeclarations();
 
-                $response = Http::withHeaders([
-                    'Content-Type' => 'application/json',
-                ])->post($url, [
-                    'contents' => [
-                        [
-                            'role' => 'user',
-                            'parts' => [
-                                [
-                                    'text' => $systemRole . "\n\n" .
-                                              "Question de l'utilisateur: \"{$message}\""
-                                ]
-                            ]
-                        ]
-                    ]
-                ]);
+                $contents = [
+                    [
+                        'role'  => 'user',
+                        'parts' => [['text' => $systemRole . "\n\nQuestion de l'utilisateur: \"{$message}\""]],
+                    ],
+                ];
+
+                $response = Http::withHeaders(['Content-Type' => 'application/json'])
+                    ->post($url, [
+                        'contents' => $contents,
+                        'tools'    => [['function_declarations' => $functionDeclarations]],
+                    ]);
 
                 if ($response->successful()) {
-                    $data = $response->json();
-                    $aiResponse = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                    $data  = $response->json();
+                    $parts = $data['candidates'][0]['content']['parts'] ?? [];
 
-                    if ($aiResponse) {
+                    $functionCallPart = null;
+                    $textPart         = null;
+
+                    foreach ($parts as $part) {
+                        if (isset($part['functionCall'])) {
+                            $functionCallPart = $part['functionCall'];
+                        } elseif (isset($part['text'])) {
+                            $textPart = $part['text'];
+                        }
+                    }
+
+                    if ($functionCallPart) {
+                        $funcName   = $functionCallPart['name'];
+                        $funcArgs   = $functionCallPart['args'] ?? [];
+                        $funcResult = $this->executeToolCall($funcName, $funcArgs);
+
+                        // Send function response back for final answer
+                        $contentsWithResult = array_merge($contents, [
+                            [
+                                'role'  => 'model',
+                                'parts' => [['functionCall' => ['name' => $funcName, 'args' => $funcArgs]]],
+                            ],
+                            [
+                                'role'  => 'user',
+                                'parts' => [['functionResponse' => [
+                                    'name'     => $funcName,
+                                    'response' => ['content' => $funcResult],
+                                ]]],
+                            ],
+                        ]);
+
+                        $finalResp = Http::withHeaders(['Content-Type' => 'application/json'])
+                            ->post($url, [
+                                'contents' => $contentsWithResult,
+                                'tools'    => [['function_declarations' => $functionDeclarations]],
+                            ]);
+
+                        if ($finalResp->successful()) {
+                            $aiResponse = $finalResp->json()['candidates'][0]['content']['parts'][0]['text'] ?? null;
+                            if ($aiResponse) {
+                                return response()->json([
+                                    'success'  => true,
+                                    'response' => trim($aiResponse),
+                                    'source'   => 'gemini_function_calling',
+                                ]);
+                            }
+                        }
+                    } elseif ($textPart) {
                         return response()->json([
-                            'success' => true,
-                            'response' => trim($aiResponse),
-                            'source' => 'gemini_ai'
+                            'success'  => true,
+                            'response' => trim($textPart),
+                            'source'   => 'gemini_ai',
                         ]);
                     }
                 }
 
                 Log::warning('Gemini API call failed, falling back to local NLP engine.', [
                     'status' => $response->status(),
-                    'body' => $response->body()
+                    'body'   => $response->body(),
                 ]);
 
             } catch (\Exception $e) {
@@ -282,32 +395,213 @@ class ChatbotController extends Controller
             }
         }
 
-        // Fallback local NLP engine
+        // ─── 6. LOCAL FALLBACK — NLP Engine ───────────────────────────────────
         if ($productId && isset($product)) {
             $localResponse = $this->getLocalNlpResponse($product, $message);
         } else {
-            $localResponse = $this->getLocalGeneralResponse($message, $userRole);
+            // Off-topic check before generating a local response
+            if (!$this->isOnTopicMessage($message)) {
+                $localResponse = "Je suis desole, je suis uniquement un assistant operationnel pour l'application AeroServe. Je ne reponds pas aux questions hors-sujet ou aux salutations generales. Posez-moi une question sur les produits, les stocks, les commandes, les plannings ou la gestion AeroServe.";
+            } else {
+                $localResponse = $this->getLocalGeneralResponse($message, $userRole);
+            }
         }
 
         return response()->json([
-            'success' => true,
+            'success'  => true,
             'response' => $localResponse,
-            'source' => 'local_nlp_engine'
+            'source'   => 'local_nlp_engine',
         ]);
     }
 
+    // ─── TOOL DEFINITIONS ────────────────────────────────────────────────────
+
     /**
-     * Fallback rules-based intelligent response engine if Gemini API is unavailable.
+     * Returns tool definitions for OpenAI / Groq (OpenAI-compatible format).
+     */
+    private function getToolDefinitions(): array
+    {
+        return [
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'chercher_produits',
+                    'description' => 'Recherche des produits dans le catalogue AeroServe par nom, type (food, commercial, matiere_premiere) ou mot-cle. Utiliser pour repondre aux questions sur les produits existants.',
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'query' => [
+                                'type'        => 'string',
+                                'description' => 'Terme de recherche : nom du produit, type ou mot-cle',
+                            ],
+                        ],
+                        'required' => ['query'],
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_details_produit',
+                    'description' => "Obtenir les details complets d'un produit specifique : stock disponible, rapports d'hygiene, ingredients de la recette, categorie, prix.",
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'product_id' => [
+                                'type'        => 'integer',
+                                'description' => 'ID unique du produit dans la base de donnees AeroServe',
+                            ],
+                        ],
+                        'required' => ['product_id'],
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_tous_produits',
+                    'description' => 'Obtenir le catalogue complet de tous les produits actifs et approuves dans AeroServe. Utiliser quand l\'utilisateur demande une liste generale ou un apercu du catalogue.',
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => new \stdClass(),
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Returns function declarations for Gemini format.
+     */
+    private function getGeminiFunctionDeclarations(): array
+    {
+        return [
+            [
+                'name'        => 'chercher_produits',
+                'description' => 'Recherche des produits dans le catalogue AeroServe par nom, type ou mot-cle.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'query' => [
+                            'type'        => 'string',
+                            'description' => 'Terme de recherche',
+                        ],
+                    ],
+                    'required' => ['query'],
+                ],
+            ],
+            [
+                'name'        => 'obtenir_details_produit',
+                'description' => "Obtenir les details complets d'un produit par son ID.",
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'product_id' => [
+                            'type'        => 'integer',
+                            'description' => 'ID unique du produit',
+                        ],
+                    ],
+                    'required' => ['product_id'],
+                ],
+            ],
+            [
+                'name'        => 'obtenir_tous_produits',
+                'description' => 'Obtenir tous les produits actifs et approuves du catalogue AeroServe.',
+                'parameters'  => [
+                    'type'       => 'object',
+                    'properties' => new \stdClass(),
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Executes a tool call requested by the LLM — queries real DB data.
+     * Tools: chercher_produits | obtenir_details_produit | obtenir_tous_produits
+     */
+    private function executeToolCall(string $toolName, array $args): string
+    {
+        switch ($toolName) {
+            case 'chercher_produits':
+                $query    = $args['query'] ?? '';
+                $products = Product::with('category', 'stock')
+                    ->where('is_active', true)
+                    ->where(function ($q) use ($query) {
+                        $q->where('name', 'like', "%{$query}%")
+                          ->orWhere('type', 'like', "%{$query}%")
+                          ->orWhere('description', 'like', "%{$query}%");
+                    })
+                    ->limit(10)
+                    ->get();
+
+                return json_encode($products->map(fn($p) => [
+                    'id'          => $p->id,
+                    'nom'         => $p->name,
+                    'type'        => $p->type,
+                    'prix'        => $p->price,
+                    'statut'      => $p->approval_status,
+                    'stock'       => $p->stock ? $p->stock->quantity : 0,
+                    'categorie'   => $p->category?->name,
+                    'description' => $p->description,
+                ])->values());
+
+            case 'obtenir_details_produit':
+                $productId = (int) ($args['product_id'] ?? 0);
+                $product   = Product::with('stock', 'hygieneReports', 'category', 'ingredients')->find($productId);
+
+                if (!$product) {
+                    return json_encode(['erreur' => "Produit ID {$productId} non trouve."]);
+                }
+
+                return json_encode([
+                    'id'                  => $product->id,
+                    'nom'                 => $product->name,
+                    'type'                => $product->type,
+                    'description'         => $product->description,
+                    'prix'                => $product->price,
+                    'allergenes'          => $product->allergens,
+                    'date_expiration'     => $product->expiration_date,
+                    'statut_approbation'  => $product->approval_status,
+                    'actif'               => $product->is_active,
+                    'stock_disponible'    => $product->stock ? $product->stock->quantity : 0,
+                    'categorie'           => $product->category?->name,
+                    'nb_rapports_hygiene' => $product->hygieneReports?->count() ?? 0,
+                    'ingredients'         => $product->ingredients?->pluck('name')->toArray(),
+                ]);
+
+            case 'obtenir_tous_produits':
+                $products = Product::with('category', 'stock')
+                    ->where('is_active', true)
+                    ->where('approval_status', 'approved')
+                    ->get();
+
+                return json_encode($products->map(fn($p) => [
+                    'id'        => $p->id,
+                    'nom'       => $p->name,
+                    'type'      => $p->type,
+                    'prix'      => $p->price,
+                    'stock'     => $p->stock ? $p->stock->quantity : 0,
+                    'categorie' => $p->category?->name,
+                ])->values());
+
+            default:
+                return json_encode(['erreur' => "Outil '{$toolName}' inconnu."]);
+        }
+    }
+
+    // ─── EXISTING HELPER METHODS (preserved) ─────────────────────────────────
+
+    /**
+     * Fallback rules-based intelligent response engine if all AI APIs are unavailable.
      */
     private function getLocalNlpResponse(Product $product, string $message): string
     {
-        $messageLower = mb_strtolower($message);
-        $ingredients = $product->description ?? '';
+        $messageLower    = mb_strtolower($message);
+        $ingredients     = $product->description ?? '';
         $ingredientsLower = mb_strtolower($ingredients);
 
-        // Fetch hygiene report remarks for additional details
         $hygieneRemarks = "";
-        $isNonConforme = false;
+        $isNonConforme  = false;
         if ($product->hygieneReports) {
             foreach ($product->hygieneReports as $report) {
                 if ($report->status === 'non_conforme') {
@@ -319,23 +613,20 @@ class ChatbotController extends Controller
             }
         }
 
-        // Check if hygiene officer declared this product non-conforme
         if ($isNonConforme && (str_contains($messageLower, 'sain') || str_contains($messageLower, 'sécurité') || str_contains($messageLower, 'securite') || str_contains($messageLower, 'صحة') || str_contains($messageLower, 'أمان') || str_contains($messageLower, 'سليم'))) {
             return "Alerte Securite Alimentaire : Ce produit a ete signale non conforme par le responsable Hygiene. Il est recommande de ne pas le consommer.";
         }
 
-        // 1. Check for allergens
         if (str_contains($messageLower, 'allerg') || str_contains($messageLower, 'sensibl') || str_contains($messageLower, 'sensibilité') || str_contains($messageLower, 'regime') || str_contains($messageLower, 'régime') || str_contains($messageLower, 'حساسية') || str_contains($messageLower, 'مرض') || str_contains($messageLower, 'malad')) {
             $foundAllergens = [];
-            
             $commonAllergens = [
-                'gluten (قمح/جلوتين)' => ['gluten', 'farine', 'blé', 'pain', 'pâte', 'seigle', 'orge', 'جلوتين', 'قمح', 'دقيق', 'خبز', 'معكرونة'],
-                'lactose (حليب/لاكتوز)' => ['lait', 'lactose', 'fromage', 'crème', 'beurre', 'yaourt', 'حليب', 'جبن', 'لاكتوز', 'قشدة', 'زبادي'],
-                'arachide (فول سوداني)' => ['cacahuète', 'arachide', 'cacahuetes', 'peanuts', 'فول سوداني', 'فستق'],
-                'fruits à coque (مكسرات)' => ['amande', 'noisette', 'noix', 'pistache', 'cajou', 'مكسرات', 'لوز', 'بندق'],
-                'œuf (بيض)' => ['œuf', 'oeuf', 'œufs', 'oeufs', 'mayonnaise', 'بيض', 'مايونيز'],
-                'poisson (سمك)' => ['poisson', 'thon', 'saumon', 'sardine', 'crevette', 'crabe', 'سمك', 'تونة', 'سردين', 'جمبري'],
-                'soja (صويا)' => ['soja', 'soy', 'صويا'],
+                'gluten (قمح/جلوتين)'        => ['gluten', 'farine', 'blé', 'pain', 'pâte', 'seigle', 'orge', 'جلوتين', 'قمح', 'دقيق', 'خبز', 'معكرونة'],
+                'lactose (حليب/لاكتوز)'      => ['lait', 'lactose', 'fromage', 'crème', 'beurre', 'yaourt', 'حليب', 'جبن', 'لاكتوز', 'قشدة', 'زبادي'],
+                'arachide (فول سوداني)'       => ['cacahuète', 'arachide', 'cacahuetes', 'peanuts', 'فول سوداني', 'فستق'],
+                'fruits à coque (مكسرات)'    => ['amande', 'noisette', 'noix', 'pistache', 'cajou', 'مكسرات', 'لوز', 'بندق'],
+                'œuf (بيض)'                  => ['œuf', 'oeuf', 'œufs', 'oeufs', 'mayonnaise', 'بيض', 'مايونيز'],
+                'poisson (سمك)'              => ['poisson', 'thon', 'saumon', 'sardine', 'crevette', 'crabe', 'سمك', 'تونة', 'سردين', 'جمبري'],
+                'soja (صويا)'                => ['soja', 'soy', 'صويا'],
             ];
 
             foreach ($commonAllergens as $allergen => $keywords) {
@@ -350,14 +641,13 @@ class ChatbotController extends Controller
             if (count($foundAllergens) > 0) {
                 return "Alerte Allergenes : D'apres la composition de \"" . $product->name . "\" et les rapports d'hygiene, ce produit contient ou peut contenir : " . implode(', ', $foundAllergens) . ". S'il vous plait, restez vigilant si vous avez des allergies connues.";
             } else {
-                return "Aucun allergene courant majeur (comme le gluten, le lactose ou les arachides) n'a ete detecte dans les ingredients enregistres pour \"" . $product->name . "\". Ingrédients listés : " . $ingredients . ".";
+                return "Aucun allergene courant majeur (comme le gluten, le lactose ou les arachides) n'a ete detecte dans les ingredients enregistres pour \"" . $product->name . "\". Ingredients listes : " . $ingredients . ".";
             }
         }
 
-        // 2. Check for gluten specifically
         if (str_contains($messageLower, 'gluten') || str_contains($messageLower, 'coeliaque') || str_contains($messageLower, 'cœliaque') || str_contains($messageLower, 'جلوتين') || str_contains($messageLower, 'قمح')) {
             $glutenKeywords = ['farine', 'blé', 'pain', 'pâte', 'seigle', 'orge', 'gluten', 'جلوتين', 'قمح', 'دقيق', 'خبز'];
-            $hasGluten = false;
+            $hasGluten      = false;
             foreach ($glutenKeywords as $kw) {
                 if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
                     $hasGluten = true;
@@ -371,10 +661,9 @@ class ChatbotController extends Controller
             }
         }
 
-        // 3. Check for lactose / dairy specifically
         if (str_contains($messageLower, 'lait') || str_contains($messageLower, 'lactose') || str_contains($messageLower, 'dairy') || str_contains($messageLower, 'fromage') || str_contains($messageLower, 'لاكتوز') || str_contains($messageLower, 'حليب') || str_contains($messageLower, 'جبن')) {
             $lactoseKeywords = ['lait', 'lactose', 'fromage', 'crème', 'beurre', 'yaourt', 'mozzarella', 'حليب', 'لاكتوز', 'جبن', 'قشدة'];
-            $hasLactose = false;
+            $hasLactose      = false;
             foreach ($lactoseKeywords as $kw) {
                 if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
                     $hasLactose = true;
@@ -388,10 +677,9 @@ class ChatbotController extends Controller
             }
         }
 
-        // 4. Check for diabetes / sugar
         if (str_contains($messageLower, 'diabète') || str_contains($messageLower, 'diabete') || str_contains($messageLower, 'sucre') || str_contains($messageLower, 'سكري') || str_contains($messageLower, 'سكر')) {
             $sugarKeywords = ['sucre', 'miel', 'sirop', 'sweetener', 'sugar', 'سكر', 'عسل', 'حلو'];
-            $hasSugar = false;
+            $hasSugar      = false;
             foreach ($sugarKeywords as $kw) {
                 if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
                     $hasSugar = true;
@@ -405,7 +693,6 @@ class ChatbotController extends Controller
             }
         }
 
-        // 5. Check for ingredients/composition
         if (str_contains($messageLower, 'ingred') || str_contains($messageLower, 'ingréd') || str_contains($messageLower, 'compos') || str_contains($messageLower, 'fait de') || str_contains($messageLower, 'contient quoi') || str_contains($messageLower, 'مكونات') || str_contains($messageLower, 'يحتوي')) {
             if (empty($ingredients) || $ingredients === 'Aucun ingrédient spécifié.') {
                 return "Le produit \"" . $product->name . "\" ne dispose pas d'une liste detaillee d'ingredients enregistree dans la base de donnees pour le moment. Son prix est de " . $product->price . " TND.";
@@ -413,12 +700,10 @@ class ChatbotController extends Controller
             return "Composition de \"" . $product->name . "\" : Les ingredients enregistres sont : " . $ingredients . ". N'hesitez pas a me poser des questions sur un ingredient en particulier !";
         }
 
-        // 6. Check for calories/nutrition
         if (str_contains($messageLower, 'calor') || str_contains($messageLower, 'nutrit') || str_contains($messageLower, 'kcal') || str_contains($messageLower, 'sucre') || str_contains($messageLower, 'sel') || str_contains($messageLower, 'gras')) {
             return "Informations nutritionnelles pour \"" . $product->name . "\" : La fiche nutritionnelle standard indique qu'il s'agit d'un produit de type " . $product->type . ". Ingredients constitutifs : " . $ingredients . ". (Pour des details precis en calories, veuillez consulter la fiche d'emballage du fabricant).";
         }
 
-        // 7. Generic response listing product details
         $remarksText = "";
         if ($product->hygieneReports->isNotEmpty() && $product->hygieneReports->first()->remarks) {
             $remarksText = " Note d'hygiene : " . $product->hygieneReports->first()->remarks;
@@ -438,21 +723,22 @@ class ChatbotController extends Controller
     private function isForbiddenForCashier(string $message): bool
     {
         $msgLower = mb_strtolower($message);
+
         $forbiddenKeywords = [
             'commande', 'order', 'planning', 'shift', 'مناوبة', 'جدول', 'طلب',
             'stock', 'inventaire', 'magasin', 'achat', 'validation', 'user', 'utilisateur',
             'compte', 'mot de passe', 'statut', 'admin', 'fournisseur', 'coût', 'recette', 'salaire',
-            'مبيعات', 'شفت', 'حساب', 'مستخدم', 'مدير', 'شراء', 'تعديل', 'حذف', 'إضافة', 'مخزن', 'لوجستيات', 'سعر', 'تكلفة'
+            'مبيعات', 'شفت', 'حساب', 'مستخدم', 'مدير', 'شراء', 'تعديل', 'حذف', 'إضافة', 'مخزن', 'لوجستيات', 'سعر', 'تكلفة',
         ];
-        
+
         $allowedKeywords = [
             'allerg', 'allergi', 'gluten', 'lactose', 'arachide', 'œuf', 'oeuf', 'ingréd', 'compos', 'calor',
             'nutrit', 'diabète', 'diabete', 'coeliaque', 'cœliaque', 'sensibl', 'malad', 'manger', 'sain', 'ingred',
             'lait', 'fromage', 'farine', 'blé', 'sucre', 'sel', 'gras', 'hygiene', 'hygiène', 'santé', 'sante',
             'حساسية', 'جلوتين', 'لاكتوز', 'مكونات', 'صحة', 'مرض', 'سكري', 'ضغط', 'حليب', 'بيض', 'قمح', 'مريض', 'أكل', 'تناول',
-            'صالح', 'تسمم', 'تاريخ', 'انتهاء', 'أمان', 'سليم', 'عنب', 'مكسرات', 'فول صويا', 'سمك'
+            'صالح', 'تسمم', 'تاريخ', 'انتهاء', 'أمان', 'سليم', 'عنب', 'مكسرات', 'فول صويا', 'سمك',
         ];
-        
+
         foreach ($forbiddenKeywords as $fk) {
             if (str_contains($msgLower, $fk)) {
                 return true;
@@ -471,13 +757,65 @@ class ChatbotController extends Controller
     }
 
     /**
-     * Fallback general response engine for general chatbot questions if API is unavailable.
+     * Checks whether a message is on-topic for AeroServe (Fix #9).
+     * Returns false for greetings/off-topic messages with no project keywords.
+     */
+    private function isOnTopicMessage(string $message): bool
+    {
+        $msgLower = mb_strtolower($message);
+
+        $projectKeywords = [
+            'produit', 'stock', 'commande', 'planning', 'menu', 'hygien',
+            'allergen', 'allergi', 'ingred', 'recette', 'categori', 'fournisseur',
+            'achat', 'magasin', 'cuisine', 'caissier', 'vente', 'pdv', 'livraison',
+            'rapport', 'aeroserve', 'approvisionnement', 'inventaire', 'lot', 'fifo',
+            'utilisateur', 'role', 'shift', 'horaire', 'validation', 'approbation',
+            'commercial', 'matiere', 'notif', 'seuil', 'alerte', 'food',
+            // Arabic
+            'منتج', 'مخزن', 'طلب', 'تخطيط', 'قائمة', 'نظافة', 'حساسية', 'مكونات',
+            'وصفة', 'فئة', 'مورد', 'شراء', 'مطبخ', 'صندوق', 'مستخدم', 'مناوبة',
+            'مخزون', 'تقرير', 'فاتورة', 'اعتماد', 'تطبيق', 'نظام',
+        ];
+
+        $greetingBlacklist = [
+            'bonjour', 'salut', 'bonsoir', 'coucou', 'bonne journee',
+            'hello', 'hi,', ',hi', ' hi ', 'hey', 'good morning', 'good evening',
+            'how are you', "what's up", 'whats up',
+            'comment vas', 'comment allez', 'ca va', 'comment tu', 'tu vas bien',
+            'quel temps', 'meteo', 'météo', 'blague', 'joke', 'raconte',
+            'مرحبا', 'أهلا', 'صباح', 'مساء', 'كيف حالك', 'كيفك', 'السلام',
+        ];
+
+        // If greeting AND no project keyword → off-topic
+        foreach ($greetingBlacklist as $greeting) {
+            if (str_contains($msgLower, $greeting)) {
+                foreach ($projectKeywords as $kw) {
+                    if (str_contains($msgLower, $kw)) {
+                        return true; // greeting with AeroServe context → allow
+                    }
+                }
+                return false; // pure greeting → reject
+            }
+        }
+
+        // At least one project keyword → on-topic
+        foreach ($projectKeywords as $kw) {
+            if (str_contains($msgLower, $kw)) {
+                return true;
+            }
+        }
+
+        // Short messages with no keyword: allow if long enough to be a real question
+        return mb_strlen(trim($message)) > 20;
+    }
+
+    /**
+     * Fallback general response engine for general chatbot questions if all APIs are unavailable.
      */
     private function getLocalGeneralResponse(string $message, string $userRole): string
     {
         $messageLower = mb_strtolower($message);
 
-        // Check permissions based on userRole
         if (str_contains($messageLower, 'command') || str_contains($messageLower, 'passer') || str_contains($messageLower, 'achat')) {
             if (!in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'])) {
                 return "Acces non autorise : Votre role de {$userRole} ne vous permet pas de gerer ou consulter les commandes internes.";
@@ -513,7 +851,6 @@ class ChatbotController extends Controller
             return "Pour les rapports d'hygiene : Allez dans Rapports d'Hygiene pour creer des audits sanitaires de conformite et enregistrer des alertes allergenes.";
         }
 
-        // Generic fallback greeting
         return "AeroServe Assistant : Bonjour ! Je suis votre copilote operationnel. Je peux vous aider a comprendre l'utilisation des commandes, le suivi des stocks, la validation des produits et la planification des plannings pour votre compte. Que desirez-vous savoir aujourd'hui ?";
     }
 
@@ -522,11 +859,11 @@ class ChatbotController extends Controller
      */
     private function getUserContextText(User $user): string
     {
-        $context = "=== CONTEXTE DE L'UTILISATEUR CONNECTÉ ===\n";
+        $context  = "=== CONTEXTE DE L'UTILISATEUR CONNECTE ===\n";
         $context .= "ID: {$user->id}\n";
         $context .= "Nom complet: {$user->first_name} {$user->last_name}\n";
         $context .= "Email: {$user->email}\n";
-        $context .= "Rôle: " . ($user->role?->name ?? 'Aucun') . "\n";
+        $context .= "Role: " . ($user->role?->name ?? 'Aucun') . "\n";
 
         if ($user->pointDeVente) {
             $context .= "Point de vente assigne: {$user->pointDeVente->name} (ID: {$user->pointDeVente->id}, Type: {$user->pointDeVente->type}, Ville: {$user->pointDeVente->location})\n";
@@ -534,12 +871,12 @@ class ChatbotController extends Controller
             $context .= "Point de vente assigne: Aucun point de vente specifique.\n";
         }
 
-        // 5 shifts
         $plannings = \App\Models\Planning::with('pointDeVente')
             ->where('user_id', $user->id)
             ->orderBy('date', 'desc')
             ->limit(5)
             ->get();
+
         if ($plannings->isNotEmpty()) {
             $context .= "\nPlannings/Shifts de travail recents et futurs :\n";
             foreach ($plannings as $p) {
@@ -547,7 +884,7 @@ class ChatbotController extends Controller
                 if ($p->is_day_off) {
                     $context .= "- Le {$dateStr} : Jour de repos (Day Off)\n";
                 } else {
-                    $pdvName = $p->pointDeVente ? $p->pointDeVente->name : 'N/A';
+                    $pdvName  = $p->pointDeVente ? $p->pointDeVente->name : 'N/A';
                     $context .= "- Le {$dateStr} : Shift {$p->start_time} - {$p->end_time} a {$pdvName} (Statut: {$p->day_status})\n";
                 }
             }
@@ -555,16 +892,16 @@ class ChatbotController extends Controller
             $context .= "\nAucun planning ou shift de travail enregistre.\n";
         }
 
-        // 5 internal orders
         $orders = \App\Models\InternalOrder::with('pointDeVente')
             ->where('created_by', $user->id)
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
+
         if ($orders->isNotEmpty()) {
             $context .= "\nCommandes Internes creees par l'utilisateur :\n";
             foreach ($orders as $o) {
-                $pdvName = $o->pointDeVente ? $o->pointDeVente->name : 'General';
+                $pdvName  = $o->pointDeVente ? $o->pointDeVente->name : 'General';
                 $context .= "- Commande #{$o->id} (Type: {$o->type}, Statut: {$o->status}, PDV: {$pdvName}, Date de livraison: {$o->delivery_date})\n";
             }
         } else {

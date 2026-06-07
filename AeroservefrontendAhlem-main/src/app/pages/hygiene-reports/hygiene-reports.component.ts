@@ -5,6 +5,7 @@ import { ApiService } from '../../core/services/api.service';
 import { HygieneReport, Product } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
 import { AppIconComponent } from '../../shared/icon/app-icon.component';
+import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -22,9 +23,14 @@ import Swal from 'sweetalert2';
             <h2>Rapports de Contrôle d'Hygiène</h2>
             <p class="subtitle">Enregistrement et suivi de la conformité sanitaire des produits et préparations</p>
           </div>
-          <button class="btn btn-primary" (click)="openModal()">
-            <app-icon name="ShieldCheck" [size]="16"></app-icon> Nouveau Rapport
-          </button>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary" (click)="downloadReports()">
+              <app-icon name="Download" [size]="16"></app-icon> Télécharger CSV
+            </button>
+            <button class="btn btn-primary" (click)="openModal()">
+              <app-icon name="ShieldCheck" [size]="16"></app-icon> Nouveau Rapport
+            </button>
+          </div>
         </div>
 
         <!-- ─── REPORTS TABLE ─── -->
@@ -259,6 +265,27 @@ export class HygieneReportsComponent implements OnInit {
           text: err.error?.message || 'Impossible d\'enregistrer le rapport.',
           icon: 'error',
           confirmButtonColor: '#EF4444'
+        });
+      }
+    });
+  }
+
+  downloadReports(): void {
+    this.api.getBlob('hygiene-reports/export').subscribe({
+      next: blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'hygiene-reports-' + new Date().toISOString().split('T')[0] + '.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        Swal.fire({
+          title: 'Erreur',
+          text: 'Impossible de télécharger le rapport.',
+          icon: 'error',
+          confirmButtonColor: '#EF4444',
         });
       }
     });

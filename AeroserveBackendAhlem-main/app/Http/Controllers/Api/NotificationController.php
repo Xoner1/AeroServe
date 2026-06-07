@@ -4,14 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     public function index(): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
 
         $notifications = $user->notifications()
@@ -23,7 +23,7 @@ class NotificationController extends Controller
 
     public function unreadCount(): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
 
         $count = $user->notifications()->where('is_read', false)->count();
@@ -33,7 +33,7 @@ class NotificationController extends Controller
 
     public function markAsRead(Notification $notification): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
 
         if ($notification->user_id !== $user->id) {
@@ -47,7 +47,7 @@ class NotificationController extends Controller
 
     public function markAllAsRead(): JsonResponse
     {
-        /** @var \App\Models\User $user */
+        /** @var User $user */
         $user = auth()->user();
 
         $user->notifications()->where('is_read', false)->update(['is_read' => true]);

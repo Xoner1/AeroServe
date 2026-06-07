@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::table('plannings', function (Blueprint $table) {
             // 2. Drop the unique index safely now that the foreign key is supported by the index above
             $table->dropUnique(['caissier_id', 'date']);
-            
+
             // 3. Create a combined index for date-based searches
             $table->index(['caissier_id', 'date']);
         });

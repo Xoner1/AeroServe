@@ -18,7 +18,7 @@ class Menu extends Model
     {
         return [
             'start_date' => 'date',
-            'end_date'   => 'date',
+            'end_date' => 'date',
             'is_active' => 'boolean',
             'staff_count' => 'integer',
         ];

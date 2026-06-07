@@ -5,15 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\Notification;
-use App\Models\Product;
-use App\Models\User;
 use App\Models\Stock;
+use App\Models\User;
 use App\Traits\FifoStockTrait;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-
-use App\Http\Controllers\Api\PurchaseNeedController;
+use Illuminate\Support\Facades\DB;
 
 class MenuController extends Controller
 {
@@ -33,7 +30,7 @@ class MenuController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'start_date' => 'required|date',
-            'end_date'   => 'required|date|after_or_equal:start_date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'staff_count' => 'sometimes|integer|min:1',
             'items' => 'sometimes|array',
             'items.*.product_id' => 'required|exists:products,id',
@@ -44,11 +41,11 @@ class MenuController extends Controller
         // Check overlapping dates — block if another menu covers this week
         $overlap = Menu::where(function ($q) use ($request) {
             $q->whereBetween('start_date', [$request->start_date, $request->end_date])
-              ->orWhereBetween('end_date', [$request->start_date, $request->end_date])
-              ->orWhere(function ($q2) use ($request) {
-                  $q2->where('start_date', '<=', $request->start_date)
-                     ->where('end_date', '>=', $request->end_date);
-              });
+                ->orWhereBetween('end_date', [$request->start_date, $request->end_date])
+                ->orWhere(function ($q2) use ($request) {
+                    $q2->where('start_date', '<=', $request->start_date)
+                        ->where('end_date', '>=', $request->end_date);
+                });
         })->exists();
 
         if ($overlap) {
@@ -60,7 +57,7 @@ class MenuController extends Controller
         $menu = Menu::create([
             'name' => $request->name,
             'start_date' => $request->start_date,
-            'end_date'   => $request->end_date,
+            'end_date' => $request->end_date,
             'staff_count' => $request->staff_count,
             'status' => 'BROUILLON',
             'created_by' => auth()->id(),
@@ -107,7 +104,9 @@ class MenuController extends Controller
 
         foreach ($menu->items as $item) {
             $product = $item->product;
-            if (!$product) continue;
+            if (! $product) {
+                continue;
+            }
 
             if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
                 foreach ($product->ingredients as $ingredient) {
@@ -116,7 +115,7 @@ class MenuController extends Controller
                     if ($availableQty < $requiredQty) {
                         $allSufficient = false;
                         $insufficientItems[] = [
-                            'product' => $product->name . ' > ' . $ingredient->name,
+                            'product' => $product->name.' > '.$ingredient->name,
                             'required' => $requiredQty,
                             'available' => $availableQty,
                             'unit' => $ingredient->pivot->unit ?? 'piece',
@@ -149,18 +148,20 @@ class MenuController extends Controller
 
                 foreach ($menu->items as $item) {
                     $product = $item->product;
-                    if (!$product) continue;
+                    if (! $product) {
+                        continue;
+                    }
 
                     if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
                         foreach ($product->ingredients as $ingredient) {
                             $ingredientQty = $ingredient->pivot->quantity * $staffCount;
                             if ($ingredient->stock) {
-                                $this->fifoDeduction($ingredient->stock, $ingredientQty, 'Menu: ' . $menu->name);
+                                $this->fifoDeduction($ingredient->stock, $ingredientQty, 'Menu: '.$menu->name);
                             }
                         }
                     } elseif ($product->stock) {
                         $requiredQty = $item->quantity ?? 1;
-                        $this->fifoDeduction($product->stock, $requiredQty, 'Menu: ' . $menu->name);
+                        $this->fifoDeduction($product->stock, $requiredQty, 'Menu: '.$menu->name);
                     }
                 }
             });
@@ -176,8 +177,7 @@ class MenuController extends Controller
         }
 
         // REFUSE — build auto-comment, notify roles
-        $details = collect($insufficientItems)->map(fn($i) =>
-            "- {$i['product']}: requis {$i['required']} {$i['unit']}, disponible {$i['available']} {$i['unit']}"
+        $details = collect($insufficientItems)->map(fn ($i) => "- {$i['product']}: requis {$i['required']} {$i['unit']}, disponible {$i['available']} {$i['unit']}"
         )->implode("\n");
 
         $commentText = "[AUTO] Stock insuffisant pour le menu \"{$menu->name}\":\n{$details}";
@@ -193,7 +193,7 @@ class MenuController extends Controller
         });
 
         // Notify Chef Magasin (action needed)
-        $chefMagasinUsers = User::whereHas('role', fn($q) => $q->where('name', 'CHEF_MAGASIN'))->get();
+        $chefMagasinUsers = User::whereHas('role', fn ($q) => $q->where('name', 'CHEF_MAGASIN'))->get();
         foreach ($chefMagasinUsers as $user) {
             Notification::create([
                 'user_id' => $user->id,
@@ -206,7 +206,7 @@ class MenuController extends Controller
         }
 
         // Notify Responsable F&B (info)
-        $fbUsers = User::whereHas('role', fn($q) => $q->where('name', 'RESPONSABLE_FB'))->get();
+        $fbUsers = User::whereHas('role', fn ($q) => $q->where('name', 'RESPONSABLE_FB'))->get();
         foreach ($fbUsers as $user) {
             Notification::create([
                 'user_id' => $user->id,
@@ -246,7 +246,7 @@ class MenuController extends Controller
         $request->validate([
             'name' => 'sometimes|string|max:255',
             'start_date' => 'sometimes|date',
-            'end_date'   => 'sometimes|date',
+            'end_date' => 'sometimes|date',
             'staff_count' => 'sometimes|integer|min:1',
             'items' => 'sometimes|array',
             'items.*.product_id' => 'required|exists:products,id',
@@ -257,15 +257,15 @@ class MenuController extends Controller
         // Check overlapping dates if dates changed
         if ($request->has('start_date') || $request->has('end_date')) {
             $ws = $request->start_date ?? $menu->start_date->toDateString();
-            $we = $request->end_date   ?? $menu->end_date->toDateString();
+            $we = $request->end_date ?? $menu->end_date->toDateString();
             $overlap = Menu::where('id', '!=', $menu->id)
                 ->where(function ($q) use ($ws, $we) {
                     $q->whereBetween('start_date', [$ws, $we])
-                      ->orWhereBetween('end_date', [$ws, $we])
-                      ->orWhere(function ($q2) use ($ws, $we) {
-                          $q2->where('start_date', '<=', $ws)
-                             ->where('end_date', '>=', $we);
-                      });
+                        ->orWhereBetween('end_date', [$ws, $we])
+                        ->orWhere(function ($q2) use ($ws, $we) {
+                            $q2->where('start_date', '<=', $ws)
+                                ->where('end_date', '>=', $we);
+                        });
                 })->exists();
 
             if ($overlap) {
@@ -277,7 +277,7 @@ class MenuController extends Controller
 
         DB::transaction(function () use ($menu, $request) {
             $data = $request->only(['name', 'start_date', 'end_date', 'staff_count']);
-            if (!empty($data)) {
+            if (! empty($data)) {
                 $menu->update($data);
             }
 
@@ -328,11 +328,11 @@ class MenuController extends Controller
         // Check overlap for target week
         $overlap = Menu::where(function ($q) use ($targetWs, $targetWe) {
             $q->whereBetween('start_date', [$targetWs, $targetWe])
-              ->orWhereBetween('end_date', [$targetWs, $targetWe])
-              ->orWhere(function ($q2) use ($targetWs, $targetWe) {
-                  $q2->where('start_date', '<=', $targetWs)
-                     ->where('end_date', '>=', $targetWe);
-              });
+                ->orWhereBetween('end_date', [$targetWs, $targetWe])
+                ->orWhere(function ($q2) use ($targetWs, $targetWe) {
+                    $q2->where('start_date', '<=', $targetWs)
+                        ->where('end_date', '>=', $targetWe);
+                });
         })->exists();
 
         if ($overlap) {
@@ -345,9 +345,9 @@ class MenuController extends Controller
 
         // Create cloned menu as BROUILLON
         $cloned = Menu::create([
-            'name' => $menu->name . ' (clone)',
+            'name' => $menu->name.' (clone)',
             'start_date' => $targetWs,
-            'end_date'   => $targetWe,
+            'end_date' => $targetWe,
             'staff_count' => $request->staff_count ?? $menu->staff_count,
             'status' => 'BROUILLON',
             'created_by' => auth()->id(),
@@ -371,7 +371,9 @@ class MenuController extends Controller
 
         foreach ($cloned->items as $item) {
             $product = $item->product;
-            if (!$product) continue;
+            if (! $product) {
+                continue;
+            }
 
             if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
                 foreach ($product->ingredients as $ingredient) {
@@ -380,7 +382,7 @@ class MenuController extends Controller
                     if ($availableQty < $requiredQty) {
                         $allSufficient = false;
                         $insufficientItems[] = [
-                            'product' => $product->name . ' > ' . $ingredient->name,
+                            'product' => $product->name.' > '.$ingredient->name,
                             'required' => $requiredQty,
                             'available' => $availableQty,
                             'unit' => $ingredient->pivot->unit ?? 'piece',

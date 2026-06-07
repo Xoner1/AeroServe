@@ -137,6 +137,11 @@
 
       <form [formGroup]="form" (ngSubmit)="saveUser()">
         <div class="modal-body">
+          @if (formError) {
+            <div class="alert alert-error" style="margin-bottom: 16px;">
+              {{ formError }}
+            </div>
+          }
           <!-- Wizard steps progress indicator -->
           <div class="wizard-steps-header">
             <div class="wizard-step-node" [class.active]="step === 1" [class.done]="step > 1">
@@ -159,10 +164,16 @@
                 <div class="form-group">
                   <label>Prénom *</label>
                   <input formControlName="first_name" placeholder="Ex: Ahmed" />
+                  @if (form.get('first_name')?.touched && form.get('first_name')?.invalid) {
+                    <small class="form-hinterror">Le prénom est obligatoire.</small>
+                  }
                 </div>
                 <div class="form-group">
                   <label>Nom de famille *</label>
                   <input formControlName="last_name" placeholder="Ex: Ben Ali" />
+                  @if (form.get('last_name')?.touched && form.get('last_name')?.invalid) {
+                    <small class="form-hinterror">Le nom de famille est obligatoire.</small>
+                  }
                 </div>
               </div>
 
@@ -175,15 +186,27 @@
                 @if (emailExists) {
                   <small class="form-hinterror">Cette adresse email est déjà prise.</small>
                 }
+                @if (form.get('email')?.touched && form.get('email')?.invalid) {
+                  <small class="form-hinterror">
+                    @if (form.get('email')?.errors?.['required']) {
+                      L'adresse e-mail est obligatoire.
+                    } @else if (form.get('email')?.errors?.['email']) {
+                      L'adresse e-mail doit être valide.
+                    }
+                  </small>
+                }
               </div>
 
               <div class="form-group">
                 <label>Téléphone *</label>
                 <input formControlName="phone" type="tel" placeholder="+216 22 123 456" />
+                @if (form.get('phone')?.touched && form.get('phone')?.invalid) {
+                  <small class="form-hinterror">Le téléphone est obligatoire.</small>
+                }
               </div>
 
               <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-                <button type="button" class="btn btn-primary" (click)="step = 2">
+                <button type="button" class="btn btn-primary" (click)="nextStep()">
                   Suivant >
                 </button>
               </div>
@@ -206,6 +229,9 @@
                       {{ showPassword ? 'Masquer' : 'Afficher' }}
                     </button>
                   </div>
+                  @if (form.get('password')?.touched && form.get('password')?.invalid) {
+                    <small class="form-hinterror">Le mot de passe est obligatoire.</small>
+                  }
                 </div>
               }
 
@@ -219,6 +245,9 @@
                     </option>
                   }
                 </select>
+                @if (form.get('role_id')?.touched && form.get('role_id')?.invalid) {
+                  <small class="form-hinterror">Le rôle professionnel est obligatoire.</small>
+                }
               </div>
 
               @if (editing) {
@@ -226,8 +255,12 @@
                   <label>Statut du compte *</label>
                   <select formControlName="status">
                     <option value="active">Actif</option>
+                    <option value="en_attente">En attente</option>
                     <option value="inactive">Inactif / Suspendu</option>
                   </select>
+                  @if (form.get('status')?.touched && form.get('status')?.invalid) {
+                    <small class="form-hinterror">Le statut du compte est obligatoire.</small>
+                  }
                 </div>
               }
 
@@ -252,8 +285,8 @@
                 <button type="button" class="btn btn-secondary" (click)="step = 1">
                   Retour
                 </button>
-                <button type="submit" class="btn btn-primary" [disabled]="emailExists || emailChecking">
-                  {{ editing ? 'Mettre à jour' : 'Créer l’employé' }}
+                <button type="submit" class="btn btn-primary" [disabled]="emailExists || emailChecking || submitting">
+                  {{ submitting ? (editing ? 'Mise à jour...' : 'Création...') : (editing ? 'Mettre à jour' : 'Créer l’employé') }}
                 </button>
               </div>
             </div>

@@ -26,7 +26,8 @@ import {
   Info,
   ChevronDown,
   Check,
-  X
+  X,
+  Download
 } from 'lucide';
 
 @Component({
@@ -95,7 +96,8 @@ export class AppIconComponent implements AfterViewInit, OnChanges {
         Info,
         ChevronDown,
         Check,
-        X
+        X,
+        Download
       },
       attrs: {
         'stroke-width': '1.75',

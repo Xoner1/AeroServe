@@ -32,6 +32,7 @@ export class Users implements OnInit, OnDestroy {
 
   form!: FormGroup;
   step: number = 1;
+  submitting = false;
 
   emailChecking = false;
   emailExists: boolean = false;
@@ -104,9 +105,7 @@ export class Users implements OnInit, OnDestroy {
   loadRoles(): void {
     this.api.get<Role[]>('roles').pipe(takeUntilDestroyed(this.destroyRef)).subscribe(r => {
       this.roles = r.filter(role =>
-        role.name.toUpperCase() !== 'CAISSIER'
-        &&
-      role.name.toUpperCase() !== 'SUPER_ADMIN'
+        role.name.toUpperCase() !== 'SUPER_ADMIN'
       );
     });
   }
@@ -142,6 +141,9 @@ export class Users implements OnInit, OnDestroy {
     this.editing = false;
     this.showModal = true;
     this.step = 1;
+    this.submitting = false;
+    this.formError = '';
+    this.successMessage = '';
 
     this.emailExists = false;
     this.avatarPreview = null;
@@ -169,6 +171,8 @@ export class Users implements OnInit, OnDestroy {
     this.emailExists = false;
     this.avatarPreview = user.avatar_url || null;
     this.step = 1;
+    this.formError = '';
+    this.successMessage = '';
 
     this.form.patchValue({
       first_name: user.first_name,
@@ -190,6 +194,31 @@ export class Users implements OnInit, OnDestroy {
   closeModal(): void {
     this.showModal = false;
     this.step = 1;
+    this.formError = '';
+    this.successMessage = '';
+  }
+
+  nextStep(): void {
+    const step1Fields = ['first_name', 'last_name', 'email', 'phone'];
+    let step1Valid = true;
+    step1Fields.forEach(field => {
+      const control = this.form.get(field);
+      control?.markAsTouched();
+      if (control?.invalid) {
+        step1Valid = false;
+      }
+    });
+
+    if (this.emailExists || this.emailChecking) {
+      step1Valid = false;
+    }
+
+    if (step1Valid) {
+      this.step = 2;
+      this.formError = '';
+    } else {
+      this.formError = 'Veuillez remplir correctement toutes les informations de la première étape.';
+    }
   }
 
   // ================= DELETE =================
@@ -250,6 +279,7 @@ export class Users implements OnInit, OnDestroy {
       return;
     }
 
+    this.submitting = true;
     const formData = new FormData();
 
     Object.keys(this.form.value).forEach(key => {
@@ -265,19 +295,25 @@ export class Users implements OnInit, OnDestroy {
 
     request.subscribe({
       next: () => {
+        this.submitting = false;
         this.loadUsers();
         this.closeModal();
         this.page = 1;
 
-        if (this.editing) {
-          this.successMessage = ` User "${this.form.value.first_name} ${this.form.value.last_name}" updated successfully.`;
-        } else {
-          this.successMessage = ` User "${this.form.value.first_name} ${this.form.value.last_name}" created successfully.`;
-        }
-
-        setTimeout(() => this.successMessage = '', 3000);
+        const displayName = `${this.form.value.first_name} ${this.form.value.last_name}`;
+        Swal.fire({
+          title: 'Succès',
+          text: this.editing 
+            ? `Le compte de "${displayName}" a été mis à jour avec succès.`
+            : `Le compte de "${displayName}" a été créé avec succès.`,
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+          confirmButtonColor: '#0D9488'
+        });
       },
       error: (err) => {
+        this.submitting = false;
         if (err.error?.errors) {
           this.formError = Object.values(err.error.errors).flat().join(' ');
         } else {
@@ -346,11 +382,11 @@ export class Users implements OnInit, OnDestroy {
     }
 
     // fallback image
-    return 'assets/default-avatar.png';
+    return '/assets/default-avatar.svg';
   }
 
   onImageError(event: any): void {
-    event.target.src = 'assets/default-avatar.png';
+    event.target.src = '/assets/default-avatar.svg';
   }
 
   get activeUsersCount(): number {
@@ -358,7 +394,7 @@ export class Users implements OnInit, OnDestroy {
   }
 
   get pendingUsersCount(): number {
-    return this.users.filter(u => u.status === 'en_attente').length;
+    return this.users.filter(u => u.status === 'en_attente' || u.status === 'inactive').length;
   }
 
   ngOnDestroy(): void {

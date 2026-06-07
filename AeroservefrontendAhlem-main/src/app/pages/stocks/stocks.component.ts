@@ -320,6 +320,16 @@ export class StocksComponent implements OnInit {
       return;
     }
 
+    if (this.movementForm.type === 'out' && Number(this.movementForm.quantity) > Number(this.selectedStock.quantity)) {
+      Swal.fire({
+        title: 'Stock insuffisant',
+        text: `La quantité demandée dépasse le stock disponible (${this.selectedStock.quantity} ${this.selectedStock.unit || 'unité(s)'}).`,
+        icon: 'error',
+        confirmButtonColor: '#EF4444'
+      });
+      return;
+    }
+
     this.api.post(`stocks/${this.selectedStock.id}/movements`, this.movementForm).subscribe({
       next: () => {
         Swal.fire({

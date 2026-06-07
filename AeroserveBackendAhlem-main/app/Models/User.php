@@ -72,10 +72,12 @@ class User extends Authenticatable implements JWTSubject
     {
         return $this->belongsTo(PointDeVente::class, 'point_de_vente_id');
     }
-public function pdvsResponsable()
-{
-    return $this->hasMany(PointDeVente::class, 'responsable_fb_id');
-}
+
+    public function pdvsResponsable()
+    {
+        return $this->hasMany(PointDeVente::class, 'responsable_fb_id');
+    }
+
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
@@ -108,9 +110,15 @@ public function pdvsResponsable()
 
     public function getAvatarUrlAttribute(): ?string
     {
-        if (!$this->avatar || $this->avatar === 'null') {
+        if (! $this->avatar || $this->avatar === 'null') {
             return null;
         }
-        return url('storage/' . $this->avatar);
+
+        return url('storage/'.$this->avatar);
+    }
+
+    public function isCaissier(): bool
+    {
+        return $this->role?->name === 'CAISSIER' || $this->caissier_role === 'CAISSIER';
     }
 }

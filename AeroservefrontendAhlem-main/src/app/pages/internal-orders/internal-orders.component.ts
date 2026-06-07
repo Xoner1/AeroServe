@@ -55,8 +55,8 @@ interface CartItem {
           </div>
         }
 
-        <!-- ─── F&B MANAGER / SUPER ADMIN: LIST VIEW ─── -->
-        @if (userRole === 'RESPONSABLE_FB' || userRole === 'SUPER_ADMIN') {
+        <!-- ─── F&B MANAGER / SUPER ADMIN / PURCHASING MANAGER: LIST VIEW ─── -->
+        @if (userRole === 'RESPONSABLE_FB' || userRole === 'SUPER_ADMIN' || userRole === 'RESPONSABLE_ACHAT') {
           <div class="table-container">
             <table class="premium-table">
               <thead>
@@ -464,24 +464,26 @@ interface CartItem {
           <div class="modal-overlay" (click)="closeModals()">
             <div class="modal-card modal-wide" (click)="$event.stopPropagation()">
               <div class="modal-header">
-                <h3>Nouvelle Commande d'Approvisionnement</h3>
+                <h3>{{ userRole === 'CHEF_CUISINE' ? "Nouvelle Demande de Matières Premières" : "Nouvelle Commande d'Approvisionnement" }}</h3>
                 <button (click)="closeModals()" style="font-size: 16px;">✕</button>
               </div>
 
               <div class="modal-body">
-                <!-- Step indicator -->
-                <div class="steps">
-                  @for (s of steps; track s.n) {
-                    <div class="step" [class.active]="wizardStep === s.n" [class.done]="wizardStep > s.n">
-                      <div class="step-circle">{{ s.n }}</div>
-                      <span>{{ s.label }}</span>
-                    </div>
-                    @if (s.n < steps.length) { <div class="step-line" [class.done]="wizardStep > s.n"></div> }
-                  }
-                </div>
+                <!-- Step indicator (hide for chef — they skip step 1) -->
+                @if (userRole !== 'CHEF_CUISINE') {
+                  <div class="steps">
+                    @for (s of steps; track s.n) {
+                      <div class="step" [class.active]="wizardStep === s.n" [class.done]="wizardStep > s.n">
+                        <div class="step-circle">{{ s.n }}</div>
+                        <span>{{ s.label }}</span>
+                      </div>
+                      @if (s.n < steps.length) { <div class="step-line" [class.done]="wizardStep > s.n"></div> }
+                    }
+                  </div>
+                }
 
-                <!-- ── Step 1: Choose Type ── -->
-                @if (wizardStep === 1) {
+                <!-- ── Step 1: Choose Type (hidden for chef) ── -->
+                @if (wizardStep === 1 && userRole !== 'CHEF_CUISINE') {
                   <h3 style="font-size: 16px; margin-bottom: 16px;">Choisissez le type d'approvisionnement</h3>
                   <div class="type-cards">
                     <div class="type-card" [class.selected]="form.type === 'food'" (click)="selectType('food')">
@@ -599,7 +601,7 @@ interface CartItem {
 
                   <div class="order-summary" style="margin-top: 16px;">
                     <h4 style="font-size: 13px; font-weight:600; margin-bottom: 8px;">Récapitulatif de la Demande</h4>
-                    <p><strong>Type:</strong> {{ form.type === 'food' ? 'Alimentaire' : 'Commercial' }}</p>
+                    <p><strong>Type:</strong> {{ userRole === 'CHEF_CUISINE' ? 'Matières Premières' : (form.type === 'food' ? 'Alimentaire' : 'Commercial') }}</p>
                     <p><strong>Date de Livraison:</strong> {{ form.delivery_date ? (form.delivery_date | date:'dd/MM/yyyy') : 'Non renseignée' }}</p>
                     <p><strong>Articles demandés:</strong> {{ cart.length }} référence(s)</p>
                     <ul style="margin-top: 8px;">
@@ -612,14 +614,14 @@ interface CartItem {
               </div>
 
               <div class="modal-footer">
-                @if (wizardStep > 1) {
+                @if (wizardStep > 1 && (userRole !== 'CHEF_CUISINE' || wizardStep > 2)) {
                   <button type="button" class="btn btn-secondary" (click)="goStep(wizardStep - 1)">Retour</button>
                 } @else {
                   <button type="button" class="btn btn-secondary" (click)="closeModals()">Annuler</button>
                 }
 
                 @if (wizardStep < 3) {
-                  <button type="button" class="btn btn-primary" [disabled]="(wizardStep === 1 && !form.type) || (wizardStep === 2 && cart.length === 0)" (click)="goStep(wizardStep + 1)">Suivant</button>
+                  <button type="button" class="btn btn-primary" [disabled]="(wizardStep === 2 && cart.length === 0)" (click)="goStep(wizardStep + 1)">Suivant</button>
                 } @else {
                   <button type="button" class="btn btn-primary" (click)="submitOrder()" [disabled]="saving || !form.delivery_date">
                     {{ saving ? 'Transmission...' : 'Confirmer & Commander' }}
@@ -859,10 +861,10 @@ export class InternalOrdersComponent implements OnInit {
   // CHEF_CUISINE sees only 'food' orders; CHEF_MAGASIN sees only 'commercial' orders.
   private get kanbanOrders(): InternalOrder[] {
     if (this.userRole === 'CHEF_CUISINE') {
-      return this.orders.filter(o => o.type === 'food' && o.assigned_to === this.currentUser?.id);
+      return this.orders.filter(o => o.type === 'food');
     }
     if (this.userRole === 'CHEF_MAGASIN') {
-      return this.orders.filter(o => o.type === 'commercial' && o.assigned_to === this.currentUser?.id);
+      return this.orders.filter(o => o.type === 'commercial');
     }
     return this.orders;
   }
@@ -957,7 +959,9 @@ export class InternalOrdersComponent implements OnInit {
           food: ['food'],
           commercial: ['commercial'],
         };
-        const allowed = typeMap[this.form.type] || [];
+        const allowed = this.userRole === 'CHEF_CUISINE'
+          ? ['matiere_premiere']
+          : (typeMap[this.form.type] || []);
         this.filteredCategories = cats.filter(c => allowed.includes(c.type));
         this.loadingCategories = false;
 

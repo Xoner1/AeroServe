@@ -83,10 +83,10 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/menus/menus.component').then(m => m.MenusComponent)
       },
 
-      /* Purchase Needs: SUPER_ADMIN + CHEF_CUISINE + CHEF_MAGASIN */
+      /* Purchase Needs: SUPER_ADMIN + CHEF_CUISINE */
       {
         path: 'purchase-needs',
-        canActivate: [roleGuard('CHEF_CUISINE', 'CHEF_MAGASIN')],
+        canActivate: [roleGuard('CHEF_CUISINE')],
         loadComponent: () => import('./pages/purchase-needs/purchase-needs.component').then(m => m.PurchaseNeedsComponent)
       },
 
@@ -97,6 +97,11 @@ export const routes: Routes = [
         path: 'hygiene-reports',
         canActivate: [roleGuard('RESPONSABLE_HYGIENE')],
         loadComponent: () => import('./pages/hygiene-reports/hygiene-reports.component').then(m => m.HygieneReportsComponent)
+      },
+      {
+        path: 'hygiene-products',
+        canActivate: [roleGuard('RESPONSABLE_HYGIENE')],
+        loadComponent: () => import('./pages/hygiene-products/hygiene-products.component').then(m => m.HygieneProductsComponent)
       },
 
       /* Category: SUPER_ADMIN + RESPONSABLE_ACHAT */
