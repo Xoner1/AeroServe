@@ -13,7 +13,7 @@ use App\Models\Planning;
 use App\Models\PointDeVente;
 use App\Models\Product;
 use App\Models\Role;
-use App\Models\Sale;
+
 use App\Models\StockMovement;
 use App\Models\User;
 use Carbon\Carbon;
@@ -262,21 +262,6 @@ class SampleDataSeeder extends Seeder
             ]
         );
 
-        $sale = Sale::firstOrCreate(
-            [
-                'user_id' => $caissier->id,
-                'pdv_id' => $pdv?->id,
-                'payment_method' => 'cash',
-                'total_amount' => 0,
-            ]
-        );
-
-        $saleItem = $sale->items()->firstOrCreate(
-            ['product_id' => $sandwich->id],
-            ['quantity' => 3, 'unit_price' => $sandwich->price, 'subtotal' => 3 * $sandwich->price]
-        );
-
-        $sale->update(['total_amount' => $saleItem->subtotal]);
 
         HygieneReport::firstOrCreate(
             [
