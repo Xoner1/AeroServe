@@ -642,11 +642,12 @@ class ProductController extends Controller
         $data = [];
 
         if ($request->has('allergens')) {
-            $data['allergens'] = $request->allergens;
+            $data['allergens'] = $request->allergens ?? [];
         }
 
-        if ($request->has('expiration_date')) {
-            $data['expiration_date'] = $request->expiration_date;
+        // Use exists() not has() — allows saving null to clear the expiration date
+        if ($request->exists('expiration_date')) {
+            $data['expiration_date'] = $request->expiration_date ?: null;
         }
 
         $product->update($data);
