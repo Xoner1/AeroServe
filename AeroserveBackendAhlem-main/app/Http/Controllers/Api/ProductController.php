@@ -34,6 +34,12 @@ class ProductController extends Controller
             }
         }
 
+        // Responsable Hygiene: only approved FOOD products (chef-made items, not commercial goods)
+        if ($role === 'RESPONSABLE_HYGIENE') {
+            $query->where('type', 'food')
+                  ->where('approval_status', 'approved');
+        }
+
         if ($request->has('type')) {
             $query->where('type', $request->type);
         }
