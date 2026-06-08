@@ -155,6 +155,8 @@ Route::middleware(['jwt.auth'])->group(function () {
     */
     Route::middleware('role:RESPONSABLE_HYGIENE,SUPER_ADMIN')->group(function () {
         Route::apiResource('hygiene-reports', HygieneReportController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::get('/hygiene-reports/export', [HygieneReportController::class, 'export']);
+        Route::put('/products/{product}/hygiene', [ProductController::class, 'hygieneUpdate']);
     });
 
     /*

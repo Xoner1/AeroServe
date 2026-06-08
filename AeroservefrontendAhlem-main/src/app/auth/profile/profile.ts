@@ -19,7 +19,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
   user: User | null = null;
 
   previewAvatar: string | null = null;
-  avatarUrl = '/assets/default-avatar.svg';
+  avatarUrl = '/assets/default-avatar.png';
   darkMode = false;
 
   loading = false;
@@ -93,7 +93,7 @@ export class ProfileComponent implements OnInit, OnDestroy {
         : `${baseUrl}/${this.user.avatar_url.replace(/^\//, '')}`;
       this.avatarUrl = `${url}?v=${Date.now()}`;
     } else {
-      this.avatarUrl = '/assets/default-avatar.svg';
+      this.avatarUrl = '/assets/default-avatar.png';
     }
   }
 

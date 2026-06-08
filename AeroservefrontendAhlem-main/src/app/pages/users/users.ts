@@ -382,11 +382,12 @@ export class Users implements OnInit, OnDestroy {
     }
 
     // fallback image
-    return '/assets/default-avatar.svg';
+    return '/assets/default-avatar.png';
   }
 
   onImageError(event: any): void {
-    event.target.src = '/assets/default-avatar.svg';
+    if (event.target.src.includes('default-avatar.png')) return; // prevent infinite loop
+    event.target.src = '/assets/default-avatar.png';
   }
 
   get activeUsersCount(): number {

@@ -101,3 +101,33 @@ Ran a full code audit against Session 1 entries. Found fixes #1, #2, #8, #9 were
 | #9 | `ChatbotController.php` | Added strict off-topic rule to system prompt + `isOnTopicMessage()` with greeting blacklist |
 
 **All 11 fixes from Session 1 are now confirmed present in the codebase.**
+
+---
+
+## Session 3 — Bug Fixes (8 June 2026)
+
+### 12. Admin Password Not Hashed
+- **Files:** Database (via `php artisan tinker`)
+- **Problem:** The `DatabaseSeeder` stored the admin password as plain text (`'password'` instead of `Hash::make('password')`). Laravel's `bcrypt` cast requires hashed values, so login always returned "Email ou mot de passe incorrect".
+- **Fix:** Updated the admin user's password directly in the DB using `Hash::make('password')` via tinker. The seeder was not modified (the `password` cast in `User` model handles hashing on `create`, but `firstOrCreate` with a raw value bypassed it).
+- **Status:** ✅ Applied
+
+### 13. Default Avatar Missing (.svg → .png)
+- **Files:**
+  - `AeroservefrontendAhlem-main/src/app/pages/users/users.ts`
+  - `AeroservefrontendAhlem-main/src/app/auth/profile/profile.ts`
+  - `AeroservefrontendAhlem-main/src/app/auth/profile/profile.html`
+- **Problem:** The fallback avatar path was `/assets/default-avatar.svg` but the actual file is `default-avatar.png`. Every user without an avatar triggered a broken image error, causing an infinite error loop in `onImageError()`.
+- **Fix:** Changed all references from `.svg` to `.png`. Added a guard in `onImageError()` to prevent infinite reload loops.
+- **Status:** ✅ Applied
+
+### 14. Missing Route: `PUT /api/products/{product}/hygiene`
+- **Files:** `AeroserveBackendAhlem-main/routes/api.php`
+- **Problem:** The `hygieneUpdate()` method existed in `ProductController` and the frontend called `PUT products/{id}/hygiene`, but no route was registered for it. Also `GET /hygiene-reports/export` was missing from routes. Both returned 404.
+- **Fix:** Added both missing routes inside the `RESPONSABLE_HYGIENE,SUPER_ADMIN` middleware group:
+  ```php
+  Route::get('/hygiene-reports/export', [HygieneReportController::class, 'export']);
+  Route::put('/products/{product}/hygiene', [ProductController::class, 'hygieneUpdate']);
+  ```
+- **Status:** ✅ Applied
+

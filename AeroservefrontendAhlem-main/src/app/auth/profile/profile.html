@@ -84,7 +84,7 @@
           <label>Photo de profil</label>
           <label class="avatar-picker" [class.disabled]="!editMode">
             <div class="avatar-preview-wrap">
-              @if (avatarUrl && avatarUrl !== '/assets/default-avatar.svg') {
+              @if (avatarUrl && avatarUrl !== '/assets/default-avatar.png') {
                 <img [src]="avatarUrl" class="avatar-preview-img" alt="Aperçu" />
                 @if (editMode) {
                   <div class="avatar-overlay">Changer</div>
