@@ -631,7 +631,31 @@ class ProductController extends Controller
         return response()->json(['message' => 'Catégorie supprimée.']);
     }
 
-    // ─── Private helpers ─────────────────────────────────────────────────────
+    public function hygieneUpdate(Request $request, Product $product): JsonResponse
+    {
+        $request->validate([
+            'allergens'       => 'nullable|array',
+            'allergens.*'     => 'string|max:100',
+            'expiration_date' => 'nullable|date',
+        ]);
+
+        $data = [];
+
+        if ($request->has('allergens')) {
+            $data['allergens'] = $request->allergens;
+        }
+
+        if ($request->has('expiration_date')) {
+            $data['expiration_date'] = $request->expiration_date;
+        }
+
+        $product->update($data);
+
+        return response()->json([
+            'message' => 'Informations hygiène mises à jour.',
+            'product' => $product->fresh()->load('category', 'stock'),
+        ]);
+    }
 
     private function notifyResponsableAchat(string $title, string $message, string $type, array $data = []): void
     {
