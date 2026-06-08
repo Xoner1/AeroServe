@@ -29,11 +29,16 @@ import { environment } from '../../../environments/environment';
                 <option value="commercial">Commercial</option>
                 <option value="matiere_premiere">Matière première</option>
                 <option value="food">Food</option>
+                <option value="plat">Plat</option>
               </select>
             } @else if (userRole === 'CHEF_CUISINE') {
-              <span class="filter-badge">Type: Food</span>
+              <select [(ngModel)]="filterType" (ngModelChange)="applyFilter()" class="filter-select">
+                <option value="">Tous</option>
+                <option value="food">Food</option>
+                <option value="plat">Plat</option>
+              </select>
             } @else if (userRole === 'CHEF_MAGASIN') {
-              <span class="filter-badge">Type: Reserve</span>
+              <span class="filter-badge">Type: Réserve</span>
             }
 
             @if (userRole === 'RESPONSABLE_ACHAT' && !validationMode) {
@@ -119,7 +124,7 @@ import { environment } from '../../../environments/environment';
 
                   <td style="text-align: right;">
                     <div class="action-buttons">
-                      @if (!validationMode && p.type === 'food') {
+                      @if (!validationMode && (p.type === 'food' || p.type === 'plat')) {
                         <button class="action-btn info-btn" (click)="openChatbot(p)" title="Copilote Nutritionnel IA">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -182,7 +187,10 @@ import { environment } from '../../../environments/environment';
                     <div class="form-group">
                       <label>Type</label>
                       @if (isChefCuisine) {
-                        <input value="Food" disabled class="form-input-locked" />
+                        <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
+                          <option value="food">Food</option>
+                          <option value="plat">Plat</option>
+                        </select>
                       } @else if (isChefMagasin || isResponsableAchat) {
                         <select [(ngModel)]="form.type" name="type" required [disabled]="isLockedField('type')">
                           <option value="commercial">Commercial</option>
@@ -207,7 +215,7 @@ import { environment } from '../../../environments/environment';
                   </div>
 
                   <!-- CATEGORY -->
-                  @if (form.type !== 'food') {
+                  @if (form.type !== 'food' && form.type !== 'plat') {
                     <div class="form-group">
                       <label>Catégorie de Réserve</label>
                       <select [(ngModel)]="form.category_id" name="category_id" required [disabled]="isLockedField('category_id')">
@@ -228,7 +236,7 @@ import { environment } from '../../../environments/environment';
                   </div>
 
                   <!-- ALLERGENS (hidden for restricted roles or non-food products or Responsable Achat) -->
-                  @if (form.type === 'food' && !isRestrictedRole && !isResponsableAchat) {
+                  @if ((form.type === 'food' || form.type === 'plat') && !isRestrictedRole && !isResponsableAchat) {
                     <div class="form-group">
                       <label>Allergènes (séparés par des virgules)</label>
                       <input [(ngModel)]="form.allergens_text" name="allergens" [disabled]="isLockedField('allergens')" placeholder="Ex: gluten, lactose, fruits à coque" />
@@ -236,7 +244,7 @@ import { environment } from '../../../environments/environment';
                   }
 
                   <!-- EXPIRATION (hidden for restricted roles or non-food products or Responsable Achat) -->
-                  @if (form.type === 'food' && !isRestrictedRole && !isResponsableAchat) {
+                  @if ((form.type === 'food' || form.type === 'plat') && !isRestrictedRole && !isResponsableAchat) {
                     <div class="form-group">
                       <label>Date limite de consommation (DLC)</label>
                       <input type="date" [(ngModel)]="form.expiration_date" name="expiration_date" [disabled]="isLockedField('expiration_date')" />
@@ -265,7 +273,7 @@ import { environment } from '../../../environments/environment';
                   </div>
 
                   <!-- RECIPE BUILDER -->
-                  @if (form.type === 'food') {
+                  @if (form.type === 'food' || form.type === 'plat') {
                     <div class="form-group">
                       <label>Quantité par lot (ex: ce batch produit X sandwiches)</label>
                       <input type="number" [(ngModel)]="form.quantity_per_batch" name="quantity_per_batch" min="1" required />
@@ -888,7 +896,7 @@ export class ProductsComponent implements OnInit {
     
     // Role-based default type filter
     if (this.userRole === 'CHEF_CUISINE') {
-      this.filterType = 'food';
+      this.filterType = '';
     } else if (this.userRole === 'CHEF_MAGASIN') {
       this.filterType = 'reserve';
     }
@@ -930,7 +938,7 @@ export class ProductsComponent implements OnInit {
     let base = this.categories;
 
     if (this.isChefCuisine) {
-      base = base.filter(c => c.type === 'food');
+      base = base.filter(c => c.type === 'food' || c.type === 'plat');
     } else if (this.isChefMagasin) {
       base = base.filter(c => c.type === 'commercial' || c.type === 'matiere_premiere');
     }
@@ -1027,7 +1035,7 @@ export class ProductsComponent implements OnInit {
   resetForm(): void {
     this.form = {
       name: '',
-      type: this.isChefCuisine ? 'food' : 'commercial',
+      type: this.isChefCuisine ? (this.form.type || 'food') : 'commercial',
       category_id: '',
       price: 0,
       description: '',
@@ -1075,7 +1083,7 @@ export class ProductsComponent implements OnInit {
   }
 
   save(): void {
-    if (!this.form.name || !this.form.type || (this.form.type !== 'food' && !this.form.category_id)) {
+    if (!this.form.name || !this.form.type || ((this.form.type !== 'food' && this.form.type !== 'plat') && !this.form.category_id)) {
       Swal.fire({
         title: 'Formulaire incomplet',
         text: 'Veuillez remplir tous les champs obligatoires.',
@@ -1085,7 +1093,7 @@ export class ProductsComponent implements OnInit {
       return;
     }
 
-    if (this.form.type === 'food' && this.recipeIngredients.length === 0) {
+    if ((this.form.type === 'food' || this.form.type === 'plat') && this.recipeIngredients.length === 0) {
       Swal.fire({
         title: 'Recette manquante',
         text: 'Un produit Food doit contenir au moins un ingrédient dans sa recette.',
@@ -1095,7 +1103,7 @@ export class ProductsComponent implements OnInit {
       return;
     }
 
-    if (this.form.type === 'food' && this.recipeIngredients.some(ing => ing.product_id === 0)) {
+    if ((this.form.type === 'food' || this.form.type === 'plat') && this.recipeIngredients.some(ing => ing.product_id === 0)) {
       Swal.fire({
         title: 'Recette incomplète',
         text: 'Veuillez sélectionner un produit valide pour chaque ingrédient.',
@@ -1106,7 +1114,7 @@ export class ProductsComponent implements OnInit {
     }
 
     // Stock validation for FOOD products
-    if (this.form.type === 'food') {
+    if (this.form.type === 'food' || this.form.type === 'plat') {
       const batchSize = this.form.quantity_per_batch || 1;
       const stockErrors: string[] = [];
       for (const ing of this.recipeIngredients) {
@@ -1134,7 +1142,7 @@ export class ProductsComponent implements OnInit {
     formData.append('category_id', String(this.form.category_id));
     formData.append('description', this.form.description || '');
 
-    if (this.form.type === 'food') {
+    if (this.form.type === 'food' || this.form.type === 'plat') {
       formData.append('quantity_per_batch', String(this.form.quantity_per_batch || 1));
     }
 
@@ -1158,7 +1166,7 @@ export class ProductsComponent implements OnInit {
       formData.append('usage_status', this.form.usage_status || 'IN_USE');
     }
 
-    if (this.form.type === 'food') {
+    if (this.form.type === 'food' || this.form.type === 'plat') {
       this.recipeIngredients.forEach((ing, index) => {
         formData.append(`ingredients[${index}][product_id]`, String(ing.product_id));
         formData.append(`ingredients[${index}][quantity]`, String(ing.quantity));

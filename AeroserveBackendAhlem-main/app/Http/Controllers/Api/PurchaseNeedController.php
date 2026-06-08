@@ -41,7 +41,7 @@ class PurchaseNeedController extends Controller
 
         foreach ($menu->items as $item) {
             $product = $item->product;
-            if (! $product || $product->type !== 'food') {
+            if (! $product || !in_array($product->type, ['food', 'plat'])) {
                 continue;
             }
 

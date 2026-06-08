@@ -161,7 +161,7 @@ import Swal from 'sweetalert2';
 
                   <div class="form-group">
                     <label>Shift *</label>
-                    <select [(ngModel)]="form.shift" name="shift" required [disabled]="editing" (change)="onShiftChange()">
+                    <select [(ngModel)]="form.shift" name="shift" required (change)="onShiftChange()">
                       <option value="MATIN">Matin (08:00 - 16:00)</option>
                       <option value="APRES_MIDI">Après-midi (16:00 - 00:00)</option>
                       <option value="SOIR">Soir (00:00 - 08:00)</option>
@@ -193,11 +193,11 @@ import Swal from 'sweetalert2';
                     <div class="form-row">
                       <div class="form-group">
                         <label>Heure de début</label>
-                        <input type="time" [(ngModel)]="form.start_time" name="start_time" required />
+                        <input type="time" [(ngModel)]="form.start_time" name="start_time" required (ngModelChange)="onTimeChange()" />
                       </div>
                       <div class="form-group">
                         <label>Heure de fin</label>
-                        <input type="time" [(ngModel)]="form.end_time" name="end_time" required />
+                        <input type="time" [(ngModel)]="form.end_time" name="end_time" required (ngModelChange)="onTimeChange()" />
                       </div>
                     </div>
                   }
@@ -722,6 +722,19 @@ export class PlanningsComponent implements OnInit {
         this.form.start_time = '00:00';
         this.form.end_time = '08:00';
       }
+    }
+  }
+
+  onTimeChange(): void {
+    if (!this.form.start_time) return;
+    const hour = parseInt(this.form.start_time.split(':')[0], 10);
+    
+    if (hour >= 8 && hour < 16) {
+      this.form.shift = 'MATIN';
+    } else if (hour >= 16 || hour < 0) {
+      this.form.shift = 'APRES_MIDI';
+    } else if (hour >= 0 && hour < 8) {
+      this.form.shift = 'SOIR';
     }
   }
 

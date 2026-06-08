@@ -108,7 +108,7 @@ class MenuController extends Controller
                 continue;
             }
 
-            if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+            if (in_array($product->type, ['food', 'plat']) && $product->ingredients->isNotEmpty()) {
                 foreach ($product->ingredients as $ingredient) {
                     $requiredQty = $ingredient->pivot->quantity * $staffCount;
                     $availableQty = $ingredient->stock?->quantity ?? 0;
@@ -152,7 +152,7 @@ class MenuController extends Controller
                         continue;
                     }
 
-                    if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+                    if (in_array($product->type, ['food', 'plat']) && $product->ingredients->isNotEmpty()) {
                         foreach ($product->ingredients as $ingredient) {
                             $ingredientQty = $ingredient->pivot->quantity * $staffCount;
                             if ($ingredient->stock) {
@@ -375,7 +375,7 @@ class MenuController extends Controller
                 continue;
             }
 
-            if ($product->type === 'food' && $product->ingredients->isNotEmpty()) {
+            if (in_array($product->type, ['food', 'plat']) && $product->ingredients->isNotEmpty()) {
                 foreach ($product->ingredients as $ingredient) {
                     $requiredQty = $ingredient->pivot->quantity * $staffCount;
                     $availableQty = $ingredient->stock?->quantity ?? 0;

@@ -149,7 +149,7 @@ class DashboardController extends Controller
                 ->where('end_date', $nextWeekEnd)
                 ->first();
 
-            $roleData['recipes_count'] = Product::where('type', 'food')->where('approval_status', 'approved')->count();
+            $roleData['recipes_count'] = Product::whereIn('type', ['food', 'plat'])->where('approval_status', 'approved')->count();
             $roleData['active_menu'] = $currentWeekMenu;
             $roleData['critical_ingredients'] = Stock::with('product')
                 ->whereHas('product', fn ($q) => $q->whereIn('type', ['matiere_premiere', 'commercial']))

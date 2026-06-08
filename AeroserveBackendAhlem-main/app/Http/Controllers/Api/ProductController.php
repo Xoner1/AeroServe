@@ -27,10 +27,10 @@ class ProductController extends Controller
             $query->whereIn('type', ['commercial', 'matiere_premiere']);
         }
 
-        // Chef Cuisine: only FOOD (unless requesting ingredients/all types for recipe builder)
+        // Chef Cuisine: only FOOD and PLAT (unless requesting all types for recipe builder)
         if ($role === 'CHEF_CUISINE') {
-            if (!$request->boolean('all_types')) {
-                $query->where('type', 'food');
+            if (!filter_var($request->get('all_types', false), FILTER_VALIDATE_BOOLEAN)) {
+                $query->whereIn('type', ['food', 'plat']);
             }
         }
 
@@ -81,7 +81,7 @@ class ProductController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255|unique:products,name',
                 'description' => 'nullable|string',
-                'type' => 'required|in:food',
+                'type' => 'required|in:food,plat',
                 'category_id' => 'required|exists:categories,id',
                 'image' => 'nullable|image|max:2048',
                 'quantity_per_batch' => 'required|integer|min:1',
@@ -94,7 +94,7 @@ class ProductController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255|unique:products,name',
                 'description' => 'nullable|string',
-                'type' => 'required|in:commercial,matiere_premiere,food',
+                'type' => 'required|in:commercial,matiere_premiere,food,plat',
                 'category_id' => 'required|exists:categories,id',
                 'price' => 'nullable|numeric|min:0',
                 'image' => 'nullable|image|max:2048',
@@ -502,8 +502,8 @@ class ProductController extends Controller
     // Recipe management for food products
     public function setRecipe(Request $request, Product $product): JsonResponse
     {
-        if ($product->type !== 'food') {
-            return response()->json(['message' => 'Seuls les produits food peuvent avoir une recette.'], 422);
+        if (!in_array($product->type, ['food', 'plat'])) {
+            return response()->json(['message' => 'Seuls les produits food et plat peuvent avoir une recette.'], 422);
         }
 
         $request->validate([
@@ -579,7 +579,7 @@ class ProductController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:categories,name',
-            'type' => 'required|in:commercial,matiere_premiere,food',
+            'type' => 'required|in:commercial,matiere_premiere,food,plat',
             'code' => 'nullable|string|max:255|unique:categories,code',
         ]);
 
@@ -589,6 +589,7 @@ class ProductController extends Controller
                 'commercial' => 'COM',
                 'matiere_premiere' => 'MAT',
                 'food' => 'FOOD',
+                'plat' => 'PLAT',
             };
             $baseCode = substr($prefix . '_' . strtoupper(\Illuminate\Support\Str::slug($request->name, '_')), 0, 240);
             $code = $baseCode;

@@ -36,8 +36,8 @@ class Stock extends Model
     protected static function booted()
     {
         static::saved(function (Stock $stock) {
-            // Find all FOOD products that use this product as an ingredient
-            $foodProducts = Product::where('type', 'food')
+            // Find all FOOD and PLAT products that use this product as an ingredient
+            $foodProducts = Product::whereIn('type', ['food', 'plat'])
                 ->whereHas('ingredients', function ($query) use ($stock) {
                     $query->where('products.id', $stock->product_id);
                 })->get();
@@ -57,7 +57,7 @@ class Stock extends Model
                     }
                 }
 
-                $newStatus = $allAvailable ? 'DISPONIBLE' : 'EPUISE';
+                $newStatus = $allAvailable ? 'IN_USE' : 'OUT_OF_STOCK';
                 if ($food->usage_status !== $newStatus) {
                     $food->updateQuietly(['usage_status' => $newStatus]); // use updateQuietly to avoid infinite loops if it triggers its own observers
                 }

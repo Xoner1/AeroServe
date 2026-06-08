@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->foreignId('role_id')->constrained('roles');
             $table->foreignId('pdv_id')->nullable()->constrained('points_de_vente')->nullOnDelete();
-            $table->enum('status', ['active', 'en_attente', 'inactive'])->default('en_attente');
+            $table->enum('status', ['active', 'en_attente', 'inactive'])->default('active');
             $table->string('avatar')->nullable();
             $table->rememberToken();
             $table->timestamps();

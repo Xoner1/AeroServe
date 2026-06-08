@@ -65,7 +65,7 @@ export interface PointDeVente {
 export interface Category {
   id: number;
   name: string;
-  type: 'commercial' | 'matiere_premiere' | 'food';
+  type: 'commercial' | 'matiere_premiere' | 'food' | 'plat';
   code?: string;
 }
 export const USER_STATUS = {
@@ -78,7 +78,7 @@ export interface Product {
   id: number;
   name: string;
   description?: string;
-  type: 'commercial' | 'matiere_premiere' | 'food';
+  type: 'commercial' | 'matiere_premiere' | 'food' | 'plat';
   category_id?: number;
   price: number;
   image?: string;
