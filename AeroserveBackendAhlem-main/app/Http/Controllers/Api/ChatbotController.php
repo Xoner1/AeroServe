@@ -592,129 +592,75 @@ class ChatbotController extends Controller
     // ─── EXISTING HELPER METHODS (preserved) ─────────────────────────────────
 
     /**
-     * Fallback rules-based intelligent response engine if all AI APIs are unavailable.
+     * Fallback rules-based response — STRICTLY based on Hygiene Officer data only.
+     * No injected keyword lists, no assumptions, no external knowledge.
      */
     private function getLocalNlpResponse(Product $product, string $message): string
     {
-        $messageLower    = mb_strtolower($message);
-        $ingredients     = $product->description ?? '';
-        $ingredientsLower = mb_strtolower($ingredients);
+        $messageLower = mb_strtolower($message);
 
-        $hygieneRemarks = "";
-        $isNonConforme  = false;
-        if ($product->hygieneReports) {
-            foreach ($product->hygieneReports as $report) {
-                if ($report->status === 'non_conforme') {
-                    $isNonConforme = true;
-                }
-                if ($report->remarks) {
-                    $hygieneRemarks .= " " . mb_strtolower($report->remarks);
-                }
+        // Only respond to health-related questions; reject everything else
+        $healthKeywords = [
+            'allergen', 'gluten', 'lactose', 'arachide', 'diabète', 'diabete',
+            'santé', 'sante', 'sécurité', 'securite', 'ingréd', 'compos',
+            'calor', 'nutrit', 'conforme', 'hygiène', 'hygiene', 'malad',
+            'حساسية', 'جلوتين', 'لاكتوز', 'مكونات', 'صحة', 'مرض',
+            'سكري', 'مريض', 'أمان', 'سليم', 'تسمم', 'انتهاء', 'تاريخ',
+            'مكسرات', 'صويا', 'سمك', 'بيض', 'قمح', 'حليب',
+        ];
+
+        $isHealthRelated = false;
+        foreach ($healthKeywords as $kw) {
+            if (str_contains($messageLower, $kw)) {
+                $isHealthRelated = true;
+                break;
             }
         }
 
-        if ($isNonConforme && (str_contains($messageLower, 'sain') || str_contains($messageLower, 'sécurité') || str_contains($messageLower, 'securite') || str_contains($messageLower, 'صحة') || str_contains($messageLower, 'أمان') || str_contains($messageLower, 'سليم'))) {
-            return "Alerte Securite Alimentaire : Ce produit a ete signale non conforme par le responsable Hygiene. Il est recommande de ne pas le consommer.";
+        if (!$isHealthRelated) {
+            return "Je suis desole, je ne reponds qu'aux questions sur la sante, les allergenes et la composition des produits. Pour toute question administrative ou logistique, utilisez les autres sections de l'application.";
         }
 
-        if (str_contains($messageLower, 'allerg') || str_contains($messageLower, 'sensibl') || str_contains($messageLower, 'sensibilité') || str_contains($messageLower, 'regime') || str_contains($messageLower, 'régime') || str_contains($messageLower, 'حساسية') || str_contains($messageLower, 'مرض') || str_contains($messageLower, 'malad')) {
-            $foundAllergens = [];
-            $commonAllergens = [
-                'gluten (قمح/جلوتين)'        => ['gluten', 'farine', 'blé', 'pain', 'pâte', 'seigle', 'orge', 'جلوتين', 'قمح', 'دقيق', 'خبز', 'معكرونة'],
-                'lactose (حليب/لاكتوز)'      => ['lait', 'lactose', 'fromage', 'crème', 'beurre', 'yaourt', 'حليب', 'جبن', 'لاكتوز', 'قشدة', 'زبادي'],
-                'arachide (فول سوداني)'       => ['cacahuète', 'arachide', 'cacahuetes', 'peanuts', 'فول سوداني', 'فستق'],
-                'fruits à coque (مكسرات)'    => ['amande', 'noisette', 'noix', 'pistache', 'cajou', 'مكسرات', 'لوز', 'بندق'],
-                'œuf (بيض)'                  => ['œuf', 'oeuf', 'œufs', 'oeufs', 'mayonnaise', 'بيض', 'مايونيز'],
-                'poisson (سمك)'              => ['poisson', 'thon', 'saumon', 'sardine', 'crevette', 'crabe', 'سمك', 'تونة', 'سردين', 'جمبري'],
-                'soja (صويا)'                => ['soja', 'soy', 'صويا'],
-            ];
+        // No hygiene reports → no data to answer from
+        if (!$product->hygieneReports || $product->hygieneReports->isEmpty()) {
+            return "Aucune declaration sanitaire n'a encore ete enregistree par le responsable Hygiene pour le produit \"" . $product->name . "\". Mes reponses sont basees exclusivement sur les rapports officiels du responsable Hygiene. Veuillez contacter le responsable Hygiene pour obtenir ces informations.";
+        }
 
-            foreach ($commonAllergens as $allergen => $keywords) {
-                foreach ($keywords as $kw) {
-                    if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
-                        $foundAllergens[] = $allergen;
-                        break;
-                    }
-                }
-            }
+        // Build response strictly from hygiene report data
+        $parts = [];
+        $parts[] = "Informations sanitaires pour \"" . $product->name . "\" (donnees declarees par le responsable Hygiene) :\n";
 
-            if (count($foundAllergens) > 0) {
-                return "Alerte Allergenes : D'apres la composition de \"" . $product->name . "\" et les rapports d'hygiene, ce produit contient ou peut contenir : " . implode(', ', $foundAllergens) . ". S'il vous plait, restez vigilant si vous avez des allergies connues.";
+        foreach ($product->hygieneReports as $report) {
+            // Status
+            if ($report->status === 'non_conforme') {
+                $parts[] = "⚠ Statut : NON CONFORME — " . ($report->remarks ?: "Aucun commentaire ajoute.");
+            } elseif ($report->status === 'conforme') {
+                $parts[] = "✓ Statut : CONFORME";
             } else {
-                return "Aucun allergene courant majeur (comme le gluten, le lactose ou les arachides) n'a ete detecte dans les ingredients enregistres pour \"" . $product->name . "\". Ingredients listes : " . $ingredients . ".";
+                $parts[] = "Statut : En cours d'inspection";
             }
-        }
 
-        if (str_contains($messageLower, 'gluten') || str_contains($messageLower, 'coeliaque') || str_contains($messageLower, 'cœliaque') || str_contains($messageLower, 'جلوتين') || str_contains($messageLower, 'قمح')) {
-            $glutenKeywords = ['farine', 'blé', 'pain', 'pâte', 'seigle', 'orge', 'gluten', 'جلوتين', 'قمح', 'دقيق', 'خبز'];
-            $hasGluten      = false;
-            foreach ($glutenKeywords as $kw) {
-                if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
-                    $hasGluten = true;
-                    break;
-                }
-            }
-            if ($hasGluten) {
-                return "Le produit \"" . $product->name . "\" CONTIENT du gluten (presence detectee de ble/farine/pain/pate). Il n'est pas recommande pour les personnes coeliaques ou intolerantes au gluten.";
+            // Allergens verification
+            if ($report->allergens_verified) {
+                $parts[] = "Allergenes : Verifies et valides par le responsable Hygiene.";
             } else {
-                return "D'apres la fiche technique de \"" . $product->name . "\", aucun ingredient contenant du gluten n'a ete detecte. Il semble etre sans gluten.";
+                $parts[] = "Allergenes : Non encore verifies par le responsable Hygiene.";
             }
-        }
 
-        if (str_contains($messageLower, 'lait') || str_contains($messageLower, 'lactose') || str_contains($messageLower, 'dairy') || str_contains($messageLower, 'fromage') || str_contains($messageLower, 'لاكتوز') || str_contains($messageLower, 'حليب') || str_contains($messageLower, 'جبن')) {
-            $lactoseKeywords = ['lait', 'lactose', 'fromage', 'crème', 'beurre', 'yaourt', 'mozzarella', 'حليب', 'لاكتوز', 'جبن', 'قشدة'];
-            $hasLactose      = false;
-            foreach ($lactoseKeywords as $kw) {
-                if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
-                    $hasLactose = true;
-                    break;
-                }
-            }
-            if ($hasLactose) {
-                return "Le produit \"" . $product->name . "\" CONTIENT du lactose / des produits laitiers (lait, fromage ou creme detecte). Attention si vous etes intolerant au lactose.";
+            // Expiration verification
+            if ($report->expiration_verified) {
+                $parts[] = "Date d'expiration : Verifiee et conforme.";
             } else {
-                return "D'apres la composition de \"" . $product->name . "\", il ne contient aucun produit laitier ou lactose connu. Il convient aux personnes intolerantes.";
+                $parts[] = "Date d'expiration : Non encore verifiee.";
+            }
+
+            // Remarks (only if present)
+            if ($report->remarks) {
+                $parts[] = "Remarques du responsable Hygiene : \"" . $report->remarks . "\"";
             }
         }
 
-        if (str_contains($messageLower, 'diabète') || str_contains($messageLower, 'diabete') || str_contains($messageLower, 'sucre') || str_contains($messageLower, 'سكري') || str_contains($messageLower, 'سكر')) {
-            $sugarKeywords = ['sucre', 'miel', 'sirop', 'sweetener', 'sugar', 'سكر', 'عسل', 'حلو'];
-            $hasSugar      = false;
-            foreach ($sugarKeywords as $kw) {
-                if (str_contains($ingredientsLower, $kw) || str_contains(mb_strtolower($product->name), $kw) || str_contains($hygieneRemarks, $kw)) {
-                    $hasSugar = true;
-                    break;
-                }
-            }
-            if ($hasSugar) {
-                return "Le produit \"" . $product->name . "\" contient du sucre ou des agents sucrants. Il doit etre consomme avec moderation par les personnes diabetiques.";
-            } else {
-                return "Le produit \"" . $product->name . "\" ne semble pas contenir de sucres ajoutes. Veuillez tout de meme verifier la fiche nutritionnelle globale.";
-            }
-        }
-
-        if (str_contains($messageLower, 'ingred') || str_contains($messageLower, 'ingréd') || str_contains($messageLower, 'compos') || str_contains($messageLower, 'fait de') || str_contains($messageLower, 'contient quoi') || str_contains($messageLower, 'مكونات') || str_contains($messageLower, 'يحتوي')) {
-            if (empty($ingredients) || $ingredients === 'Aucun ingrédient spécifié.') {
-                return "Le produit \"" . $product->name . "\" ne dispose pas d'une liste detaillee d'ingredients enregistree dans la base de donnees pour le moment. Son prix est de " . $product->price . " TND.";
-            }
-            return "Composition de \"" . $product->name . "\" : Les ingredients enregistres sont : " . $ingredients . ". N'hesitez pas a me poser des questions sur un ingredient en particulier !";
-        }
-
-        if (str_contains($messageLower, 'calor') || str_contains($messageLower, 'nutrit') || str_contains($messageLower, 'kcal') || str_contains($messageLower, 'sucre') || str_contains($messageLower, 'sel') || str_contains($messageLower, 'gras')) {
-            return "Informations nutritionnelles pour \"" . $product->name . "\" : La fiche nutritionnelle standard indique qu'il s'agit d'un produit de type " . $product->type . ". Ingredients constitutifs : " . $ingredients . ". (Pour des details precis en calories, veuillez consulter la fiche d'emballage du fabricant).";
-        }
-
-        $remarksText = "";
-        if ($product->hygieneReports->isNotEmpty() && $product->hygieneReports->first()->remarks) {
-            $remarksText = " Note d'hygiene : " . $product->hygieneReports->first()->remarks;
-        }
-
-        return "Bonjour ! Je suis l'assistant nutritionnel. " .
-               "Je peux vous renseigner sur la composition, les allergenes et les ingredients de \"" . $product->name . "\".\n\n" .
-               "Ingredients : " . $ingredients . "\n" .
-               "Categorie : " . ($product->category?->name ?? 'General') . "\n" .
-               "Prix : " . $product->price . " TND\n\n" .
-               "Posez-moi une question sur la presence d'un ingredient specifique comme le gluten, le lactose ou les arachides !" . $remarksText;
+        return implode("\n", $parts);
     }
 
     /**

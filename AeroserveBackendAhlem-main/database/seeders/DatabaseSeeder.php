@@ -57,7 +57,7 @@ class DatabaseSeeder extends Seeder
                 'first_name' => 'Super',
                 'last_name' => 'Admin',
                 'email' => 'admin@aeroserve.com',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'role_id' => $adminRole->id,
                 'status' => 'active',
             ]

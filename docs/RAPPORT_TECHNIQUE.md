@@ -201,14 +201,14 @@ Le schéma de base de données est relationnel et optimisé. Les tables sales et
 - `id` (BigInt, PK, Auto-Increment) : Identifiant unique.
 - `name` (String, Not Null) : Nom de la catégorie.
 - `code` (String, Unique, Nullable) : Code technique.
-- `type` (String, Not Null) : food, commercial, matiere_premiere.
+- `type` (String, Not Null) : food, commercial, matiere_premiere, **plat**.
 
 #### Table 6 : `products`
 
 - `id` (BigInt, PK, Auto-Increment) : Identifiant unique.
 - `name` (String, Unique, Not Null) : Nom du produit.
 - `description` (Text, Nullable) : Description ou ingrédients.
-- `type` (String, Not Null) : food, commercial, matiere_premiere.
+- `type` (String, Not Null) : food, commercial, matiere_premiere, **plat**.
 - `category_id` (Foreign Key, Nullable) : Catégorie associée.
 - `price` (Decimal (8,2), Nullable) : Prix de vente public.
 - `is_active` (Boolean, Default: true) : Disponibilité opérationnelle.
@@ -216,6 +216,7 @@ Le schéma de base de données est relationnel et optimisé. Les tables sales et
 - `expiration_date` (Date, Nullable) : Date limite de conservation.
 - `approval_status` (String, Default: 'pending') : pending, approved, rejected.
 - `quantity_per_batch` (Integer, Default: 1) : Quantité produite par lot.
+- `usage_status` (String, Default: 'IN_USE') : IN_USE (ingredients disponibles), OUT_OF_STOCK (rupture d'ingrédients).
 - `created_by` (Foreign Key, Not Null) : Créateur.
 
 #### Table 7 : `product_recipe`
@@ -291,7 +292,7 @@ Le schéma de base de données est relationnel et optimisé. Les tables sales et
 - `is_day_off` (Boolean, Default: false) : Jour de repos.
 - `start_time` (Time, Nullable) : Heure de début.
 - `end_time` (Time, Nullable) : Heure de fin.
-- `shift` (String, Default: 'MATIN') : MATIN, APRES_MIDI, SOIR.
+- `shift` (String, Default: 'MATIN') : MATIN (08:00-16:00), APRES_MIDI (16:00-00:00), SOIR (00:00-08:00). Détecté automatiquement à partir de `start_time` si non fourni explicitement.
 - `day_status` (String, Default: 'ON') : ON, OFF, CONGE.
 - `created_by` (Foreign Key, Not Null) : Responsable F&B créateur.
 
@@ -365,8 +366,8 @@ Chaque rôle dispose d'un espace de travail optimisé.
 
 ### 5.3 Chef de Cuisine
 
-- **Composants Angular :** `products.component.ts` (filtré sur FOOD), `menus.component.ts`, `internal-orders.component.ts`.
-- **Fonctionnalités :** Conception de recettes de plats préparés, planification des menus hebdomadaires, suivi des stocks de la cuisine, duplication de menus avec analyse instantanée des besoins en ingrédients.
+- **Composants Angular :** `products.component.ts` (filtré sur FOOD et PLAT), `menus.component.ts`, `internal-orders.component.ts`.
+- **Fonctionnalités :** Conception de recettes de plats préparés (types `food` et `plat`), planification des menus hebdomadaires, suivi des stocks de la cuisine, duplication de menus avec analyse instantanée des besoins en ingrédients. Auto-approbation de ses propres produits (pas besoin de validation par le Responsable Achat).
 
 ### 5.4 Chef Magasin
 
@@ -380,8 +381,8 @@ Chaque rôle dispose d'un espace de travail optimisé.
 
 ### 5.6 Responsable Hygiène
 
-- **Composants Angular :** `hygiene-reports.component.ts`.
-- **Fonctionnalités :** Saisie des rapports sanitaires et de conformité des produits, vérification de l'étiquetage des allergènes.
+- **Composants Angular :** `hygiene-reports.component.ts`, `hygiene-products.component.ts`.
+- **Fonctionnalités :** Saisie des rapports sanitaires et de conformité des produits, vérification de l'étiquetage des allergènes. Page dédiée « Hygiene Products » pour monitorer tous les produits FOOD avec édition inline des `allergenes` et `expiration_date` directement sur les produits. Export CSV des rapports d'hygiène.
 
 ### 5.7 Caissier
 
@@ -404,10 +405,12 @@ flowchart TD
   B --> C[Verification de la recette : ingredients + batches]
   C --> D{Ingredients approuves et en stock ?}
   D -->|Non| E[Rejet - Erreur 422 avec shortfalls]
-  D -->|Oui| F[Creation du produit au statut PENDING]
-  F --> G[Notification au Responsable Achat]
-  G --> H[Le Responsable Achat renseigne le prix et valide]
-  H --> I[Changement de statut : APPROVED]
+  D -->|Oui| F{Createur = CHEF_CUISINE ?}
+  F -->|Oui| G[Statut direct : APPROVED (auto-approbation)]
+  F -->|Non| H[Creation du produit au statut PENDING]
+  H --> I[Notification au Responsable Achat]
+  I --> J[Le Responsable Achat renseigne le prix et valide]
+  J --> K[Changement de statut : APPROVED]
 ```
 
 ### 6.2 Flux de Validation du Menu Hebdomadaire
@@ -516,13 +519,14 @@ Le système AeroServe intègre des barrières de sécurité et des contrôles m�
 
 ### 2. Règles sur la Recette et les Ingrédients
 
-- **Exigence d'Approbation :** Tous les ingrédients insérés dans la fiche recette d'un produit `FOOD` doivent obligatoirement posséder le statut d'approbation commercial `approved`.
+- **Exigence d'Approbation :** Tous les ingrédients insérés dans la fiche recette d'un produit `FOOD` ou `PLAT` doivent obligatoirement posséder le statut d'approbation commercial `approved`.
+- **Auto-approbation Chef :** Les produits créés par le Chef de Cuisine sont automatiquement approuvés (`approval_status = 'approved'`). Le Chef peut toujours éditer ses propres produits approuvés, contrairement aux autres rôles dont les produits sont verrouillés après approbation.
 - **Intégrité de Rôle :** Le Chef de Cuisine conçoit les recettes, mais il lui est impossible de modifier le prix de vente public du plat, cette prérogative étant réservée au service des achats (`RESPONSABLE_ACHAT`).
 
 ### 3. Logique d'Écriture et de Validation des Menus
 
 - **Non-Chevauchement de Période :** Il est interdit de créer deux menus hebdomadaires distincts couvrant la même période de dates.
-- **Validation Statutaire :** Seuls les menus disposant du statut `BROUILLON` peuvent être modifiés ou soumis à la validation de stock.
+- **Validation Statutaire :** Seuls les menus disposant du statut `BROUILLON` peuvent être modifiés ou soumis à la validation de stock. La validation vérifie les ingrédients pour les produits de type `food` et `plat`.
 - **Délai FIFO :** Dès qu'un menu passe au statut `VALIDE`, le système déduit immédiatement en base de données les quantités correspondantes d'ingrédients de manière irréversible selon l'ordre d'expiration des lots.
 
 ### 4. Isolation des Commandes Internes
@@ -571,7 +575,7 @@ Plusieurs processus automatisés tournent en arrière-plan sur le serveur Larave
 
 | Commande Artisan | Fréquence | Déclencheur | Description technique & Impact |
 | --- | --- | --- | --- |
-| `stock:check-ingredients` | Toutes les heures (`hourly()`) | Laravel Scheduler | Parcourt tous les produits de type `food` approuvés. Si l'un des ingrédients indispensables de sa recette affiche un stock de 0 ou insuffisant dans le lot d'entrée, le produit passe automatiquement à `is_active = false`. À l'inverse, si le stock d'ingrédients redevient positif (réapprovisionnement), le produit repasse à `is_active = true`. Impact : évite que les caissiers ne vendent des plats impossibles à servir. |
+| `stock:check-ingredients` | Toutes les heures (`hourly()`) | Laravel Scheduler | Parcourt tous les produits de type `food` et `plat` approuvés. Si l'un des ingrédients indispensables de sa recette affiche un stock de 0 ou insuffisant dans le lot d'entrée, le produit passe automatiquement à `is_active = false` (et `usage_status = 'OUT_OF_STOCK'`). À l'inverse, si le stock d'ingrédients redevient positif (réapprovisionnement), le produit repasse à `is_active = true` (et `usage_status = 'IN_USE'`). Impact : évite que les caissiers ne vendent des plats impossibles à servir. |
 | `menu:planning-reminder` | Chaque jeudi à 20:00 | Laravel Scheduler | Vérifie si un menu hebdomadaire est déjà enregistré en base pour la semaine suivante. Si aucun menu n'est trouvé, il génère une notification critique à destination de tous les profils de type `CHEF_CUISINE`. |
 
 ---
@@ -584,6 +588,7 @@ Le système de notification d'AeroServe relie les événements clés du stock et
 
 | Événement déclencheur | Destinataires | Type | Message standard |
 | --- | --- | --- | --- |
+| Assignation d'un RESPONSABLE_FB à un PDV | Le RESPONSABLE_FB assigné | Info | "Vous avez été affecté(e) comme responsable du point de vente [nom]." |
 | Création d'une commande interne | `CHEF_CUISINE` / `CHEF_MAGASIN` (selon type) | Info | "Une nouvelle commande interne de type [type] a été créée et vous a été assignée." |
 | Refus automatique d'un menu hebdomadaire | `CHEF_MAGASIN` | Warning | "Le menu [nom] a été refusé. Des ingrédients manquent en stock." |
 | Refus automatique d'un menu hebdomadaire | `RESPONSABLE_FB` | Info | "Le menu [nom] n'a pu être validé par manque de stock." |
@@ -603,6 +608,13 @@ AeroServe intègre des algorithmes intelligents facilitant les tâches courantes
 Le chatbot intelligent d'AeroServe s'adapte dynamiquement selon l'identité et les droits de l'utilisateur connecté :
 
 - **Sécurisation et Protection de la Vie Privée :** Afin d'empêcher les fuites de données transversales, chaque utilisateur n'accède qu'aux informations importantes de son propre compte. Le backend génère à chaque requête un résumé textuel complet (`getUserContextText`) contenant le profil de l'agent, ses 5 derniers shifts et ses 5 dernières commandes internes, puis l'injecte de façon invisible dans le prompt système (`systemRole`) de l'IA (OpenAI GPT-4o-mini, Groq Llama 3.1 8B ou Gemini 1.5 Flash). Le chatbot refuse formellement de répondre à toute question portant sur des comptes tiers ou des données étrangères.
+- **Function Calling natif (refactor majeur) :** Le chatbot n'utilise plus de liste statique de noms de produits injectée dans le prompt. Il exploite désormais le **function calling / tool calling** natif de chaque fournisseur d'IA (OpenAI `tools`, Gemini `function_declarations`). Trois outils sont définis :
+  1. `chercher_produits(query)` — recherche de produits par nom/type/mot-clé
+  2. `obtenir_details_produit(product_id)` — détails complets avec stock, hygieneReports, catégorie
+  3. `obtenir_tous_produits()` — catalogue complet des produits actifs
+  
+  Le flux : l'IA décide d'appeler une fonction → PHP exécute la requête DB via `executeToolCall()` → résultat JSON retourné → l'IA répond sur la base de données réelles. Plus aucune hallucination de produits inexistants.
+- **Rejet strict des sujets hors AeroServe :** Le chatbot refuse systématiquement les salutations ("Bonjour", "How are you?") et questions hors-sujet ("Quel temps fait-il ?"). Règle dure dans le prompt système + méthode `isOnTopicMessage()` avec détection de 50+ mots-clés et blacklist de salutations (FR + EN + AR).
 - **Mode Santé Exclusif pour le Caissier :** Pour le rôle `CAISSIER`, le chatbot n'autorise que les questions de santé (diabète, allergies, intolérance au gluten ou lactose) posées par les clients de l'aéroport au comptoir, à condition d'avoir scanné/sélectionné un produit. L'IA se base strictement sur les fiches d'ingrédients du produit et les rapports d'audits rédigés par le responsable Hygiène (`HygieneReport`), en rejetant poliment toute question d'ordre logistique, financier, ou de planning.
 - **Moteur de Secours Local (Sans Emojis) :** En cas d'indisponibilité des API d'IA externes, le système bascule automatiquement sur un parseur de règles local (`getLocalNlpResponse` et `getLocalGeneralResponse`). Ce moteur analyse par expressions régulières la présence d'allergènes courants et de pathologies (comme le diabète ou l'hypertension) en arabe et en français, et formule des réponses claires sans aucun emoji.
 
@@ -650,32 +662,157 @@ Pour assurer le suivi des développements, voici le backlog fonctionnel :
 
 ## 14. Corrections & Améliorations Apportées
 
-Durant la phase de fiabilisation du code, plusieurs correctifs ont été apportés :
+### Session 0 — Corrections initiales (avant juin 2026)
 
-### 1. Correction de l'algorithme d'activation des produits (`CheckIngredientStock.php`)
+#### 1. Correction de l'algorithme d'activation des produits (`CheckIngredientStock.php`)
 
 - **Problème :** La boucle de contrôle de stock s'arrêtait dès qu'un ingrédient de la recette affichait un stock valide, gardant le plat actif même si d'autres ingrédients indispensables étaient totalement en rupture.
 - **Solution :** Réécriture de la boucle pour exiger que **tous** les ingrédients associés possèdent un stock supérieur à zéro afin de maintenir le produit actif.
 
-### 2. Résolution des colonnes obsolètes dans le Seeder (`SampleDataSeeder.php`)
+#### 2. Résolution des colonnes obsolètes dans le Seeder (`SampleDataSeeder.php`)
 
 - **Problème :** Le seeder échouait suite à une migration ayant renommé les colonnes de la table `menus` de `week_start`/`week_end` en `start_date`/`end_date`.
 - **Solution :** Remplacement global des termes obsolètes dans le fichier de seeding par les nouveaux champs.
 
-### 3. Résolution des exceptions de renommage de la table caisse
+#### 3. Résolution des exceptions de renommage de la table caisse
 
 - **Problème :** Les tables `plannings` ont vu leur colonne de clé étrangère `caissier_id` renommée en `user_id` suite à la fusion de la table des caissiers dans la table générale des utilisateurs.
 - **Solution :** Mise à jour des clés étrangères dans le modèle `User.php` et correction des requêtes d'insertion du seeder.
 
-### 4. Négation logique de l'alerte planning sur le Dashboard Frontend
+#### 4. Négation logique de l'alerte planning sur le Dashboard Frontend
 
 - **Problème :** L'alerte de menu non planifié s'affichait lorsque le menu était planifié.
 - **Solution :** Correction dans le template HTML Angular.
 
-### 5. Intégration de la table des produits expirés pour le Chef Magasin
+#### 5. Intégration de la table des produits expirés pour le Chef Magasin
 
 - **Problème :** Le Chef Magasin ne disposait pas d'une vue tabulaire claire des produits périmés sur son Dashboard.
 - **Solution :** Ajout d'une table HTML premium bouclant sur la collection `role_specific.expired_batches_list`.
+
+---
+
+### Session 1 — Correctifs v3.0 (8 juin 2026)
+
+#### 6. Notifications PDV lors de l'assignation d'un gérant
+
+- **Fichier :** `PointDeVenteController.php`
+- **Problème :** Lorsqu'un RESPONSABLE_FB était assigné à un Point de Vente, aucune notification n'était envoyée.
+- **Solution :** Ajout de `Notification::create()` dans `store()` et `update()` quand `responsable_fb_id` est défini.
+
+#### 7. Auto-approbation des produits CHEF_CUISINE
+
+- **Fichier :** `ProductController.php`
+- **Problème :** Les produits créés par le Chef de Cuisine nécessitaient l'approbation du Responsable Achat, alors que le chef est responsable de ses propres recettes.
+- **Solution :** `approval_status = 'approved'` si le créateur est CHEF_CUISINE, `'pending'` sinon.
+
+#### 8. Chef peut éditer ses propres produits approuvés
+
+- **Fichier :** `products.component.ts` (frontend)
+- **Problème :** La méthode `isLockedField()` verrouillait l'édition de tous les produits approuvés, y compris ceux du chef.
+- **Solution :** `if (this.isChefCuisine) return false;` en début de `isLockedField()`.
+
+#### 9. Filtre ingrédients disponibles
+
+- **Fichier :** `products.component.ts` (frontend)
+- **Problème :** Le getter `availableIngredients` retournait TOUS les produits (y compris COMMERCIAL), alors qu'une recette ne peut contenir que des RAW_MATERIAL.
+- **Solution :** Filtrage sur `type === 'matiere_premiere'`.
+
+#### 10. Menu Builder — source des produits
+
+- **Fichier :** `menus.component.ts` (frontend)
+- **Problème :** Le constructeur de menu chargeait les produits FOOD au lieu des RAW_MATERIAL pour composer les menus quotidiens.
+- **Solution :** Appel API avec `{ type: 'matiere_premiere', all_types: true }` pour bypasser le filtre `type='food'` du backend.
+
+#### 11. Page Hygiène Produits (nouvelle)
+
+- **Fichiers :** `hygiene-products.component.ts`, `app.routes.ts`, `layout.component.ts`
+- **Fonctionnalité :** Page dédiée pour RESPONSABLE_HYGIENE pour monitorer tous les produits FOOD, avec édition inline des `allergenes` et `expiration_date`.
+- **Backend :** Endpoint `PUT /api/products/{product}/hygiene` via `ProductController::hygieneUpdate()`.
+
+#### 12. Export CSV des rapports d'hygiène
+
+- **Fichiers :** `HygieneReportController.php` (méthode `export()`), `api.service.ts` (méthode `getBlob()`), `hygiene-reports.component.ts`
+- **Route :** `GET /api/hygiene-reports/export`
+
+#### 13. Chatbot — Function Calling (refactor majeur)
+
+- **Fichier :** `ChatbotController.php`
+- **Problème :** Liste statique de noms de produits injectée dans le prompt → fragile et non-scalable.
+- **Solution :** Rewrite complet pour utiliser le **function calling natif** des 3 fournisseurs (OpenAI, Groq, Gemini) avec 3 outils : `chercher_produits()`, `obtenir_details_produit()`, `obtenir_tous_produits()`. L'IA appelle les fonctions → PHP exécute la requête DB → résultat JSON → l'IA répond sur données réelles.
+
+#### 14. Chatbot — Rejet strict des hors-sujet
+
+- **Fichier :** `ChatbotController.php`
+- **Problème :** Le chatbot répondait aux salutations et questions hors-sujet.
+- **Solution :** Règle dure dans le prompt système + méthode `isOnTopicMessage()` avec 50+ mots-clés et blacklist de salutations (FR + EN + AR).
+
+#### 15. Planning — Auto-détection du shift depuis l'heure
+
+- **Fichiers :** `PlanningController.php` (backend), `plannings.component.ts` (frontend)
+- **Problème :** Le changement de `start_time` ne mettait pas à jour le label `shift`.
+- **Solution :** Méthode `determineShiftFromTime()` : < 12:00 → MATIN, 12:00-16:59 → APRES_MIDI, >= 17:00 → SOIR. Appliquée dans `store()`, `update()`, `bulkStore()`. Frontend : `onTimeChange()` met à jour le select shift automatiquement.
+
+---
+
+### Session 2 — Corrections de bugs critiques (8 juin 2026)
+
+#### 16. Mot de passe Admin non hashé
+
+- **Problème :** Le `DatabaseSeeder` stockait le mot de passe admin en clair (`'password'` au lieu de `Hash::make('password')`). Le login échouait systématiquement.
+- **Solution :** Correction via `php artisan tinker` avec `Hash::make('password')`.
+
+#### 17. Avatar par défaut manquant (.svg → .png)
+
+- **Fichiers :** `users.ts`, `profile.ts`, `profile.html` (frontend)
+- **Problème :** Le chemin fallback était `/assets/default-avatar.svg` mais le fichier réel est `default-avatar.png`.
+- **Solution :** Remplacement `.svg` → `.png` + guard dans `onImageError()`.
+
+#### 18. Routes manquantes Hygiène
+
+- **Fichier :** `api.php`
+- **Problème :** `PUT /api/products/{product}/hygiene` et `GET /api/hygiene-reports/export` n'étaient pas enregistrés dans les routes → 404.
+- **Solution :** Ajout dans le groupe middleware `RESPONSABLE_HYGIENE,SUPER_ADMIN`.
+
+---
+
+### Session 3 — Type 'plat' et raffinages (8 juin 2026)
+
+#### 19. Nouveau type de produit : 'plat'
+
+- **Fichiers :** `ProductController.php`, `MenuController.php`, `PurchaseNeedController.php`, `Stock.php`, `products.component.ts`, `menus.component.ts`, modèles TypeScript, migration `add_plat_to_products_type_enum.php`
+- **Problème :** Le Chef de Cuisine ne pouvait créer que des produits de type 'food'. Les menus hebdomadaires nécessitent un type distinct pour les plats préparés sans stock propre.
+- **Solution :**
+  - Ajout du type `'plat'` dans les enums `products.type` et `categories.type`
+  - Tous les controllers vérifient désormais `in_array($product->type, ['food', 'plat'])` au lieu de `$product->type === 'food'`
+  - Le Chef de Cuisine peut filtrer entre 'food' et 'plat' dans la vue produits
+  - Les plats (`plat`) suivent le même flux de validation FIFO, recettes, et calcul de besoins d'achat que les produits `food`
+
+#### 20. Colonne `expiration_date` manquante sur products
+
+- **Fichiers :** Migration `add_expiration_date_to_products_table.php`, seeders
+- **Problème :** La table `products` n'avait pas de colonne `expiration_date` → erreurs SQL sur le dashboard et les updates Hygiène.
+- **Solution :** Migration ajoutant `$table->date('expiration_date')->nullable()->after('allergens')`.
+
+#### 21. Suppression de l'approbation Caissier
+
+- **Fichiers :** `caissier-approval.component.ts`
+- **Problème :** Le workflow d'approbation des caissiers (colonnes "En attente"/"Actifs"/"Inactifs") n'était plus pertinent.
+- **Solution :** Suppression de la colonne "En attente". Les caissiers sont désormais directement actifs par défaut (default status changé de `'en_attente'` à `'active'` dans la migration users).
+
+#### 22. Stock model — changement de status
+
+- **Fichier :** `Stock.php`
+- **Changement :** Les status `DISPONIBLE`/`EPUISE` remplacés par `IN_USE`/`OUT_OF_STOCK` pour refléter la disponibilité des ingrédients d'un produit FOOD/PLAT.
+
+#### 23. Vue Chef Cuisine — filtre élargi
+
+- **Fichier :** `products.component.ts` (frontend)
+- **Changement :** Le Chef de Cuisine voit maintenant un select pour filtrer entre "Tous", "Food" et "Plat" (au lieu d'un badge statique "Type: Food"). Les catégories filtrées incluent aussi `type === 'food' || type === 'plat'`.
+
+#### 24. Menus — chargement des plats
+
+- **Fichier :** `menus.component.ts` (frontend)
+- **Changement :** `loadAllProducts()` charge désormais `type: 'plat'` pour construire les menus hebdomadaires avec les plats préparés.
 
 ---
 

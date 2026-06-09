@@ -120,15 +120,30 @@ Route::middleware(['jwt.auth'])->group(function () {
 
     /*
     |----------------------------------------------------------------------
-    | Chef Magasin (exclusif : stocks)
+    | Stocks — Lecture seule (CHEF_CUISINE + CHEF_MAGASIN + SUPER_ADMIN + RESPONSABLE_FB)
     |----------------------------------------------------------------------
     */
     Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,SUPER_ADMIN,RESPONSABLE_FB')->group(function () {
         Route::apiResource('stocks', StockController::class)->only(['index', 'show']);
-        Route::post('/stocks/{stock}/movements', [StockController::class, 'addMovement']);
         Route::get('/stocks/{stock}/movements', [StockController::class, 'movements']);
-        Route::put('/stocks/{stock}/threshold', [StockController::class, 'updateThreshold']);
+    });
 
+    /*
+    |----------------------------------------------------------------------
+    | Stocks — Écriture (CHEF_MAGASIN exclusif + SUPER_ADMIN)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:CHEF_MAGASIN,SUPER_ADMIN')->group(function () {
+        Route::post('/stocks/{stock}/movements', [StockController::class, 'addMovement']);
+        Route::put('/stocks/{stock}/threshold', [StockController::class, 'updateThreshold']);
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | Commandes internes — Création (CHEF_CUISINE + CHEF_MAGASIN + RESPONSABLE_FB + SUPER_ADMIN)
+    |----------------------------------------------------------------------
+    */
+    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,RESPONSABLE_FB,SUPER_ADMIN')->group(function () {
         Route::post('/products/by-categories', [InternalOrderController::class, 'getProductsByCategories']);
         Route::post('/internal-orders', [InternalOrderController::class, 'store']);
         Route::delete('/internal-orders/{internalOrder}', [InternalOrderController::class, 'destroy']);

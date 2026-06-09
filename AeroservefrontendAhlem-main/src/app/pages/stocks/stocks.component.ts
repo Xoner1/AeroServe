@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Stock } from '../../core/models';
 import { PageLoadingComponent } from '../../shared/page-loading/page-loading.component';
 import { AppIconComponent } from '../../shared/icon/app-icon.component';
@@ -104,14 +105,18 @@ import Swal from 'sweetalert2';
                     }
                   </td>
                   <td style="text-align: right;">
-                    <div class="action-buttons">
-                      <button class="action-btn success-btn" (click)="openMovement(s, 'in')">
-                        <app-icon name="Check" [size]="12"></app-icon> Entrée
-                      </button>
-                      <button class="action-btn danger-btn" (click)="openMovement(s, 'out')">
-                        <app-icon name="X" [size]="12"></app-icon> Sortie
-                      </button>
-                    </div>
+                    @if (isChefMagasin) {
+                      <div class="action-buttons">
+                        <button class="action-btn success-btn" (click)="openMovement(s, 'in')">
+                          <app-icon name="Check" [size]="12"></app-icon> Entrée
+                        </button>
+                        <button class="action-btn danger-btn" (click)="openMovement(s, 'out')">
+                          <app-icon name="X" [size]="12"></app-icon> Sortie
+                        </button>
+                      </div>
+                    } @else {
+                      <span style="color: var(--text-muted); font-size: 12px;">Lecture seule</span>
+                    }
                   </td>
                 </tr>
               }
@@ -228,7 +233,11 @@ export class StocksComponent implements OnInit {
     critical_count: 0
   };
 
-  constructor(private api: ApiService) {}
+  get isChefMagasin(): boolean {
+    return this.auth.getUserRole() === 'CHEF_MAGASIN';
+  }
+
+  constructor(private api: ApiService, private auth: AuthService) {}
 
   ngOnInit(): void {
     this.load();

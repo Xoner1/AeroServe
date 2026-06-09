@@ -92,10 +92,9 @@ class InternalOrderController extends Controller
             'items.*.quantity_requested' => 'required|numeric|min:0.01',
         ]);
 
-        // assignation automatique
-        $assignedRole = $request->type === 'food'
-            ? 'CHEF_CUISINE'
-            : 'CHEF_MAGASIN';
+        // assignation automatique — all internal orders go to the store manager (Chef Magasin)
+        // who controls stock and fulfills requests from all roles
+        $assignedRole = 'CHEF_MAGASIN';
 
         $assignee = User::whereHas('role', function ($q) use ($assignedRole) {
             $q->where('name', $assignedRole);

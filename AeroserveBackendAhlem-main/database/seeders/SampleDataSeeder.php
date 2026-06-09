@@ -38,7 +38,7 @@ class SampleDataSeeder extends Seeder
             [
                 'first_name' => 'Fathi',
                 'last_name' => 'Ben Ali',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'phone' => '20111222',
                 'role_id' => $fbRole->id,
                 'pdv_id' => $pdv?->id,
@@ -51,7 +51,7 @@ class SampleDataSeeder extends Seeder
             [
                 'first_name' => 'Nour',
                 'last_name' => 'Chef',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'phone' => '20111333',
                 'role_id' => $chefCuisineRole->id,
                 'status' => 'active',
@@ -63,7 +63,7 @@ class SampleDataSeeder extends Seeder
             [
                 'first_name' => 'Sami',
                 'last_name' => 'Store',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'phone' => '20111444',
                 'role_id' => $chefMagasinRole->id,
                 'status' => 'active',
@@ -75,7 +75,7 @@ class SampleDataSeeder extends Seeder
             [
                 'first_name' => 'Amira',
                 'last_name' => 'Clean',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'phone' => '20111555',
                 'role_id' => $hygieneRole->id,
                 'status' => 'active',
@@ -87,7 +87,7 @@ class SampleDataSeeder extends Seeder
             [
                 'first_name' => 'Ali',
                 'last_name' => 'Cash',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'phone' => '20111666',
                 'role_id' => $caissierRole->id,
                 'pdv_id' => $pdv?->id,
@@ -100,7 +100,7 @@ class SampleDataSeeder extends Seeder
             [
                 'first_name' => 'Rim',
                 'last_name' => 'Buyer',
-                'password' => bcrypt('password'),
+                'password' => 'password',
                 'phone' => '20111777',
                 'role_id' => $achatRole->id,
                 'status' => 'active',
