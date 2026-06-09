@@ -402,42 +402,42 @@ Chaque rôle dispose d'un espace de travail optimisé.
 ```mermaid
 flowchart TD
   A[Creation Produit par Chef Cuisine] --> B{Validation initiale}
-  B --> C[Verification de la recette : ingredients + batches]
+  B --> C[Verification recette ingredients et batches]
   C --> D{Ingredients approuves et en stock ?}
-  D -->|Non| E[Rejet - Erreur 422 avec shortfalls]
+  D -->|Non| E[Rejet Erreur 422 avec shortfalls]
   D -->|Oui| F{Createur = CHEF_CUISINE ?}
-  F -->|Oui| G[Statut direct : APPROVED (auto-approbation)]
+  F -->|Oui| G[Statut direct APPROVED auto-approbation]
   F -->|Non| H[Creation du produit au statut PENDING]
   H --> I[Notification au Responsable Achat]
   I --> J[Le Responsable Achat renseigne le prix et valide]
-  J --> K[Changement de statut : APPROVED]
+  J --> K[Changement de statut APPROVED]
 ```
 
 ### 6.2 Flux de Validation du Menu Hebdomadaire
 
 ```mermaid
 flowchart TD
-  Start([Chef Cuisine : Soumission Menu BROUILLON]) --> CheckDate{Verifier si chevauchement ?}
-  CheckDate -->|Oui| ErrOverlap[Rejet : Periode occupee]
+  Start([Chef Cuisine Soumission Menu BROUILLON]) --> CheckDate{Verifier si chevauchement ?}
+  CheckDate -->|Oui| ErrOverlap[Rejet Periode occupee]
   CheckDate -->|Non| LoopIngredients[Pour chaque matiere premiere]
   
   LoopIngredients --> Multiply[Quantite requise = pivot x staff_count]
   Multiply --> CompareStock{Stock global >= Quantite requise ?}
   
-  CompareStock -->|Non| RefuseMenu[Statut = REFUSE et ecriture commentaire de rupture]
+  CompareStock -->|Non| RefuseMenu[Statut REFUSE et ecriture commentaire de rupture]
   RefuseMenu --> NotifyMagasin[Notification au Chef Magasin pour approvisionnement]
   
   CompareStock -->|Oui| CheckNext{Reste-t-il des ingredients ?}
   CheckNext -->|Oui| LoopIngredients
-  CheckNext -->|Non| ApproveMenu[Statut = VALIDE]
+  CheckNext -->|Non| ApproveMenu[Statut VALIDE]
   ApproveMenu --> DeductFIFO[Deduction immediate lot par lot via FIFO]
 ```
 
-### 6.3 Flux de Gestion des Commandes Internes (Kanban)
+### 6.3 Flux de Gestion des Commandes Internes Kanban
 
 ```mermaid
 flowchart LR
-  Draft[Creation Commande] -->|Statut EN_ATTENTE| Assigned[Assignation auto : CHEF_MAGASIN]
+  Draft[Creation Commande] -->|Statut EN_ATTENTE| Assigned[Assignation auto CHEF_MAGASIN]
   Assigned -->|Statut PREPARATION| Fulfilling[Saisie des quantites preparees]
   Fulfilling -->|Verification| CheckQty{Quantite servie == demandee ?}
   
@@ -450,12 +450,12 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Start[Demande de sortie de stock : quantite Q] --> GetLots[Recherche des lots IN avec quantite > 0]
-    GetLots --> SortLots[Tri : expiration la plus proche, puis creation]
-    SortLots --> Init[Debut boucle : Reste a deduire R = Q]
+    Start[Demande de sortie de stock quantite Q] --> GetLots[Recherche des lots IN avec quantite > 0]
+    GetLots --> SortLots[Tri expiration la plus proche puis creation]
+    SortLots --> Init[Debut boucle Reste a deduire R = Q]
     Init --> CheckR{R > 0 ?}
     
-    CheckR -->|Non| Complete[Fin de transaction - Mouvement OUT cree]
+    CheckR -->|Non| Complete[Fin de transaction Mouvement OUT cree]
     CheckR -->|Oui| GetFirst[Selectionner le lot le plus ancien]
     GetFirst --> CheckBatch{Quantite du lot >= R ?}
     
@@ -463,7 +463,7 @@ flowchart TD
     DeductPart --> SetRZero[R = 0]
     SetRZero --> CheckR
     
-    CheckBatch -->|Non| EmptyBatch[Vider le lot : quantite lot = 0]
+    CheckBatch -->|Non| EmptyBatch[Vider le lot quantite lot = 0]
     EmptyBatch --> SubstractR[R = R - quantite lot initiale]
     SubstractR --> CheckR
 ```
