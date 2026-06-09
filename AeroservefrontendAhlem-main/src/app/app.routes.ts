@@ -42,13 +42,8 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/points-de-vente/points-de-vente.component').then(m => m.PointsDeVenteComponent)
       },
 
-      /* SUPER_ADMIN + RESPONSABLE_FB */
+      /* RESPONSABLE_FB */
 
-      {
-        path: 'caissiers-approval',
-        canActivate: [roleGuard('RESPONSABLE_FB')],
-        loadComponent: () => import('./pages/caissier-approval/caissier-approval').then(m => m.CaissierApprovalComponent)
-      },
       {
         path: 'plannings',
         canActivate: [roleGuard('RESPONSABLE_FB', 'CAISSIER')],

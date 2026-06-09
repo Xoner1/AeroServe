@@ -22,19 +22,6 @@ export interface User {
   role?: Role;
   point_de_vente?: PointDeVente;
 }
-export interface Caissier {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  status?: string;
-
-  //  NEW
-  age?: number | null;
-  experience?: boolean;
-  bio?: string | null;
-}
 export interface Role {
   id: number;
   name: string;
@@ -177,28 +164,6 @@ export interface Planning {
   created_by?: number;
   caissier?: User;
   point_de_vente?: PointDeVente;
-}
-
-export interface Sale {
-  id: number;
-  caissier_id: number;
-  pdv_id: number;
-  total_amount: number;
-  payment_method: 'cash' | 'card' | 'other';
-  caissier?: User;
-  point_de_vente?: PointDeVente;
-  items?: SaleItem[];
-  created_at: string;
-}
-
-export interface SaleItem {
-  id: number;
-  sale_id: number;
-  product_id: number;
-  quantity: number;
-  unit_price: number;
-  subtotal: number;
-  product?: Product;
 }
 
 export interface Comment {

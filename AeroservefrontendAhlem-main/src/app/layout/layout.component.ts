@@ -42,7 +42,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
   navItems: NavItem[] = [
     { label: 'Tableau de bord', icon: 'LayoutDashboard', route: '/dashboard', roles: ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT', 'RESPONSABLE_HYGIENE'] },
     { label: 'Utilisateurs', icon: 'Users', route: '/users', roles: ['SUPER_ADMIN'] },
-    { label: 'Approbation Caissiers', icon: 'UserCheck', route: '/caissiers-approval', roles: ['RESPONSABLE_FB'] },
 
     { label: 'Points de vente', icon: 'Store', route: '/points-de-vente', roles: ['SUPER_ADMIN'] },
     { label: 'Produits', icon: 'Package', route: '/products', roles: ['CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
@@ -64,12 +63,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     return this.navItems.filter(item => {
       if (!item.roles) return true;
       return this.auth.hasRole(...item.roles);
-    }).map(item => {
-      if (item.route === '/caissiers-approval' && role === 'RESPONSABLE_FB') {
-        return { ...item, label: 'Gestion Caissiers' };
-      }
-      return item;
-    });
+    }).map(item => item);
   }
 
   avatarLoadFailed = false;
@@ -139,7 +133,6 @@ export class LayoutComponent implements OnInit, OnDestroy {
     const titles: Record<string, string> = {
       '/dashboard': 'Dashboard',
       '/users': 'Users',
-      '/caissiers-approval': isFb ? 'Gestion Caissiers' : 'Caissier Approval',
       '/caissier': 'Caissier',
       '/points-de-vente': 'Points of Sales',
       '/profile': 'Profile',

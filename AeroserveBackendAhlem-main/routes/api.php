@@ -65,8 +65,6 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::apiResource('points-de-vente', PointDeVenteController::class);
         Route::get('/airports', [PointDeVenteController::class, 'airports']);
 
-        Route::get('/caissiers/pending', [UserController::class, 'pendingCaissiers']);
-
         Route::get('/users/check-email', [UserController::class, 'checkEmail']);
     });
 

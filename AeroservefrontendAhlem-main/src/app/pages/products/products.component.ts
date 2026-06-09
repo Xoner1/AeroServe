@@ -67,7 +67,7 @@ import { environment } from '../../../environments/environment';
                 <th>Nom</th>
                 <th>Type</th>
                 <th>Catégorie</th>
-                <th>Validation</th>
+                @if (userRole !== 'CHEF_CUISINE') { <th>Validation</th> }
                 <th>Service</th>
                 <th style="text-align: right;">Actions</th>
               </tr>
@@ -102,15 +102,17 @@ import { environment } from '../../../environments/environment';
                     {{ p.category?.name || '-' }}
                   </td>
 
-                  <td>
-                    <span class="badge" [class.badge-success]="p.approval_status === 'approved'" [class.badge-warning]="p.approval_status === 'pending'" [class.badge-error]="p.approval_status === 'rejected'">
-                      {{ p.approval_status === 'approved'
-                        ? 'Approuvé'
-                        : p.approval_status === 'pending'
-                        ? 'En attente'
-                        : 'Rejeté' }}
-                    </span>
-                  </td>
+                  @if (userRole !== 'CHEF_CUISINE') {
+                    <td>
+                      <span class="badge" [class.badge-success]="p.approval_status === 'approved'" [class.badge-warning]="p.approval_status === 'pending'" [class.badge-error]="p.approval_status === 'rejected'">
+                        {{ p.approval_status === 'approved'
+                          ? 'Approuvé'
+                          : p.approval_status === 'pending'
+                          ? 'En attente'
+                          : 'Rejeté' }}
+                      </span>
+                    </td>
+                  }
 
                   <td>
                     @if (p.approval_status === 'approved') {
@@ -913,9 +915,8 @@ export class ProductsComponent implements OnInit {
   load(): void {
     this.loading = true;
     const params: any = { no_paginate: true };
-    if (this.isChefCuisine) {
-      params.all_types = true;
-    }
+    // CHEF_CUISINE gets food/plat only from backend by default
+    // all_types=true only when recipe builder needs it (handled elsewhere)
     this.api.get<any>('products', params).subscribe({
       next: res => {
         this.products = res.data || res;
