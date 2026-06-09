@@ -34,6 +34,11 @@ class ProductController extends Controller
             }
         }
 
+        // Responsable Achat: only COMMERCIAL and MATIERE_PREMIERE
+        if ($role === 'RESPONSABLE_ACHAT') {
+            $query->whereIn('type', ['commercial', 'matiere_premiere']);
+        }
+
         // Responsable Hygiene: only approved FOOD products (chef-made items, not commercial goods)
         if ($role === 'RESPONSABLE_HYGIENE') {
             $query->where('type', 'food')

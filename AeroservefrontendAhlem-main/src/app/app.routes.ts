@@ -67,7 +67,7 @@ export const routes: Routes = [
       /* Internal orders: SUPER_ADMIN + RESPONSABLE_FB + CHEF_CUISINE + CHEF_MAGASIN + RESPONSABLE_ACHAT */
       {
         path: 'internal-orders',
-        canActivate: [roleGuard('RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT')],
+        canActivate: [roleGuard('RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN')],
         loadComponent: () => import('./pages/internal-orders/internal-orders.component').then(m => m.InternalOrdersComponent)
       },
 

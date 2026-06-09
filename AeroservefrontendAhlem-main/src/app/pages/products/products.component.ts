@@ -23,7 +23,7 @@ import { environment } from '../../../environments/environment';
           <h2>{{ validationMode ? 'Validation des Produits' : 'Catalogue Produits' }}</h2>
 
           <div class="header-actions">
-            @if (userRole !== 'CHEF_CUISINE' && userRole !== 'CHEF_MAGASIN') {
+            @if (userRole !== 'CHEF_CUISINE' && userRole !== 'CHEF_MAGASIN' && userRole !== 'RESPONSABLE_ACHAT') {
               <select [(ngModel)]="filterType" (ngModelChange)="applyFilter()" class="filter-select">
                 <option value="">Tous les types</option>
                 <option value="commercial">Commercial</option>
@@ -39,6 +39,8 @@ import { environment } from '../../../environments/environment';
               </select>
             } @else if (userRole === 'CHEF_MAGASIN') {
               <span class="filter-badge">Type: Réserve</span>
+            } @else if (userRole === 'RESPONSABLE_ACHAT') {
+              <span class="filter-badge">Type: Commercial + Matière première</span>
             }
 
             @if (userRole === 'RESPONSABLE_ACHAT' && !validationMode) {

@@ -156,7 +156,9 @@ Route::middleware(['jwt.auth'])->group(function () {
     Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,RESPONSABLE_ACHAT,SUPER_ADMIN')->group(function () {
         Route::apiResource('products', ProductController::class);
         Route::put('/products/{product}/toggle-active', [ProductController::class, 'toggleActive']);
+    });
 
+    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,SUPER_ADMIN')->group(function () {
         Route::put('/internal-orders/{internalOrder}/status', [InternalOrderController::class, 'updateStatus']);
         Route::put('/internal-orders/{internalOrder}/items/{item}/fulfill', [InternalOrderController::class, 'fulfillItem']);
     });
@@ -207,9 +209,12 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::get('/products', [ProductController::class, 'index']);
         Route::get('/products/{product}', [ProductController::class, 'show']);
         Route::get('/categories', [ProductController::class, 'categories']);
-        Route::get('/internal-orders', [InternalOrderController::class, 'index']);
-        Route::get('/internal-orders/{internalOrder}', [InternalOrderController::class, 'show']);
         Route::get('/stocks/alerts/low', [StockController::class, 'lowStockAlerts']);
         Route::get('/stocks/alerts/expired', [StockController::class, 'expiredProducts']);
+    });
+
+    Route::middleware('role:CHEF_CUISINE,CHEF_MAGASIN,RESPONSABLE_FB,SUPER_ADMIN')->group(function () {
+        Route::get('/internal-orders', [InternalOrderController::class, 'index']);
+        Route::get('/internal-orders/{internalOrder}', [InternalOrderController::class, 'show']);
     });
 });

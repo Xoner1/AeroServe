@@ -47,7 +47,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     { label: 'Produits', icon: 'Package', route: '/products', roles: ['CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
     { label: 'Validation Produits', icon: 'CheckCircle', route: '/products-validation', roles: ['RESPONSABLE_ACHAT'] },
     { label: 'Stocks', icon: 'Warehouse', route: '/stocks', roles: ['CHEF_MAGASIN', 'CHEF_CUISINE'] },
-    { label: 'Commandes Internes', icon: 'ShoppingCart', route: '/internal-orders', roles: ['RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'] },
+    { label: 'Commandes Internes', icon: 'ShoppingCart', route: '/internal-orders', roles: ['RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN'] },
     { label: 'Menus Hebdomadaires', icon: 'UtensilsCrossed', route: '/menus', roles: ['CHEF_CUISINE'] },
     { label: 'Besoins d\'Achat', icon: 'Receipt', route: '/purchase-needs', roles: ['CHEF_CUISINE'] },
     { label: 'Plannings & Horaires', icon: 'Calendar', route: '/plannings', roles: ['RESPONSABLE_FB', 'CAISSIER'] },
