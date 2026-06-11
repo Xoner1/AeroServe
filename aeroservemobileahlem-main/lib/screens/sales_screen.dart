@@ -56,13 +56,7 @@ class _SalesScreenState extends State<SalesScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Ventes',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Ventes'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
@@ -74,61 +68,58 @@ class _SalesScreenState extends State<SalesScreen> {
                 )
               : RefreshIndicator(
                   onRefresh: _load,
-                  color: AppTheme.primary,
+                  color: AppTheme.accent,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(AppTheme.spacingM),
                     itemCount: _sales.length,
                     itemBuilder: (ctx, i) => _buildSaleCard(_sales[i]),
                   ),
                 ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _showCreateDialog(),
-        backgroundColor: AppTheme.primary,
+        backgroundColor: AppTheme.accent,
         foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_shopping_cart, size: 20),
-        label: Text('Nouvelle vente', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
+        child: const Icon(AppIcons.add, size: 22),
       ),
     );
   }
 
   Widget _buildSaleCard(Sale sale) {
     return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        side: BorderSide(color: AppTheme.divider),
-      ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
         childrenPadding: const EdgeInsets.fromLTRB(AppTheme.spacingM, 0, AppTheme.spacingM, AppTheme.spacingM),
         leading: CircleAvatar(
-          backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
-          child: const Icon(AppIcons.sales, color: AppTheme.primary, size: 20),
+          backgroundColor: AppTheme.accent.withValues(alpha: 0.08),
+          child: const Icon(AppIcons.sales, color: AppTheme.accent, size: 18),
         ),
         title: Text(
           'Vente #${sale.id}',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary, fontSize: 13.5),
         ),
         subtitle: Text(
           '${sale.totalAmount.toStringAsFixed(0)} DA · ${DateFormat('dd/MM HH:mm').format(sale.saleDate)}',
-          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12.5),
+          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11.5),
         ),
         trailing: StatusBadge(status: sale.status),
         children: sale.items?.map((item) => ListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
           title: Text(
-            'Produit #${item.productId}',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13),
+            item.productName ?? 'Produit #${item.productId}',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 12.5),
           ),
           subtitle: Text(
             '${item.quantity} x ${item.unitPrice.toStringAsFixed(0)} DA',
-            style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12),
+            style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11),
           ),
           trailing: Text(
             '${(item.quantity * item.unitPrice).toStringAsFixed(0)} DA',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.primary, fontSize: 13),
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.accent, fontSize: 12),
           ),
         )).toList() ?? [],
       ),
@@ -142,7 +133,7 @@ class _SalesScreenState extends State<SalesScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
       ),
@@ -164,7 +155,7 @@ class _SalesScreenState extends State<SalesScreen> {
                   children: [
                     Text(
                       'Nouvelle vente',
-                      style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                      style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
                     IconButton(
                       icon: const Icon(AppIcons.cancel, color: AppTheme.textSecondary),
@@ -180,14 +171,17 @@ class _SalesScreenState extends State<SalesScreen> {
                     DropdownMenuItem(value: 'card', child: Text('Carte')),
                   ],
                   onChanged: (v) => setModalState(() => paymentMethod = v!),
-                  decoration: const InputDecoration(labelText: 'Mode de paiement'),
+                  decoration: const InputDecoration(
+                    labelText: 'Mode de paiement',
+                    contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
+                  ),
                 ),
                 const SizedBox(height: AppTheme.spacingM),
                 Text(
                   'Articles',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
                 ),
-                const SizedBox(height: AppTheme.spacingXS),
+                const SizedBox(height: AppTheme.spacingXXS),
                 ConstrainedBox(
                   constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.4),
                   child: ListView.builder(
@@ -200,22 +194,22 @@ class _SalesScreenState extends State<SalesScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Product search/picker
                             TextFormField(
                               controller: row.productCtrl,
-                              style: GoogleFonts.inter(fontSize: 14.5),
+                              style: GoogleFonts.inter(fontSize: 13.5),
                               decoration: InputDecoration(
                                 labelText: 'Rechercher un produit...',
                                 isDense: true,
-                                suffixIcon: const Icon(Icons.search, size: 20),
+                                suffixIcon: const Icon(Icons.search, size: 18),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
                               ),
                               onTap: () => _showProductPicker(ctx, setModalState, row, itemRows),
                               readOnly: true,
                             ),
-                      if (row.selectedProductName != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          '${row.selectedProductName!} — ${row.selectedProductPrice?.toStringAsFixed(0) ?? '?'} DA',
+                            if (row.selectedProductName != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                '${row.selectedProductName!} — ${row.selectedProductPrice?.toStringAsFixed(0) ?? '?'} DA',
                                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.accent, fontWeight: FontWeight.w500),
                               ),
                             ],
@@ -225,8 +219,12 @@ class _SalesScreenState extends State<SalesScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: row.qtyCtrl,
-                                    style: GoogleFonts.inter(fontSize: 14.5),
-                                    decoration: const InputDecoration(labelText: 'Qté', isDense: true),
+                                    style: GoogleFonts.inter(fontSize: 13.5),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Qté',
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
+                                    ),
                                     keyboardType: TextInputType.number,
                                   ),
                                 ),
@@ -234,15 +232,19 @@ class _SalesScreenState extends State<SalesScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: row.priceCtrl,
-                                    style: GoogleFonts.inter(fontSize: 14.5),
-                                    decoration: const InputDecoration(labelText: 'Prix (DA)', isDense: true),
+                                    style: GoogleFonts.inter(fontSize: 13.5),
+                                    decoration: const InputDecoration(
+                                      labelText: 'Prix (DA)',
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
+                                    ),
                                     keyboardType: TextInputType.number,
                                   ),
                                 ),
                                 if (itemRows.length > 1) ...[
                                   const SizedBox(width: AppTheme.spacingXS),
                                   IconButton(
-                                    icon: const Icon(AppIcons.delete, color: AppTheme.error, size: 20),
+                                    icon: const Icon(AppIcons.delete, color: AppTheme.error, size: 18),
                                     onPressed: () => setModalState(() => itemRows.removeAt(idx)),
                                   ),
                                 ],
@@ -256,24 +258,24 @@ class _SalesScreenState extends State<SalesScreen> {
                 ),
                 TextButton.icon(
                   onPressed: () => setModalState(() => itemRows.add(_ItemRow())),
-                  icon: const Icon(AppIcons.add, size: 18),
+                  icon: const Icon(AppIcons.add, size: 16),
                   label: const Text('Ajouter article'),
-                  style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                  style: TextButton.styleFrom(foregroundColor: AppTheme.accent),
                 ),
                 const SizedBox(height: AppTheme.spacingM),
                 SizedBox(
                   width: double.infinity,
-                  height: 48,
+                  height: 38,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
+                      backgroundColor: AppTheme.accent,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
                     ),
                     onPressed: () => _submitSale(paymentMethod, itemRows, ctx),
                     child: Text(
                       'Enregistrer la vente',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
                     ),
                   ),
                 ),
@@ -290,7 +292,7 @@ class _SalesScreenState extends State<SalesScreen> {
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
       ),
@@ -310,12 +312,13 @@ class _SalesScreenState extends State<SalesScreen> {
                   padding: const EdgeInsets.all(AppTheme.spacingM),
                   child: TextField(
                     autofocus: true,
-                    style: GoogleFonts.inter(fontSize: 15),
+                    style: GoogleFonts.inter(fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Rechercher...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                      prefixIcon: const Icon(Icons.search, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
                       isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
                     ),
                     onChanged: (v) => setPickerState(() => searchQuery = v),
                   ),
@@ -328,16 +331,16 @@ class _SalesScreenState extends State<SalesScreen> {
                       final p = filtered[i];
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                          backgroundColor: AppTheme.accent.withValues(alpha: 0.1),
                           child: Text(
                             p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
-                            style: GoogleFonts.inter(color: AppTheme.primary, fontWeight: FontWeight.w600),
+                            style: GoogleFonts.inter(color: AppTheme.accent, fontWeight: FontWeight.w600),
                           ),
                         ),
-                        title: Text(p.name, style: GoogleFonts.inter(fontWeight: FontWeight.w500)),
+                        title: Text(p.name, style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13)),
                         subtitle: Text(
                           '${p.type} · ${p.price?.toStringAsFixed(0) ?? '?'} DA',
-                          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12),
+                          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11),
                         ),
                         onTap: () {
                           Navigator.pop(pickerCtx);

@@ -31,22 +31,22 @@ class _LoginScreenState extends State<LoginScreen> {
     await ApiService.init();
     final controller = TextEditingController(text: ApiService.baseUrl);
     if (!mounted) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.primary,
+        backgroundColor: AppTheme.card,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          side: const BorderSide(color: AppTheme.primaryLight, width: 1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusL),
+          side: const BorderSide(color: AppTheme.divider, width: 1),
         ),
         title: Text(
-          'Configuration Serveur', 
+          'Configuration Serveur',
           style: GoogleFonts.inter(
-            color: Colors.white,
+            color: AppTheme.textPrimary,
             fontWeight: FontWeight.w600,
-            fontSize: 18.0,
-          )
+            fontSize: 16.0,
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -54,25 +54,25 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text(
               'Saisissez l\'adresse IP locale ou l\'URL de votre serveur Laravel (ex: http://192.168.1.50:8000).',
-              style: GoogleFonts.inter(fontSize: 13.0, color: Colors.white.withValues(alpha: 0.7)),
+              style: GoogleFonts.inter(fontSize: 12.0, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: AppTheme.spacingM),
             TextField(
               controller: controller,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 14.0),
+              style: GoogleFonts.inter(color: AppTheme.textPrimary, fontSize: 13.0),
               decoration: InputDecoration(
                 labelText: 'URL de l\'API',
-                labelStyle: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.7)),
+                labelStyle: GoogleFonts.inter(color: AppTheme.textSecondary),
                 hintText: 'http://192.168.1.50:8000',
-                hintStyle: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.3)),
+                hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.5)),
                 filled: true,
-                fillColor: AppTheme.primaryLight.withValues(alpha: 0.5),
+                fillColor: AppTheme.surface,
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                  borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  borderSide: const BorderSide(color: AppTheme.divider, width: 1),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
                   borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
                 ),
               ),
@@ -81,10 +81,19 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         actions: [
           TextButton(
+            onPressed: () {
+              controller.text = 'http://192.168.0.53:8000/api';
+            },
+            child: Text(
+              'Par défaut',
+              style: GoogleFonts.inter(color: AppTheme.accent, fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Annuler',
-              style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w600),
+              style: GoogleFonts.inter(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
             ),
           ),
           ElevatedButton(
@@ -109,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.accent,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXS),
             ),
             child: const Text('Enregistrer'),
@@ -141,30 +150,138 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _showForgotPasswordDialog() async {
+    final emailController = TextEditingController(text: _emailController.text);
+    bool dialogLoading = false;
+    String? dialogError;
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.card,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                side: const BorderSide(color: AppTheme.divider, width: 1),
+              ),
+              title: Text(
+                'Mot de passe oublié',
+                style: GoogleFonts.inter(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16.0,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Saisissez votre adresse email pour recevoir un lien de réinitialisation.',
+                    style: GoogleFonts.inter(fontSize: 12.0, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(height: AppTheme.spacingM),
+                  TextField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: GoogleFonts.inter(color: AppTheme.textPrimary, fontSize: 13.0),
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: GoogleFonts.inter(color: AppTheme.textSecondary),
+                      hintText: 'admin@aeroserve.com',
+                      hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.5)),
+                      filled: true,
+                      fillColor: AppTheme.surface,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        borderSide: const BorderSide(color: AppTheme.divider, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
+                      ),
+                    ),
+                  ),
+                  if (dialogError != null) ...[
+                    const SizedBox(height: AppTheme.spacingS),
+                    Text(
+                      dialogError!,
+                      style: GoogleFonts.inter(color: AppTheme.error, fontSize: 12.0, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: dialogLoading ? null : () => Navigator.pop(context),
+                  child: Text(
+                    'Annuler',
+                    style: GoogleFonts.inter(color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: dialogLoading
+                      ? null
+                      : () async {
+                          final email = emailController.text.trim();
+                          if (email.isEmpty) {
+                            setDialogState(() => dialogError = 'Veuillez saisir votre email.');
+                            return;
+                          }
+                          setDialogState(() {
+                            dialogLoading = true;
+                            dialogError = null;
+                          });
+                          try {
+                            await ApiService.post('forgot-password', {'email': email});
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: AppTheme.success,
+                                  content: Text(
+                                    'Lien de réinitialisation envoyé par email.',
+                                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() {
+                              dialogLoading = false;
+                              dialogError = e.toString();
+                            });
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXS),
+                  ),
+                  child: dialogLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Text('Envoyer'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(AppIcons.settings, color: Colors.white, size: 24),
-            tooltip: 'Configuration Serveur',
-            onPressed: _showServerConfigDialog,
-          ),
-          const SizedBox(width: AppTheme.spacingS),
-        ],
-      ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppTheme.primary, AppTheme.primaryLight],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
+        color: AppTheme.surface,
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppTheme.spacingL),
@@ -172,27 +289,37 @@ class _LoginScreenState extends State<LoginScreen> {
               constraints: const BoxConstraints(maxWidth: 400),
               padding: const EdgeInsets.all(AppTheme.spacingXL),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.card,
                 borderRadius: BorderRadius.circular(AppTheme.radiusL),
+                border: Border.all(color: AppTheme.divider, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.25),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset('assets/logo.png', width: 72, height: 72),
-                  const SizedBox(height: AppTheme.spacingM),
+                  // Settings icon at top-right of card
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: const Icon(AppIcons.settings, color: AppTheme.textSecondary, size: 20),
+                      tooltip: 'Configuration Serveur',
+                      onPressed: _showServerConfigDialog,
+                    ),
+                  ),
+                  Image.asset('assets/logo.png', width: 56, height: 56),
+                  const SizedBox(height: AppTheme.spacingS),
                   Text(
                     'AeroServe',
                     style: GoogleFonts.inter(
-                      fontSize: 28,
+                      fontSize: 24,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.primary,
+                      color: AppTheme.textPrimary,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -200,38 +327,58 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Gestion de restauration aéroportuaire',
                     style: GoogleFonts.inter(
-                      fontSize: 13,
+                      fontSize: 12,
                       color: AppTheme.textSecondary,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w400,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppTheme.spacingXL),
+                  const SizedBox(height: AppTheme.spacingL),
                   _buildField('Email', _emailController, false, TextInputType.emailAddress),
                   const SizedBox(height: AppTheme.spacingM),
                   _buildPasswordField(),
+                  const SizedBox(height: AppTheme.spacingS),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _showForgotPasswordDialog,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Mot de passe oublié ?',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.accent,
+                        ),
+                      ),
+                    ),
+                  ),
                   if (_error != null) ...[
                     const SizedBox(height: AppTheme.spacingM),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(AppTheme.spacingS),
                       decoration: BoxDecoration(
-                        color: AppTheme.error.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(AppTheme.radiusS),
-                        border: Border.all(color: AppTheme.error.withValues(alpha: 0.2), width: 1.0),
+                        color: AppTheme.error.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                        border: Border.all(color: AppTheme.error.withValues(alpha: 0.15), width: 1.0),
                       ),
                       child: Row(
                         children: [
-                          const Icon(AppIcons.error, color: AppTheme.error, size: 18),
+                          const Icon(AppIcons.error, color: AppTheme.error, size: 16),
                           const SizedBox(width: AppTheme.spacingXS),
                           Expanded(
                             child: Text(
-                              _error!, 
+                              _error!,
                               style: GoogleFonts.inter(
-                                color: AppTheme.error, 
-                                fontSize: 13, 
+                                color: AppTheme.error,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                              )
+                              ),
                             ),
                           ),
                         ],
@@ -241,27 +388,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: AppTheme.spacingXL),
                   SizedBox(
                     width: double.infinity,
-                    height: 50,
+                    height: 42,
                     child: ElevatedButton(
                       onPressed: _loading ? null : _login,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.accent,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
                         elevation: 0,
                       ),
                       child: _loading
                           ? const SizedBox(
-                              width: 20, 
-                              height: 20, 
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                           : Text(
-                              'Se connecter', 
+                              'Se connecter',
                               style: GoogleFonts.inter(
-                                fontSize: 15, 
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: -0.1,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                     ),
@@ -280,37 +426,37 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          label, 
+          label,
           style: GoogleFonts.inter(
-            fontSize: 13, 
-            fontWeight: FontWeight.w600, 
-            color: AppTheme.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textSecondary,
           ),
         ),
-        const SizedBox(height: AppTheme.spacingXS),
+        const SizedBox(height: AppTheme.spacingXXS),
         TextField(
           controller: controller,
           obscureText: obscure,
           keyboardType: type,
-          style: GoogleFonts.inter(fontSize: 14.5, color: AppTheme.textPrimary),
+          style: GoogleFonts.inter(fontSize: 13.5, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             hintText: label == 'Email' ? 'admin@aeroserve.com' : '••••••••',
-            hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.6)),
+            hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.5)),
             filled: true,
             fillColor: AppTheme.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingM),
+            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
           ),
         ),
       ],
@@ -322,41 +468,41 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Mot de passe', 
+          'Mot de passe',
           style: GoogleFonts.inter(
-            fontSize: 13, 
-            fontWeight: FontWeight.w600, 
-            color: AppTheme.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textSecondary,
           ),
         ),
-        const SizedBox(height: AppTheme.spacingXS),
+        const SizedBox(height: AppTheme.spacingXXS),
         TextField(
           controller: _passwordController,
           obscureText: _obscure,
-          style: GoogleFonts.inter(fontSize: 14.5, color: AppTheme.textPrimary),
+          style: GoogleFonts.inter(fontSize: 13.5, color: AppTheme.textPrimary),
           decoration: InputDecoration(
             hintText: '••••••••',
-            hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.6)),
+            hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.5)),
             filled: true,
             fillColor: AppTheme.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               borderSide: const BorderSide(color: AppTheme.divider, width: 1),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusS),
+              borderRadius: BorderRadius.circular(AppTheme.radiusM),
               borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingM),
+            contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscure ? Icons.visibility_off : Icons.visibility, 
+                _obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                 color: AppTheme.textSecondary,
-                size: 20,
+                size: 18,
               ),
               onPressed: () => setState(() => _obscure = !_obscure),
             ),

@@ -55,24 +55,18 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Alertes Stock',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Alertes Stock'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
           : RefreshIndicator(
               onRefresh: _load,
-              color: AppTheme.primary,
+              color: AppTheme.accent,
               child: ListView(
                 padding: const EdgeInsets.all(AppTheme.spacingM),
                 children: [
                   _sectionTitle('Stock Critique', Icons.warning_amber, AppTheme.error),
-                  const SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingXS),
                   if (_lowStock.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingL),
@@ -86,7 +80,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
                     ..._lowStock.map(_buildLowStockCard),
                   const SizedBox(height: AppTheme.spacingL),
                   _sectionTitle('Produits Expirés', Icons.event_busy, AppTheme.warning),
-                  const SizedBox(height: AppTheme.spacingS),
+                  const SizedBox(height: AppTheme.spacingXS),
                   if (_expired.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingL),
@@ -107,11 +101,11 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
   Widget _sectionTitle(String title, IconData icon, Color color) {
     return Row(
       children: [
-        Icon(icon, color: color, size: 20),
+        Icon(icon, color: color, size: 18),
         const SizedBox(width: AppTheme.spacingS),
         Text(
           title,
-          style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
         ),
       ],
     );
@@ -121,7 +115,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     final productName = item['product']?['name'] ?? 'Produit #${item['product_id']}';
     final qty = item['quantity'] ?? 0;
     return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
@@ -131,12 +125,12 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
         leading: CircleAvatar(
           backgroundColor: AppTheme.error.withValues(alpha: 0.1),
-          child: const Icon(Icons.warning_amber, color: AppTheme.error, size: 18),
+          child: const Icon(Icons.warning_amber, color: AppTheme.error, size: 16),
         ),
-        title: Text(productName, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13.5)),
+        title: Text(productName, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
         trailing: Text(
           '$qty unités',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppTheme.error, fontSize: 13),
+          style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppTheme.error, fontSize: 12),
         ),
       ),
     );
@@ -146,7 +140,7 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
     final name = product['name'] ?? 'Produit';
     final expDate = product['expiration_date'] ?? '';
     return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
@@ -156,12 +150,12 @@ class _StockAlertsScreenState extends State<StockAlertsScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
         leading: CircleAvatar(
           backgroundColor: AppTheme.warning.withValues(alpha: 0.1),
-          child: const Icon(Icons.event_busy, color: AppTheme.warning, size: 18),
+          child: const Icon(Icons.event_busy, color: AppTheme.warning, size: 16),
         ),
-        title: Text(name, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13.5)),
+        title: Text(name, style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13)),
         subtitle: Text(
           'Expiré le $expDate',
-          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11.5),
+          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11),
         ),
       ),
     );

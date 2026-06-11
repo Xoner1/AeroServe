@@ -5,13 +5,13 @@ import '../core/app_icons.dart';
 import '../services/api_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
-  final int productId;
-  final String productName;
+  final int? productId;
+  final String? productName;
 
   const ChatbotScreen({
     super.key,
-    required this.productId,
-    required this.productName,
+    this.productId,
+    this.productName,
   });
 
   @override
@@ -27,9 +27,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   void initState() {
     super.initState();
+    final String initialText = widget.productName != null
+        ? 'Bonjour ! Je suis l\'assistant nutritionnel intelligent d\'AeroServe. Posez-moi toutes vos questions sur la composition, les ingrédients et les allergènes pour le produit "${widget.productName}".'
+        : 'Bonjour ! Je suis l\'assistant nutritionnel intelligent d\'AeroServe. Veuillez scanner le code QR d\'un produit ou le sélectionner depuis sa fiche pour poser vos questions (ex: intolérance au gluten, lactose, arachides, diabète, etc.).';
     _messages.add({
       'sender': 'bot',
-      'text': 'Bonjour ! Je suis l\'assistant nutritionnel intelligent d\'AeroServe. Posez-moi toutes vos questions sur la composition, les ingrédients et les allergènes pour le produit "${widget.productName}".'
+      'text': initialText,
     });
   }
 
@@ -69,7 +72,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     try {
       final res = await ApiService.askChatbot(widget.productId, messageText);
       final aiResponse = res['response'] ?? 'Désolé, je n\'ai pas pu obtenir de réponse.';
-      
+
       setState(() {
         _messages.add({'sender': 'bot', 'text': aiResponse});
         _loading = false;
@@ -93,31 +96,20 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.primary,
+      backgroundColor: AppTheme.surface,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Assistant IA AeroServe',
-              style: GoogleFonts.inter(fontSize: 15.5, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 2.0),
-            Text(
-              widget.productName,
-              style: GoogleFonts.inter(fontSize: 11.5, color: Colors.white70, fontWeight: FontWeight.w500),
-            ),
+            const Text('Assistant IA'),
+            if (widget.productName != null) ...[
+              const SizedBox(height: 2.0),
+              Text(
+                widget.productName!,
+                style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w400),
+              ),
+            ],
           ],
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(
-            color: AppTheme.primaryLight.withValues(alpha: 0.5),
-            height: 1.0,
-          ),
         ),
       ),
       body: Column(
@@ -134,7 +126,6 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               },
             ),
           ),
-          
           if (_loading)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXS),
@@ -143,8 +134,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryLight,
+                      color: AppTheme.card,
                       borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                      border: Border.all(color: AppTheme.divider, width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -152,15 +144,12 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                         const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppTheme.accent,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent),
                         ),
                         const SizedBox(width: 10),
                         Text(
                           'Analyse en cours...',
-                          style: GoogleFonts.inter(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -168,56 +157,51 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                 ],
               ),
             ),
-
-          // QUICK SUGGESTION CHIPS (NO EMOJIS, ELEGANT ICONS MAPPING)
-          Container(
-            height: 48,
-            color: AppTheme.primaryLight,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingS, vertical: AppTheme.spacingXS),
-              children: [
-                _buildChip('Allergènes', AppIcons.allergens, () => _askQuickQuestion('Quels sont les allergènes présents ?')),
-                _buildChip('Ingrédients', AppIcons.ingredients, () => _askQuickQuestion('Quels sont les ingrédients ?')),
-                _buildChip('Sans Gluten', Icons.spa_rounded, () => _askQuickQuestion('Est-ce sans gluten ?')),
-                _buildChip('Présentation', AppIcons.info, () => _askQuickQuestion('Pouvez-vous me présenter ce produit ?')),
-              ],
+          if (widget.productId != null)
+            Container(
+              height: 44,
+              color: AppTheme.card,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingS, vertical: AppTheme.spacingXS),
+                children: [
+                  _buildChip('Allergènes', AppIcons.allergens, () => _askQuickQuestion('Quels sont les allergènes présents ?')),
+                  _buildChip('Ingrédients', AppIcons.ingredients, () => _askQuickQuestion('Quels sont les ingrédients ?')),
+                  _buildChip('Sans Gluten', Icons.spa_rounded, () => _askQuickQuestion('Est-ce sans gluten ?')),
+                  _buildChip('Présentation', AppIcons.info, () => _askQuickQuestion('Pouvez-vous me présenter ce produit ?')),
+                ],
+              ),
             ),
-          ),
-
-          // TEXT INPUT PANEL
           SafeArea(
             child: Container(
               padding: const EdgeInsets.all(AppTheme.spacingS),
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryLight,
-                border: Border(
-                  top: BorderSide(color: AppTheme.primary, width: 0.5),
-                ),
+              decoration: BoxDecoration(
+                color: AppTheme.card,
+                border: Border(top: BorderSide(color: AppTheme.divider, width: 1)),
               ),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      style: GoogleFonts.inter(color: AppTheme.textPrimary, fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Posez une question sur le produit...',
-                        hintStyle: GoogleFonts.inter(color: Colors.white38, fontSize: 14),
+                        hintText: 'Posez une question...',
+                        hintStyle: GoogleFonts.inter(color: AppTheme.textSecondary.withValues(alpha: 0.5), fontSize: 13),
                         filled: true,
-                        fillColor: AppTheme.primary,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: 10),
+                        fillColor: AppTheme.surface,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: 8),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusXL),
-                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                          borderSide: const BorderSide(color: AppTheme.divider, width: 1),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusXL),
-                          borderSide: BorderSide.none,
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                          borderSide: const BorderSide(color: AppTheme.divider, width: 1),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusXL),
-                          borderSide: const BorderSide(color: AppTheme.accent, width: 1.0),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                          borderSide: const BorderSide(color: AppTheme.accent, width: 1.5),
                         ),
                       ),
                       onSubmitted: (_) => _sendMessage(),
@@ -229,15 +213,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     onTap: _loading ? null : () => _sendMessage(),
                     child: Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: const BoxDecoration(
-                        color: AppTheme.accent,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      decoration: const BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
+                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
                     ),
                   ),
                 ],
@@ -253,32 +230,24 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     return Align(
       alignment: isSelf ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+        margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
         padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
         decoration: BoxDecoration(
-          color: isSelf ? AppTheme.accent : AppTheme.primaryLight,
+          color: isSelf ? AppTheme.accent : AppTheme.card,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(AppTheme.radiusM),
             topRight: const Radius.circular(AppTheme.radiusM),
             bottomLeft: isSelf ? const Radius.circular(AppTheme.radiusM) : Radius.zero,
             bottomRight: isSelf ? Radius.zero : const Radius.circular(AppTheme.radiusM),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: isSelf ? null : Border.all(color: AppTheme.divider, width: 1),
         ),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         child: Text(
           text,
           style: GoogleFonts.inter(
-            color: Colors.white,
-            fontSize: 13.5,
+            color: isSelf ? Colors.white : AppTheme.textPrimary,
+            fontSize: 13,
             height: 1.45,
             fontWeight: isSelf ? FontWeight.w500 : FontWeight.w400,
           ),
@@ -293,17 +262,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
       child: ActionChip(
         avatar: Icon(icon, size: 14, color: AppTheme.accent),
         label: Text(label),
-        labelStyle: GoogleFonts.inter(
-          color: Colors.white.withValues(alpha: 0.9),
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-        backgroundColor: AppTheme.primary,
+        labelStyle: GoogleFonts.inter(color: AppTheme.accent, fontSize: 11, fontWeight: FontWeight.w600),
+        backgroundColor: AppTheme.accent.withValues(alpha: 0.06),
         onPressed: _loading ? null : onTap,
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-          side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.5), width: 0.8),
+          side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.2), width: 0.8),
         ),
       ),
     );

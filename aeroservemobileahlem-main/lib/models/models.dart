@@ -1,3 +1,5 @@
+import '../services/api_service.dart';
+
 class User {
   final int id;
   final String firstName;
@@ -6,8 +8,22 @@ class User {
   final int? roleId;
   final String? roleName;
   final String? avatarUrl;
+  final String? phone;
+  final String? status;
+  final String? pdvName;
 
-  User({required this.id, required this.firstName, required this.lastName, required this.email, this.roleId, this.roleName, this.avatarUrl});
+  User({
+    required this.id,
+    required this.firstName,
+    required this.lastName,
+    required this.email,
+    this.roleId,
+    this.roleName,
+    this.avatarUrl,
+    this.phone,
+    this.status,
+    this.pdvName,
+  });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
         id: json['id'],
@@ -19,9 +35,21 @@ class User {
         avatarUrl: json['avatar'] != null
             ? (json['avatar'].toString().startsWith('http')
                 ? json['avatar']
-                : '${json['avatar']}')
+                : _formatAvatarUrl(json['avatar'].toString()))
             : null,
+        phone: json['phone'],
+        status: json['status'],
+        pdvName: json['point_de_vente'] is Map ? json['point_de_vente']['name'] : null,
       );
+
+  static String _formatAvatarUrl(String path) {
+    final cleanBase = ApiService.baseUrl.replaceAll('/api', '');
+    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    if (cleanPath.startsWith('storage/')) {
+      return '$cleanBase/$cleanPath';
+    }
+    return '$cleanBase/storage/$cleanPath';
+  }
 
   String get fullName => '$firstName $lastName';
   String get initials => '${firstName.isNotEmpty ? firstName[0] : ''}${lastName.isNotEmpty ? lastName[0] : ''}'.toUpperCase();
@@ -34,17 +62,41 @@ class Product {
   final double? price;
   final String? description;
   final String? approvalStatus;
+  final List<String>? allergens;
+  final String? expirationDate;
 
-  Product({required this.id, required this.name, required this.type, this.price, this.description, this.approvalStatus});
+  Product({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.price,
+    this.description,
+    this.approvalStatus,
+    this.allergens,
+    this.expirationDate,
+  });
 
-  factory Product.fromJson(Map<String, dynamic> json) => Product(
-        id: json['id'],
-        name: json['name'] ?? '',
-        type: json['type'] ?? '',
-        price: json['price'] != null ? (json['price'] as num).toDouble() : null,
-        description: json['description'],
-        approvalStatus: json['approval_status'],
-      );
+  factory Product.fromJson(Map<String, dynamic> json) {
+    List<String>? parsedAllergens;
+    if (json['allergens'] != null) {
+      if (json['allergens'] is List) {
+        parsedAllergens = (json['allergens'] as List).map((e) => e.toString()).toList();
+      } else if (json['allergens'] is String) {
+        // Handle potential string representation of list or single allergen
+        parsedAllergens = [json['allergens'].toString()];
+      }
+    }
+    return Product(
+      id: json['id'],
+      name: json['name'] ?? '',
+      type: json['type'] ?? '',
+      price: json['price'] != null ? (json['price'] as num).toDouble() : null,
+      description: json['description'],
+      approvalStatus: json['approval_status'],
+      allergens: parsedAllergens,
+      expirationDate: json['expiration_date'],
+    );
+  }
 }
 
 class Role {
@@ -146,15 +198,30 @@ class Planning {
 
   Planning({required this.id, required this.userId, this.userName, required this.date, this.shiftStart, this.shiftEnd, required this.isDayOff});
 
-  factory Planning.fromJson(Map<String, dynamic> json) => Planning(
-        id: json['id'],
-        userId: json['user_id'] ?? 0,
-        userName: json['user'] is Map ? '${json['user']['first_name']} ${json['user']['last_name']}' : json['user_name'],
-        date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
-        shiftStart: json['shift_start'],
-        shiftEnd: json['shift_end'],
-        isDayOff: json['is_day_off'] == true || json['is_day_off'] == 1,
-      );
+  factory Planning.fromJson(Map<String, dynamic> json) {
+    String? name;
+    if (json['caissier'] is Map) {
+      name = '${json['caissier']['first_name'] ?? ''} ${json['caissier']['last_name'] ?? ''}'.trim();
+    } else if (json['user'] is Map) {
+      name = '${json['user']['first_name'] ?? ''} ${json['user']['last_name'] ?? ''}'.trim();
+    } else {
+      name = json['user_name'];
+    }
+    if (name != null && name.isEmpty) name = null;
+
+    return Planning(
+      id: json['id'],
+      userId: json['user_id'] ?? 0,
+      userName: name,
+      date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
+      shiftStart: json['start_time'] ?? json['shift_start'],
+      shiftEnd: json['end_time'] ?? json['shift_end'],
+      isDayOff: json['is_day_off'] == true ||
+          json['is_day_off'] == 1 ||
+          json['day_status'] == 'OFF' ||
+          json['day_status'] == 'CONGE',
+    );
+  }
 }
 
 class AppNotification {
@@ -169,7 +236,7 @@ class AppNotification {
         id: json['id'],
         title: json['title'] ?? '',
         body: json['body'] ?? json['message'] ?? '',
-        readAt: json['read_at'],
+        readAt: json['read_at'] ?? (json['is_read'] == true || json['is_read'] == 1 ? 'read' : null),
       );
 }
 

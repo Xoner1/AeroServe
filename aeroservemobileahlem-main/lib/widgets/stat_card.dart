@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/app_theme.dart';
 
+/// Web-style stat card matching .stat-card in styles.scss
 class StatCard extends StatelessWidget {
   final String label;
   final String value;
@@ -19,12 +20,11 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingM),
+      padding: const EdgeInsets.all(AppTheme.spacingS),
       decoration: BoxDecoration(
         color: AppTheme.card,
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        border: Border.all(color: AppTheme.divider, width: 1.0),
-        boxShadow: AppTheme.softShadow,
+        border: Border.all(color: AppTheme.divider, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,31 +42,31 @@ class StatCard extends StatelessWidget {
                 child: Icon(
                   icon,
                   color: color,
-                  size: 22.0,
+                  size: 20.0,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppTheme.spacingS),
+          const SizedBox(height: AppTheme.spacingXS),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 value,
                 style: GoogleFonts.inter(
-                  fontSize: 20.0,
+                  fontSize: 22.0,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimary,
-                  letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 2.0),
               Text(
-                label,
+                label.toUpperCase(),
                 style: GoogleFonts.inter(
-                  fontSize: 12.0,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textSecondary,
+                  fontSize: 11.0,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                  letterSpacing: 0.03,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

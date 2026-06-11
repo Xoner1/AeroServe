@@ -23,8 +23,19 @@ class AuthProvider extends ChangeNotifier {
       final token = prefs.getString('token');
       final userData = prefs.getString('user');
       if (token != null && userData != null) {
-        _user = User.fromJson(jsonDecode(userData));
-        _isAuthenticated = true;
+        final user = User.fromJson(jsonDecode(userData));
+        final role = user.roleName?.toUpperCase() ?? '';
+        final allowedRoles = ['CAISSIER', 'SUPER_ADMIN', 'RESPONSABLE_HYGIENE', 'RESPONSABLE_FB'];
+        
+        if (allowedRoles.contains(role)) {
+          _user = user;
+          _isAuthenticated = true;
+        } else {
+          // Automatically discard invalid session if role list changes
+          await prefs.remove('token');
+          await prefs.remove('user');
+          _isAuthenticated = false;
+        }
       }
     } catch (_) {
       _isAuthenticated = false;
@@ -42,12 +53,22 @@ class AuthProvider extends ChangeNotifier {
 
     final token = data['access_token'];
     final userJson = data['user'];
+    final tempUser = User.fromJson(userJson);
+    final role = tempUser.roleName?.toUpperCase() ?? '';
+    final allowedRoles = ['CAISSIER', 'SUPER_ADMIN', 'RESPONSABLE_HYGIENE', 'RESPONSABLE_FB'];
+
+    if (!allowedRoles.contains(role)) {
+      throw ApiException(
+        statusCode: 403,
+        message: 'Accès refusé : Ce profil n\'est pas autorisé à utiliser l\'application mobile.',
+      );
+    }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', token);
     await prefs.setString('user', jsonEncode(userJson));
 
-    _user = User.fromJson(userJson);
+    _user = tempUser;
     _isAuthenticated = true;
     notifyListeners();
   }
@@ -72,5 +93,27 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('user', jsonEncode(data));
       notifyListeners();
     } catch (_) {}
+  }
+
+  Future<void> updateProfile({
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? avatarPath,
+  }) async {
+    final res = await ApiService.updateProfile(
+      firstName: firstName,
+      lastName: lastName,
+      phone: phone,
+      avatarPath: avatarPath,
+    );
+
+    final userJson = res['user'];
+    if (userJson != null) {
+      _user = User.fromJson(userJson);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user', jsonEncode(userJson));
+      notifyListeners();
+    }
   }
 }

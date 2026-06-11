@@ -49,13 +49,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Commandes internes', 
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Commandes internes'),
       ),
       body: _loading
           ? const Center(
@@ -63,7 +57,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             )
           : RefreshIndicator(
               onRefresh: _load,
-              color: AppTheme.primary,
+              color: AppTheme.accent,
               child: _orders.isEmpty
                   ? EmptyStateWidget(
                       icon: AppIcons.noData,
@@ -83,7 +77,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           : FloatingActionButton(
               backgroundColor: AppTheme.accent,
               foregroundColor: Colors.white,
-              elevation: 3,
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
               onPressed: () => _showCreateDialog(),
               child: const Icon(AppIcons.add),
@@ -93,8 +87,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Widget _buildOrderCard(InternalOrder order, bool isCashier) {
     final date = DateFormat('dd/MM/yyyy HH:mm').format(order.orderDate);
+    final userRole = context.read<AuthProvider>().user?.roleName?.toUpperCase();
+    final canUpdateStatus = userRole == 'SUPER_ADMIN' || userRole == 'CHEF_CUISINE' || userRole == 'CHEF_MAGASIN';
     return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
       elevation: 0,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -108,15 +104,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
           tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
           leading: CircleAvatar(
             backgroundColor: AppTheme.warning.withValues(alpha: 0.08),
-            child: const Icon(AppIcons.orders, color: AppTheme.warning, size: 20),
+            child: const Icon(AppIcons.orders, color: AppTheme.warning, size: 18),
           ),
           title: Text(
-            'Commande #${order.id}', 
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+            'Commande #${order.id}',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary, fontSize: 13.5),
           ),
           subtitle: Text(
             date,
-            style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12.5),
+            style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11.5),
           ),
           trailing: StatusBadge(status: order.status),
           children: [
@@ -126,40 +122,40 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     dense: true,
                     title: Text(
                       item.productName ?? 'Produit #${item.productId}',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppTheme.textPrimary),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w500, color: AppTheme.textPrimary, fontSize: 13),
                     ),
                     trailing: Text(
                       'Qté: ${item.quantity}',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontSize: 12),
                     ),
                   )),
             if (order.notes != null && order.notes!.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(
-                  left: AppTheme.spacingM, 
-                  right: AppTheme.spacingM, 
+                  left: AppTheme.spacingM,
+                  right: AppTheme.spacingM,
                   bottom: AppTheme.spacingS,
                   top: AppTheme.spacingXS,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(AppIcons.info, size: 16, color: AppTheme.textSecondary),
+                    const Icon(AppIcons.info, size: 14, color: AppTheme.textSecondary),
                     const SizedBox(width: AppTheme.spacingXS),
                     Expanded(
                       child: Text(
-                        'Note: ${order.notes}', 
-                        style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 13),
+                        'Note: ${order.notes}',
+                        style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12),
                       ),
                     ),
                   ],
                 ),
               ),
-            if (!isCashier)
+            if (canUpdateStatus)
               Padding(
                 padding: const EdgeInsets.only(
-                  right: AppTheme.spacingM, 
-                  bottom: AppTheme.spacingM, 
+                  right: AppTheme.spacingM,
+                  bottom: AppTheme.spacingM,
                   top: AppTheme.spacingXS,
                 ),
                 child: Row(
@@ -168,11 +164,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     if (order.status.toLowerCase() == 'pending') ...[
                       OutlinedButton.icon(
                         onPressed: () => _updateStatus(order.id, 'approved'),
-                        icon: const Icon(AppIcons.check, size: 16),
+                        icon: const Icon(AppIcons.check, size: 14),
                         label: const Text('Approuver'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.success,
-                          side: const BorderSide(color: AppTheme.success, width: 1.5),
+                          side: const BorderSide(color: AppTheme.success, width: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingS, vertical: AppTheme.spacingXXS),
                         ),
                       ),
                       const SizedBox(width: AppTheme.spacingS),
@@ -180,11 +177,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     if (order.status.toLowerCase() == 'approved')
                       OutlinedButton.icon(
                         onPressed: () => _updateStatus(order.id, 'delivered'),
-                        icon: const Icon(AppIcons.tracking, size: 16),
+                        icon: const Icon(AppIcons.tracking, size: 14),
                         label: const Text('Livrer'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.accent,
-                          side: const BorderSide(color: AppTheme.accent, width: 1.5),
+                          side: const BorderSide(color: AppTheme.accent, width: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingS, vertical: AppTheme.spacingXXS),
                         ),
                       ),
                   ],
@@ -219,16 +217,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppTheme.radiusL)),
       ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
           padding: EdgeInsets.only(
-            left: AppTheme.spacingL, 
-            right: AppTheme.spacingL, 
-            top: AppTheme.spacingL, 
+            left: AppTheme.spacingL,
+            right: AppTheme.spacingL,
+            top: AppTheme.spacingL,
             bottom: MediaQuery.of(ctx).viewInsets.bottom + AppTheme.spacingL,
           ),
           child: Column(
@@ -239,8 +237,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Nouvelle commande', 
-                    style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                    'Nouvelle commande',
+                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                   ),
                   IconButton(
                     icon: const Icon(AppIcons.cancel, color: AppTheme.textSecondary),
@@ -251,19 +249,20 @@ class _OrdersScreenState extends State<OrdersScreen> {
               const SizedBox(height: AppTheme.spacingM),
               TextField(
                 controller: notesCtrl,
-                style: GoogleFonts.inter(fontSize: 14.5),
+                style: GoogleFonts.inter(fontSize: 13.5),
                 decoration: const InputDecoration(
                   labelText: 'Notes',
                   hintText: 'Précisez les consignes de livraison...',
+                  contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
                 ),
                 maxLines: 2,
               ),
               const SizedBox(height: AppTheme.spacingM),
               Text(
-                'Articles', 
-                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                'Articles',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
               ),
-              const SizedBox(height: AppTheme.spacingXS),
+              const SizedBox(height: AppTheme.spacingXXS),
               ConstrainedBox(
                 constraints: BoxConstraints(
                   maxHeight: MediaQuery.of(ctx).size.height * 0.3,
@@ -281,10 +280,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             flex: 3,
                             child: TextField(
                               controller: row.productCtrl,
-                              style: GoogleFonts.inter(fontSize: 14.5),
+                              style: GoogleFonts.inter(fontSize: 13.5),
                               decoration: const InputDecoration(
                                 labelText: 'Produit ID',
                                 isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
                               ),
                               keyboardType: TextInputType.number,
                             ),
@@ -294,10 +294,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             flex: 2,
                             child: TextField(
                               controller: row.qtyCtrl,
-                              style: GoogleFonts.inter(fontSize: 14.5),
+                              style: GoogleFonts.inter(fontSize: 13.5),
                               decoration: const InputDecoration(
                                 labelText: 'Quantité',
                                 isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
                               ),
                               keyboardType: TextInputType.number,
                             ),
@@ -317,24 +318,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
               ),
               TextButton.icon(
                 onPressed: () => setModalState(() => itemRows.add(_OrderItemRow())),
-                icon: const Icon(AppIcons.add, size: 18),
+                icon: const Icon(AppIcons.add, size: 16),
                 label: const Text('Ajouter article'),
-                style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.accent),
               ),
               const SizedBox(height: AppTheme.spacingM),
               SizedBox(
                 width: double.infinity,
-                height: 48,
+                height: 38,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
+                    backgroundColor: AppTheme.accent,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusS)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
                   ),
                   onPressed: () => _submitOrder(notesCtrl.text, itemRows, ctx),
                   child: Text(
                     'Enregistrer la commande',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 15),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
               ),

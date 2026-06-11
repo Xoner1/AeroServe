@@ -41,13 +41,7 @@ class _MenuPlanningScreenState extends State<MenuPlanningScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Menu Hebdomadaire',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Menu Hebdomadaire'),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
@@ -59,7 +53,7 @@ class _MenuPlanningScreenState extends State<MenuPlanningScreen> {
                 )
               : RefreshIndicator(
                   onRefresh: _load,
-                  color: AppTheme.primary,
+                  color: AppTheme.accent,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(AppTheme.spacingM),
                     itemCount: _menus.length,
@@ -76,26 +70,22 @@ class _MenuPlanningScreenState extends State<MenuPlanningScreen> {
     final name = menu['name'] ?? 'Menu';
 
     return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingM),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        side: BorderSide(color: AppTheme.divider),
-      ),
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
         childrenPadding: const EdgeInsets.fromLTRB(AppTheme.spacingM, 0, AppTheme.spacingM, AppTheme.spacingM),
         leading: CircleAvatar(
           backgroundColor: AppTheme.accent.withValues(alpha: 0.1),
-          child: const Icon(Icons.restaurant_menu, color: AppTheme.accent, size: 20),
+          child: const Icon(Icons.restaurant_menu_rounded, color: AppTheme.accent, size: 18),
         ),
         title: Text(
           name,
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+          style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppTheme.textPrimary, fontSize: 13.5),
         ),
         subtitle: Text(
           '$weekStart — $weekEnd',
-          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12.5),
+          style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11.5),
         ),
         children: items.isEmpty
             ? [
@@ -103,7 +93,7 @@ class _MenuPlanningScreenState extends State<MenuPlanningScreen> {
                   padding: const EdgeInsets.all(AppTheme.spacingS),
                   child: Text(
                     'Aucun article dans ce menu.',
-                    style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 13),
+                    style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 12),
                   ),
                 )
               ]
@@ -117,19 +107,19 @@ class _MenuPlanningScreenState extends State<MenuPlanningScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
                     radius: 14,
-                    backgroundColor: AppTheme.primaryLight,
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.08),
                     child: Text(
                       day.isNotEmpty ? day.substring(0, 2).toUpperCase() : '??',
-                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.primary),
+                      style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.accent),
                     ),
                   ),
                   title: Text(
                     productName,
-                    style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 13.5),
+                    style: GoogleFonts.inter(fontWeight: FontWeight.w500, fontSize: 12.5),
                   ),
                   subtitle: Text(
                     '$day · $meal',
-                    style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11.5),
+                    style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 11),
                   ),
                 );
               }).toList(),

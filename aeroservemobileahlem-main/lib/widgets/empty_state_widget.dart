@@ -20,7 +20,7 @@ class EmptyStateWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.all(AppTheme.spacingXL),
       child: Center(
@@ -32,16 +32,16 @@ class EmptyStateWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppTheme.spacingL),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withValues(alpha: 0.05),
+                color: AppTheme.accent.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                size: 48.0,
-                color: AppTheme.primaryLight,
+                size: 40.0,
+                color: AppTheme.accent,
               ),
             ),
-            const SizedBox(height: AppTheme.spacingL),
+            const SizedBox(height: AppTheme.spacingM),
             Text(
               title,
               style: theme.textTheme.titleMedium?.copyWith(
@@ -61,14 +61,12 @@ class EmptyStateWidget extends StatelessWidget {
             if (actionLabel != null && onActionPressed != null) ...[
               const SizedBox(height: AppTheme.spacingL),
               SizedBox(
-                height: 44,
+                height: 38,
                 child: ElevatedButton(
                   onPressed: onActionPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppTheme.spacingL,
-                    ),
+                    backgroundColor: AppTheme.accent,
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM),
                   ),
                   child: Text(actionLabel!),
                 ),

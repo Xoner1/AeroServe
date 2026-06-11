@@ -33,7 +33,8 @@ class _PlanningScreenState extends State<PlanningScreen> {
         _plannings = (list as List).map((e) => Planning.fromJson(e)).toList();
         _loading = false;
       });
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Error loading plannings: $e');
       setState(() => _loading = false);
     }
   }
@@ -43,13 +44,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Planning', 
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Planning'),
       ),
       body: _loading
           ? const Center(
@@ -57,7 +52,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
             )
           : RefreshIndicator(
               onRefresh: _load,
-              color: AppTheme.primary,
+              color: AppTheme.accent,
               child: _plannings.isEmpty
                   ? EmptyStateWidget(
                       icon: AppIcons.planning,
@@ -78,9 +73,9 @@ class _PlanningScreenState extends State<PlanningScreen> {
     final isDayOff = p.isDayOff;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: AppTheme.spacingS),
+      margin: const EdgeInsets.only(bottom: AppTheme.spacingXS),
       elevation: 0,
-      color: isDayOff ? AppTheme.warning.withValues(alpha: 0.04) : Colors.white,
+      color: isDayOff ? AppTheme.warning.withValues(alpha: 0.04) : AppTheme.card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
         side: BorderSide(
@@ -91,21 +86,21 @@ class _PlanningScreenState extends State<PlanningScreen> {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingS),
         leading: CircleAvatar(
-          backgroundColor: isDayOff 
-              ? AppTheme.warning.withValues(alpha: 0.1) 
-              : AppTheme.primary.withValues(alpha: 0.08),
+          backgroundColor: isDayOff
+              ? AppTheme.warning.withValues(alpha: 0.1)
+              : AppTheme.accent.withValues(alpha: 0.08),
           child: Icon(
             isDayOff ? Icons.weekend_rounded : Icons.schedule_rounded,
-            color: isDayOff ? AppTheme.warning : AppTheme.primary,
-            size: 20,
+            color: isDayOff ? AppTheme.warning : AppTheme.accent,
+            size: 18,
           ),
         ),
         title: Text(
           p.userName ?? 'Utilisateur #${p.userId}',
           style: GoogleFonts.inter(
-            fontWeight: FontWeight.w600, 
+            fontWeight: FontWeight.w600,
             color: AppTheme.textPrimary,
-            fontSize: 15.0,
+            fontSize: 14.0,
           ),
         ),
         subtitle: Column(
@@ -113,12 +108,11 @@ class _PlanningScreenState extends State<PlanningScreen> {
           children: [
             const SizedBox(height: 4),
             Text(
-              // Capitalize first letter of day in french
-              date.isNotEmpty ? '${date[0].toUpperCase()}${date.substring(1)}' : '', 
-              style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+              date.isNotEmpty ? '${date[0].toUpperCase()}${date.substring(1)}' : '',
+              style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary),
             ),
             if (!isDayOff) ...[
-              const SizedBox(height: AppTheme.spacingS),
+              const SizedBox(height: AppTheme.spacingXS),
               Row(
                 children: [
                   Container(
@@ -129,20 +123,20 @@ class _PlanningScreenState extends State<PlanningScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.login_rounded, size: 13, color: AppTheme.success),
+                        const Icon(Icons.login_rounded, size: 12, color: AppTheme.success),
                         const SizedBox(width: 4),
                         Text(
-                          p.shiftStart ?? '-', 
+                          p.shiftStart ?? '-',
                           style: GoogleFonts.inter(
-                            fontSize: 12, 
-                            fontWeight: FontWeight.w600, 
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                             color: AppTheme.success,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppTheme.spacingS),
+                  const SizedBox(width: AppTheme.spacingXS),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
@@ -151,13 +145,13 @@ class _PlanningScreenState extends State<PlanningScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.logout_rounded, size: 13, color: AppTheme.error),
+                        const Icon(Icons.logout_rounded, size: 12, color: AppTheme.error),
                         const SizedBox(width: 4),
                         Text(
-                          p.shiftEnd ?? '-', 
+                          p.shiftEnd ?? '-',
                           style: GoogleFonts.inter(
-                            fontSize: 12, 
-                            fontWeight: FontWeight.w600, 
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                             color: AppTheme.error,
                           ),
                         ),
@@ -172,18 +166,18 @@ class _PlanningScreenState extends State<PlanningScreen> {
         trailing: isDayOff
             ? Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.spacingXS, 
+                  horizontal: AppTheme.spacingXS,
                   vertical: AppTheme.spacingXXS,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.warning.withValues(alpha: 0.1), 
+                  color: AppTheme.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusS),
                 ),
                 child: Text(
-                  'Repos', 
+                  'Repos',
                   style: GoogleFonts.inter(
-                    color: AppTheme.warning, 
-                    fontSize: 11, 
+                    color: AppTheme.warning,
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

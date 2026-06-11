@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/app_theme.dart';
 import '../core/app_icons.dart';
+import '../providers/auth_provider.dart';
 import 'chatbot_screen.dart';
+import 'hygiene_check_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -28,7 +31,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final barcodes = capture.barcodes;
     if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
       final String scannedCode = barcodes.first.rawValue!;
-      
+
       setState(() {
         _scannedValue = scannedCode;
         _isScanning = false;
@@ -37,7 +40,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
       // Smart product parser
       int? productId;
-      
+
       // 1. Try parsing directly as integer
       productId = int.tryParse(scannedCode);
 
@@ -50,15 +53,20 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         }
       }
 
-      // If we got a valid product ID, slide open the AI Chatbot screen!
+      // If we got a valid product ID, navigate to the correct screen based on role
       if (productId != null) {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        final isHygiene = auth.user?.roleName?.toUpperCase() == 'RESPONSABLE_HYGIENE';
+
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ChatbotScreen(
-              productId: productId!,
-              productName: 'Produit Scanné #$productId',
-            ),
+            builder: (context) => isHygiene
+                ? HygieneCheckScreen(productId: productId!)
+                : ChatbotScreen(
+                    productId: productId!,
+                    productName: 'Produit Scanné #$productId',
+                  ),
           ),
         ).then((_) {
           // Reset scanning when coming back
@@ -81,20 +89,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text(
-          'Scanner QR', 
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 18.5),
-        ),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const Text('Scanner QR'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.flash_on_rounded, color: Colors.white),
+            icon: const Icon(Icons.flash_on_rounded),
             onPressed: () => _controller.toggleTorch(),
           ),
           IconButton(
-            icon: const Icon(Icons.flip_camera_ios_rounded, color: Colors.white),
+            icon: const Icon(Icons.flip_camera_ios_rounded),
             onPressed: () => _controller.switchCamera(),
           ),
           const SizedBox(width: AppTheme.spacingXS),
@@ -118,7 +120,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: AppTheme.accent,
-                              width: 3.5,
+                              width: 2,
                             ),
                             borderRadius: BorderRadius.circular(AppTheme.radiusM),
                             boxShadow: [
@@ -134,7 +136,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     ],
                   )
                 : Container(
-                    color: Colors.black,
+                    color: AppTheme.primary,
                     child: const Center(
                       child: Icon(AppIcons.scanner, size: 80, color: Colors.white30),
                     ),
@@ -144,7 +146,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             flex: 2,
             child: Container(
               width: double.infinity,
-              color: Colors.white,
+              color: AppTheme.card,
               padding: const EdgeInsets.all(AppTheme.spacingL),
               child: _scannedValue != null
                   ? Column(
@@ -154,7 +156,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                         Text(
                           'Résultat du scan',
                           style: GoogleFonts.inter(
-                            fontSize: 15.5,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: AppTheme.textPrimary,
                           ),
@@ -164,14 +166,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(AppTheme.spacingM),
                           decoration: BoxDecoration(
-                            color: AppTheme.success.withValues(alpha: 0.08),
-                            border: Border.all(color: AppTheme.success.withValues(alpha: 0.25), width: 1.0),
-                            borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                            color: AppTheme.success.withValues(alpha: 0.06),
+                            border: Border.all(color: AppTheme.success.withValues(alpha: 0.2), width: 1.0),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusM),
                           ),
                           child: Text(
                             _scannedValue!,
                             style: GoogleFonts.inter(
-                              fontSize: 14.5,
+                              fontSize: 13.5,
                               color: AppTheme.success,
                               fontWeight: FontWeight.w600,
                             ),
@@ -183,14 +185,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: _reset,
-                                icon: const Icon(AppIcons.scanner, size: 18),
+                                icon: const Icon(AppIcons.scanner, size: 16),
                                 label: const Text('Scanner à nouveau'),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.primary,
-                                  side: const BorderSide(color: AppTheme.primary, width: 1.5),
-                                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                                  foregroundColor: AppTheme.accent,
+                                  side: const BorderSide(color: AppTheme.accent, width: 1),
+                                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingS),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
                                   ),
                                 ),
                               ),
@@ -205,18 +207,18 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                                         'Valeur copiée: ${_scannedValue!}',
                                         style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                                       ),
-                                      backgroundColor: AppTheme.success,
+                                      backgroundColor: AppTheme.accent,
                                     ),
                                   );
                                 },
-                                icon: const Icon(Icons.copy_rounded, size: 18),
+                                icon: const Icon(Icons.copy_rounded, size: 16),
                                 label: const Text('Copier'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppTheme.accent,
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingM),
+                                  padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingS),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                                    borderRadius: BorderRadius.circular(AppTheme.radiusM),
                                   ),
                                 ),
                               ),
@@ -232,27 +234,27 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                         Container(
                           padding: const EdgeInsets.all(AppTheme.spacingM),
                           decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.05),
+                            color: AppTheme.accent.withValues(alpha: 0.06),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(AppIcons.scanner, size: 40, color: AppTheme.primaryLight),
+                          child: const Icon(AppIcons.scanner, size: 36, color: AppTheme.accent),
                         ),
                         const SizedBox(height: AppTheme.spacingM),
                         Text(
                           'Pointez la caméra vers un code QR',
                           style: GoogleFonts.inter(
-                            fontSize: 14.5,
+                            fontSize: 13.5,
                             color: AppTheme.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 2.0),
+                        const SizedBox(height: 4.0),
                         Text(
                           'Il sera automatiquement analysé pour ouvrir l\'assistant IA.',
                           style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                            fontSize: 11,
+                            color: AppTheme.textSecondary.withValues(alpha: 0.6),
                           ),
                           textAlign: TextAlign.center,
                         ),

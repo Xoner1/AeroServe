@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Production backend API URL (can be customized dynamically via SharedPreferences)
-  static String baseUrl = 'https://aeroserve.alwaysdata.net/api';
+  // For Chrome/Web testing: use http://localhost:8000/api
+  // For mobile device testing: use http://192.168.0.53:8000/api
+  static String baseUrl = 'http://192.168.0.53:8000/api';
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -100,9 +102,42 @@ class ApiService {
     }
   }
 
-  static Future<dynamic> askChatbot(int productId, String message) async {
+  static Future<dynamic> updateProfile({
+    required String firstName,
+    required String lastName,
+    String? phone,
+    String? avatarPath,
+  }) async {
+    await init();
+    final uri = _uri('/profile');
+    final token = await _getToken();
+
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll({
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    });
+
+    // Laravel method spoofing: use POST with _method=PUT to support file uploads
+    request.fields['_method'] = 'PUT';
+    request.fields['first_name'] = firstName;
+    request.fields['last_name'] = lastName;
+    if (phone != null) {
+      request.fields['phone'] = phone;
+    }
+
+    if (avatarPath != null && avatarPath.isNotEmpty) {
+      request.files.add(await http.MultipartFile.fromPath('avatar', avatarPath));
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    return _handleResponse(response);
+  }
+
+  static Future<dynamic> askChatbot(int? productId, String message) async {
     return await post('chatbot/ask', {
-      'product_id': productId,
+      if (productId != null) 'product_id': productId,
       'message': message,
     });
   }

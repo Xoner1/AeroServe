@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +13,10 @@ import 'menu_planning_screen.dart';
 import 'profile_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'stock_alerts_screen.dart';
+import 'chatbot_screen.dart';
+import 'cashier_kanban_screen.dart';
+import '../models/models.dart';
+import '../services/api_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,59 +27,185 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  Timer? _notificationTimer;
+  int? _lastNotificationId;
+
+  @override
+  void initState() {
+    super.initState();
+    _startNotificationPolling();
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startNotificationPolling() {
+    _checkNewNotifications(); // Initial check
+    _notificationTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
+      _checkNewNotifications();
+    });
+  }
+
+  Future<void> _checkNewNotifications() async {
+    try {
+      final res = await ApiService.get('/notifications');
+      final list = res is Map ? (res['data'] ?? []) : (res is List ? res : []);
+      if (list is List && list.isNotEmpty) {
+        final notifications = list.map((e) => AppNotification.fromJson(e)).toList();
+        final maxId = notifications.map((n) => n.id).reduce((a, b) => a > b ? a : b);
+
+        if (_lastNotificationId == null) {
+          _lastNotificationId = maxId;
+          return;
+        }
+
+        final newNotifications = notifications.where((n) => n.id > _lastNotificationId! && n.readAt == null).toList();
+        if (newNotifications.isNotEmpty) {
+          for (final notif in newNotifications) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  backgroundColor: AppTheme.info,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusM)),
+                  margin: const EdgeInsets.all(AppTheme.spacingM),
+                  content: Row(
+                    children: [
+                      const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 20),
+                      const SizedBox(width: AppTheme.spacingS),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              notif.title,
+                              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              notif.body,
+                              style: GoogleFonts.inter(color: Colors.white.withValues(alpha: 0.9), fontSize: 11.5),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+          _lastNotificationId = maxId;
+        }
+      }
+    } catch (_) {
+      // Fail silently to avoid breaking UX
+    }
+  }
 
   List<_NavItem> _getNavItems(String? roleName) {
     final role = roleName?.toUpperCase() ?? '';
     switch (role) {
-      case 'CAISSIER':
+      case 'SUPER_ADMIN':
         return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: SalesScreen(), icon: AppIcons.sales, activeIcon: AppIcons.sales, label: 'Ventes'),
-          const _NavItem(screen: PlanningScreen(), icon: AppIcons.planning, activeIcon: AppIcons.planning, label: 'Planning'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(OrdersScreen(), AppIcons.orders, 'Commandes'),
+          const _NavItem(SalesScreen(), AppIcons.sales, 'Ventes'),
+          const _NavItem(StockAlertsScreen(), Icons.inventory_2_rounded, 'Stocks'),
+          const _NavItem(PlanningScreen(), AppIcons.planning, 'Planning'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
       case 'RESPONSABLE_FB':
         return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: OrdersScreen(), icon: AppIcons.orders, activeIcon: AppIcons.ordersActive, label: 'Commandes'),
-          const _NavItem(screen: PlanningScreen(), icon: AppIcons.planning, activeIcon: AppIcons.planning, label: 'Planning'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
-        ];
-      case 'RESPONSABLE_HYGIENE':
-        return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: QrScannerScreen(), icon: AppIcons.scanner, activeIcon: AppIcons.scanner, label: 'Scanner QR'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(OrdersScreen(), AppIcons.orders, 'Commandes'),
+          const _NavItem(CashierKanbanScreen(), Icons.people_outline_rounded, 'Caissiers'),
+          const _NavItem(PlanningScreen(), AppIcons.planning, 'Planning'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
       case 'CHEF_CUISINE':
         return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: OrdersScreen(), icon: AppIcons.orders, activeIcon: AppIcons.ordersActive, label: 'Commandes'),
-          const _NavItem(screen: MenuPlanningScreen(), icon: AppIcons.planning, activeIcon: AppIcons.planning, label: 'Menu'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(OrdersScreen(), AppIcons.orders, 'Commandes'),
+          const _NavItem(MenuPlanningScreen(), Icons.restaurant_menu_rounded, 'Menus'),
+          const _NavItem(StockAlertsScreen(), Icons.inventory_2_rounded, 'Stocks'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
       case 'CHEF_MAGASIN':
         return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: OrdersScreen(), icon: AppIcons.orders, activeIcon: AppIcons.ordersActive, label: 'Commandes'),
-          const _NavItem(screen: StockAlertsScreen(), icon: AppIcons.orders, activeIcon: AppIcons.ordersActive, label: 'Stock'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(OrdersScreen(), AppIcons.orders, 'Commandes'),
+          const _NavItem(StockAlertsScreen(), Icons.inventory_2_rounded, 'Stocks'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
       case 'RESPONSABLE_ACHAT':
         return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: OrdersScreen(), icon: AppIcons.orders, activeIcon: AppIcons.ordersActive, label: 'Commandes'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
+        ];
+      case 'RESPONSABLE_HYGIENE':
+        return [
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(QrScannerScreen(), AppIcons.scanner, 'Scanner QR'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
+        ];
+      case 'CAISSIER':
+        return [
+          const _NavItem(PlanningScreen(), AppIcons.planning, 'Planning'),
+          const _NavItem(ChatbotScreen(), Icons.chat_bubble_outline_rounded, 'Chatbot IA'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
       default:
         return [
-          const _NavItem(screen: DashboardScreen(), icon: AppIcons.dashboard, activeIcon: AppIcons.dashboard, label: 'Dashboard'),
-          const _NavItem(screen: SalesScreen(), icon: AppIcons.sales, activeIcon: AppIcons.sales, label: 'Ventes'),
-          const _NavItem(screen: OrdersScreen(), icon: AppIcons.orders, activeIcon: AppIcons.ordersActive, label: 'Commandes'),
-          const _NavItem(screen: PlanningScreen(), icon: AppIcons.planning, activeIcon: AppIcons.planning, label: 'Planning'),
-          const _NavItem(screen: ProfileScreen(), icon: AppIcons.profile, activeIcon: AppIcons.profile, label: 'Profil'),
+          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
+          const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
     }
+  }
+
+  Widget _buildBottomNav(List<_NavItem> items) {
+    return Container(
+      height: 56,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+      ),
+      child: Row(
+        children: List.generate(items.length, (i) {
+          final isSelected = i == _currentIndex;
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _currentIndex = i),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    items[i].icon,
+                    size: 22,
+                    color: isSelected ? AppTheme.accent : AppTheme.textSecondary.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    items[i].label,
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                      color: isSelected ? AppTheme.accent : AppTheme.textSecondary.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 
   @override
@@ -82,7 +213,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = context.watch<AuthProvider>();
     final roleName = authProvider.user?.roleName;
     final navItems = _getNavItems(roleName);
-
     final safeIndex = _currentIndex < navItems.length ? _currentIndex : 0;
 
     return Scaffold(
@@ -90,45 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
         index: safeIndex,
         children: navItems.map((n) => n.screen).toList(),
       ),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: AppTheme.divider, width: 1.0),
-          ),
-        ),
-        child: BottomNavigationBar(
-          currentIndex: safeIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppTheme.primary,
-          unselectedItemColor: AppTheme.textSecondary,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          selectedFontSize: 11.5,
-          unselectedFontSize: 11.5,
-          selectedLabelStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.1,
-          ),
-          unselectedLabelStyle: GoogleFonts.inter(
-            fontWeight: FontWeight.w500,
-            letterSpacing: -0.1,
-          ),
-          items: navItems
-              .map((n) => BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Icon(n.icon),
-                    ),
-                    activeIcon: Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Icon(n.activeIcon),
-                    ),
-                    label: n.label,
-                  ))
-              .toList(),
-        ),
-      ),
+      bottomNavigationBar: _buildBottomNav(navItems),
     );
   }
 }
@@ -136,12 +228,6 @@ class _HomeScreenState extends State<HomeScreen> {
 class _NavItem {
   final Widget screen;
   final IconData icon;
-  final IconData activeIcon;
   final String label;
-  const _NavItem({
-    required this.screen,
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-  });
+  const _NavItem(this.screen, this.icon, this.label);
 }
