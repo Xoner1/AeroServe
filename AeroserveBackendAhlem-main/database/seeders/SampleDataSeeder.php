@@ -46,6 +46,10 @@ class SampleDataSeeder extends Seeder
             ]
         );
 
+        if ($pdv) {
+            $pdv->update(['responsable_fb_id' => $fb->id]);
+        }
+
         $chefCuisine = User::firstOrCreate(
             ['email' => 'cuisine@aeroserve.com'],
             [

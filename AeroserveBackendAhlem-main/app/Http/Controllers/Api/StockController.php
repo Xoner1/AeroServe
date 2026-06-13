@@ -31,6 +31,11 @@ class StockController extends Controller
             $query->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
         }
 
+        // Chef Cuisine: only see stocks of MATIERE_PREMIERE products (ingredients) in read-only mode
+        if ($role === 'CHEF_CUISINE') {
+            $query->whereHas('product', fn ($q) => $q->where('type', 'matiere_premiere'));
+        }
+
         if ($request->boolean('low_stock')) {
             $query->whereColumn('quantity', '<=', 'min_threshold');
         }
@@ -49,6 +54,11 @@ class StockController extends Controller
             $dailyOutputsQuery->whereHas('stock.product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
             $totalStockQuery->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
             $criticalCountQuery->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+        } elseif ($role === 'CHEF_CUISINE') {
+            $dailyInputsQuery->whereHas('stock.product', fn ($q) => $q->where('type', 'matiere_premiere'));
+            $dailyOutputsQuery->whereHas('stock.product', fn ($q) => $q->where('type', 'matiere_premiere'));
+            $totalStockQuery->whereHas('product', fn ($q) => $q->where('type', 'matiere_premiere'));
+            $criticalCountQuery->whereHas('product', fn ($q) => $q->where('type', 'matiere_premiere'));
         }
 
         $dailyInputs = $dailyInputsQuery->sum('quantity');
@@ -163,6 +173,8 @@ class StockController extends Controller
 
         if ($role === 'CHEF_MAGASIN') {
             $query->whereHas('product', fn ($q) => $q->whereIn('type', ['commercial', 'matiere_premiere']));
+        } elseif ($role === 'CHEF_CUISINE') {
+            $query->whereHas('product', fn ($q) => $q->where('type', 'matiere_premiere'));
         }
 
         $lowStocks = $query->get();

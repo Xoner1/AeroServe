@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../core/app_theme.dart';
 import '../core/app_icons.dart';
 import '../services/api_service.dart';
 import '../models/models.dart';
+import '../providers/auth_provider.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/empty_state_widget.dart';
@@ -41,6 +43,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userRole = context.read<AuthProvider>().user?.roleName?.toUpperCase();
+    final isFb = userRole == 'RESPONSABLE_FB';
+
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
@@ -76,22 +81,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: ListView(
                     padding: const EdgeInsets.all(AppTheme.spacingM),
                     children: [
-                      _buildStatGrid(),
+                      _buildStatGrid(isFb),
                       const SizedBox(height: AppTheme.spacingL),
-                      _sectionTitle('Ventes récentes'),
-                      const SizedBox(height: AppTheme.spacingXS),
-                      if (_data!.recentSales.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingL),
-                          child: EmptyStateWidget(
-                            icon: AppIcons.noData,
-                            title: 'Aucune vente récente',
-                            description: 'Les ventes d\'aujourd\'hui s\'afficheront ici.',
-                          ),
-                        )
-                      else
-                        ..._data!.recentSales.map(_buildSaleCard),
-                      const SizedBox(height: AppTheme.spacingL),
+                      if (!isFb) ...[
+                        _sectionTitle('Ventes récentes'),
+                        const SizedBox(height: AppTheme.spacingXS),
+                        if (_data!.recentSales.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingL),
+                            child: EmptyStateWidget(
+                              icon: AppIcons.noData,
+                              title: 'Aucune vente récente',
+                              description: 'Les ventes d\'aujourd\'hui s\'afficheront ici.',
+                            ),
+                          )
+                        else
+                          ..._data!.recentSales.map(_buildSaleCard),
+                        const SizedBox(height: AppTheme.spacingL),
+                      ],
                       _sectionTitle('Commandes récentes'),
                       const SizedBox(height: AppTheme.spacingXS),
                       if (_data!.recentOrders.isEmpty)
@@ -111,7 +118,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(height: AppTheme.spacingXS),
                         ...(_data!.popularProducts).take(5).map(_buildProductCard),
                       ],
-                      if (_data!.salesByPdv.isNotEmpty) ...[
+                      if (_data!.salesByPdv.isNotEmpty && !isFb) ...[
                         const SizedBox(height: AppTheme.spacingL),
                         _sectionTitle('Performance PDV'),
                         const SizedBox(height: AppTheme.spacingXS),
@@ -123,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatGrid() {
+  Widget _buildStatGrid(bool isFb) {
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -132,18 +139,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisSpacing: AppTheme.spacingS,
       childAspectRatio: 1.2,
       children: [
-        StatCard(
-          label: 'Ventes aujourd\'hui',
-          value: '${_data!.todaySales}',
-          icon: AppIcons.sales,
-          color: AppTheme.accent,
-        ),
-        StatCard(
-          label: 'Revenus',
-          value: '${_data!.todayRevenue.toStringAsFixed(0)} DA',
-          icon: Icons.attach_money_rounded,
-          color: AppTheme.primary,
-        ),
+        if (!isFb) ...[
+          StatCard(
+            label: 'Ventes aujourd\'hui',
+            value: '${_data!.todaySales}',
+            icon: AppIcons.sales,
+            color: AppTheme.accent,
+          ),
+          StatCard(
+            label: 'Revenus',
+            value: '${_data!.todayRevenue.toStringAsFixed(0)} DA',
+            icon: Icons.attach_money_rounded,
+            color: AppTheme.primary,
+          ),
+        ],
         StatCard(
           label: 'Commandes',
           value: '${_data!.pendingOrders}',

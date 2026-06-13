@@ -857,6 +857,99 @@ Pour assurer le suivi des développements, voici le backlog fonctionnel :
 
 ---
 
+### Session 5 — Correctifs v3.3 (13–14 juin 2026)
+
+#### 32. Fiche Recette — liste d'ingrédients vide pour le Chef de Cuisine
+
+- **Fichier :** `products.component.ts` (frontend)
+- **Problème :** La liste déroulante des ingrédients dans le formulaire de création de recette restait vide pour le CHEF_CUISINE. Le paramètre `all_types=true` n'était pas envoyé à l'API, qui filtrait donc les produits sur food/plat uniquement.
+- **Solution :** Ajout de `params.all_types = true` dans `load()` lorsque le rôle est CHEF_CUISINE. Le getter `availableIngredients` filtre ensuite côté frontend sur `matiere_premiere + approved` uniquement.
+
+#### 33. Filtrage des matières premières pour le Chef de Cuisine (lecture seule)
+
+- **Fichier :** `ProductController.php` (backend)
+- **Problème :** Le CHEF_CUISINE pouvait voir les produits commerciaux et matières premières en mode non filtré.
+- **Solution :** Le backend retourne uniquement `food` et `plat` pour CHEF_CUISINE par défaut. Le paramètre `all_types=true` est accepté mais le frontend restreint l'affichage à food/plat dans `applyFilter()`.
+
+#### 34. Filtrage produits pour le Responsable Hygiène
+
+- **Fichier :** `ProductController.php` (backend)
+- **Problème :** L'API retournait tous les produits au lieu de filtrer sur food/plat approuvés.
+- **Solution :** Ajout du filtre `whereIn('type', ['food','plat'])->where('approval_status','approved')` pour le rôle RESPONSABLE_HYGIENE.
+
+#### 35. Champ `category_id` optionnel pour food/plat
+
+- **Fichier :** `ProductController.php` (backend)
+- **Problème :** La validation Laravel rejetait les produits food/plat sans catégorie avec une erreur 422.
+- **Solution :** `category_id` déclaré `nullable` pour CHEF_CUISINE. Pour les autres rôles : `required_unless:type,food,plat`.
+
+#### 36. Correction du statut OUT_OF_STOCK pour le Chef Magasin (Erreur 403)
+
+- **Fichier :** `ProductController.php` (backend)
+- **Problème :** Un Chef Magasin ne pouvait pas modifier `usage_status` d'un produit approuvé — la méthode `update()` renvoyait 403.
+- **Solution :** Ajout d'un bloc spécifique en début de `update()` : si le rôle est CHEF_MAGASIN et le produit n'est pas en attente, seul `usage_status` et `image` sont extraits et mis à jour.
+
+#### 37. Prix d'achat enregistré lors de la validation d'un produit
+
+- **Fichier :** `products.component.ts` (frontend) + `ProductController.php` (backend)
+- **Problème :** Lors de l'approbation, le RESPONSABLE_ACHAT n'avait pas de champ pour saisir le prix. Le prix restait à 0.
+- **Solution :** Boîte SweetAlert avec `input: 'number'` lors de l'approbation. Le prix est envoyé dans le PUT `/products/{id}/approve`. Backend : enregistré via `approveProduct()` si `approval_status === 'approved'`.
+
+#### 38. Chatbot — Restriction Caissier et garde-fous multilingues
+
+- **Fichier :** `ChatbotController.php` (backend)
+- **Problème :** Le Caissier ne pouvait pas utiliser le chatbot sans scanner un produit. Les questions de santé en arabe, anglais ou espagnol n'étaient pas détectées.
+- **Solution :** Suppression de la restriction `product_id` obligatoire pour CAISSIER. Ajout de 50+ mots-clés multilingues (FR/EN/AR/ES/DE/IT) dans `isForbiddenForCashier()`. Ajout d'une détection de langue (`detectMessageLanguage()`) pour les réponses de garde-fous.
+
+#### 39. Sélection du Point de Vente dans les commandes internes (Web)
+
+- **Fichier :** `internal-orders.component.ts` (frontend)
+- **Problème :** Le champ `pdv_id` n'était jamais envoyé lors de la création d'une commande.
+- **Solution :** Ajout d'un sélecteur de PDV dans le formulaire de création avec chargement depuis `GET /api/points-de-vente`.
+
+#### 40. Optimisation des connexions DB distante (timeouts)
+
+- **Fichier :** `.env` (backend)
+- **Problème :** La base de données AlwaysData provoquait des timeouts fréquents avec les sessions et le cache.
+- **Solution :** Migration de `SESSION_DRIVER`, `CACHE_STORE` et `QUEUE_CONNECTION` vers `file` ou `array` pour éviter les requêtes DB en rafale.
+
+#### 41. Correction de la comparaison de type dans la validation de stock (Frontend)
+
+- **Fichier :** `products.component.ts` (frontend)
+- **Problème :** La comparaison `p.id === ing.product_id` échouait car l'ID de l'ingrédient sélectionné depuis le formulaire était de type `string` alors que l'ID produit en mémoire était `number`.
+- **Solution :** Remplacement par `p.id == ing.product_id` (comparaison laxiste).
+
+#### 42. Tableau de bord F&B — masquage des statistiques de vente
+
+- **Fichier :** `dashboard.component.html` + `dashboard.component.ts` (frontend)
+- **Problème :** Le RESPONSABLE_FB voyait les blocs de chiffre d'affaires et ventes du jour, qui ne le concernent pas.
+- **Solution :** Ces blocs sont masqués conditionnellement pour le rôle RESPONSABLE_FB.
+
+#### 43. Commandes internes — catalogue produits interactif (Mobile)
+
+- **Fichier :** `orders_screen.dart` (mobile Flutter)
+- **Problème :** La création d'une commande demandait la saisie manuelle des IDs produits.
+- **Solution :** Remplacement par un catalogue visuel avec contrôle de quantité `[−] Qty [+]`, filtre par type et sélecteur de date de livraison.
+
+#### 44. Gestion des Caissiers — refonte de l'écran (Mobile)
+
+- **Fichier :** `cashier_kanban_screen.dart` (mobile Flutter)
+- **Problème :** L'ancienne disposition Kanban causait des débordements visuels sur mobile.
+- **Solution :** Remplacement par deux onglets (Actifs / Inactifs) avec assignation de PDV par caissier et mise à jour optimiste.
+
+#### 45. Affichage du Point de Vente dans le Planning et le Profil (Mobile)
+
+- **Fichiers :** `models.dart`, `planning_screen.dart`, `profile_screen.dart` (mobile Flutter)
+- **Problème :** Le nom du PDV n'était pas affiché dans le planning ni dans le profil pour les caissiers/RESPONSABLE_FB.
+- **Solution :** Le modèle `Planning.fromJson()` extrait désormais `point_de_vente` (snake_case) avec fallback `pointDeVente`. Badge PDV ajouté dans chaque ligne de shift et sur la carte de profil.
+
+#### 46. Écran de contrôle produits pour le Responsable Hygiène (Mobile)
+
+- **Fichiers :** `hygiene_products_screen.dart`, `hygiene_check_screen.dart` (mobile Flutter)
+- **Fonctionnalité :** Création de l'écran `HygieneProductsScreen` : liste les plats/aliments approuvés avec badge de conformité basé sur le dernier rapport trié par `created_at` DESC. Accès à la fiche d'inspection depuis chaque carte. Rafraîchissement automatique du statut après soumission.
+
+---
+
 ## 15. Bilan Technique
 
 ### Points forts du système
@@ -866,6 +959,7 @@ Pour assurer le suivi des développements, voici le backlog fonctionnel :
 - **Outils prédictifs :** Réduction du gaspillage alimentaire et des coûts de stockage grâce aux modèles d'IA.
 - **Chatbot multi-fournisseurs :** Cascade OpenAI → Groq → Gemini → Local NLP avec function calling natif et isolation par rôle.
 - **Sécurité renforcée (v3.2) :** Restriction des produits par rôle, permissions stock exclusives au Chef Magasin, commandes internes assignées correctement, nettoyage du code mort.
+- **Application mobile complète (v3.3) :** Écran de contrôle hygiène, refonte du kanban caissiers, affichage PDV partout, chatbot accessible aux caissiers sans scanner.
 
 ### Limitations connues
 

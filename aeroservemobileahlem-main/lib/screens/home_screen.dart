@@ -11,10 +11,10 @@ import 'orders_screen.dart';
 import 'planning_screen.dart';
 import 'menu_planning_screen.dart';
 import 'profile_screen.dart';
-import 'qr_scanner_screen.dart';
 import 'stock_alerts_screen.dart';
 import 'chatbot_screen.dart';
 import 'cashier_kanban_screen.dart';
+import 'hygiene_products_screen.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 
@@ -151,8 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ];
       case 'RESPONSABLE_HYGIENE':
         return [
-          const _NavItem(DashboardScreen(), AppIcons.dashboard, 'Dashboard'),
-          const _NavItem(QrScannerScreen(), AppIcons.scanner, 'Scanner QR'),
+          const _NavItem(HygieneProductsScreen(), Icons.fact_check_rounded, 'Contrôle'),
           const _NavItem(ProfileScreen(), AppIcons.profile, 'Profil'),
         ];
       case 'CAISSIER':

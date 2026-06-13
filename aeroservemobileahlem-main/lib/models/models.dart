@@ -1,5 +1,17 @@
 import '../services/api_service.dart';
 
+double? _parseNullableDouble(dynamic val) {
+  if (val == null) return null;
+  if (val is num) return val.toDouble();
+  return double.tryParse(val.toString());
+}
+
+double _parseDouble(dynamic val, [double defaultVal = 0.0]) {
+  if (val == null) return defaultVal;
+  if (val is num) return val.toDouble();
+  return double.tryParse(val.toString()) ?? defaultVal;
+}
+
 class User {
   final int id;
   final String firstName;
@@ -90,7 +102,7 @@ class Product {
       id: json['id'],
       name: json['name'] ?? '',
       type: json['type'] ?? '',
-      price: json['price'] != null ? (json['price'] as num).toDouble() : null,
+      price: _parseNullableDouble(json['price']),
       description: json['description'],
       approvalStatus: json['approval_status'],
       allergens: parsedAllergens,
@@ -121,7 +133,7 @@ class Sale {
   factory Sale.fromJson(Map<String, dynamic> json) => Sale(
         id: json['id'],
         userId: json['user_id'] ?? 0,
-        totalAmount: (json['total_amount'] ?? 0).toDouble(),
+        totalAmount: _parseDouble(json['total_amount']),
         paymentMethod: json['payment_method'] ?? 'cash',
         status: json['status'] ?? 'pending',
         saleDate: DateTime.tryParse(json['sale_date'] ?? json['created_at'] ?? '') ?? DateTime.now(),
@@ -145,7 +157,7 @@ class SaleItem {
         productId: json['product_id'] ?? 0,
         productName: json['product'] is Map ? json['product']['name'] : json['product_name'],
         quantity: json['quantity'] ?? 0,
-        unitPrice: (json['unit_price'] ?? 0).toDouble(),
+        unitPrice: _parseDouble(json['unit_price']),
       );
 }
 
@@ -195,8 +207,20 @@ class Planning {
   final String? shiftStart;
   final String? shiftEnd;
   final bool isDayOff;
+  final int? pdvId;
+  final String? pdvName;
 
-  Planning({required this.id, required this.userId, this.userName, required this.date, this.shiftStart, this.shiftEnd, required this.isDayOff});
+  Planning({
+    required this.id,
+    required this.userId,
+    this.userName,
+    required this.date,
+    this.shiftStart,
+    this.shiftEnd,
+    required this.isDayOff,
+    this.pdvId,
+    this.pdvName,
+  });
 
   factory Planning.fromJson(Map<String, dynamic> json) {
     String? name;
@@ -209,6 +233,17 @@ class Planning {
     }
     if (name != null && name.isEmpty) name = null;
 
+    final pdv = json['point_de_vente'] ?? json['pointDeVente'];
+    String? pName;
+    int? pId;
+    if (pdv is Map) {
+      pName = pdv['name'];
+      pId = pdv['id'];
+    } else {
+      pName = json['pdv_name'];
+      pId = json['pdv_id'];
+    }
+
     return Planning(
       id: json['id'],
       userId: json['user_id'] ?? 0,
@@ -220,6 +255,8 @@ class Planning {
           json['is_day_off'] == 1 ||
           json['day_status'] == 'OFF' ||
           json['day_status'] == 'CONGE',
+      pdvId: pId,
+      pdvName: pName,
     );
   }
 }

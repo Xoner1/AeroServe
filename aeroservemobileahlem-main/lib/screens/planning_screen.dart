@@ -113,7 +113,9 @@ class _PlanningScreenState extends State<PlanningScreen> {
             ),
             if (!isDayOff) ...[
               const SizedBox(height: AppTheme.spacingXS),
-              Row(
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -122,6 +124,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusS),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.login_rounded, size: 12, color: AppTheme.success),
                         const SizedBox(width: 4),
@@ -136,7 +139,6 @@ class _PlanningScreenState extends State<PlanningScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppTheme.spacingXS),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
@@ -144,6 +146,7 @@ class _PlanningScreenState extends State<PlanningScreen> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusS),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.logout_rounded, size: 12, color: AppTheme.error),
                         const SizedBox(width: 4),
@@ -153,6 +156,32 @@ class _PlanningScreenState extends State<PlanningScreen> {
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: (p.pdvName != null) ? AppTheme.accent.withValues(alpha: 0.08) : AppTheme.textSecondary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppTheme.radiusS),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.storefront_rounded,
+                          size: 12,
+                          color: (p.pdvName != null) ? AppTheme.accent : AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          p.pdvName ?? 'Aucun PDV',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: (p.pdvName != null) ? AppTheme.accent : AppTheme.textSecondary,
                           ),
                         ),
                       ],

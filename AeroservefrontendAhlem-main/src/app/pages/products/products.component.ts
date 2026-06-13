@@ -917,8 +917,11 @@ export class ProductsComponent implements OnInit {
   load(): void {
     this.loading = true;
     const params: any = { no_paginate: true };
+    if (this.userRole === 'CHEF_CUISINE') {
+      params.all_types = true;
+    }
     // CHEF_CUISINE gets food/plat only from backend by default
-    // all_types=true only when recipe builder needs it (handled elsewhere)
+    // all_types=true is set when CHEF_CUISINE needs ingredients for recipe builder and validation
     this.api.get<any>('products', params).subscribe({
       next: res => {
         this.products = res.data || res;
@@ -973,6 +976,9 @@ export class ProductsComponent implements OnInit {
       filtered = filtered.filter(p => p.type === 'commercial' || p.type === 'matiere_premiere');
     } else if (this.filterType) {
       filtered = filtered.filter(p => p.type === this.filterType);
+    } else if (this.userRole === 'CHEF_CUISINE') {
+      // If no specific type filter is chosen, CHEF_CUISINE should only see food and plat products in the table list
+      filtered = filtered.filter(p => p.type === 'food' || p.type === 'plat');
     }
     if (this.filterApprovalStatus) {
       filtered = filtered.filter(p => p.approval_status === this.filterApprovalStatus);
@@ -1069,6 +1075,11 @@ export class ProductsComponent implements OnInit {
   isLockedField(fieldName: string): boolean {
     if (!this.editing) return false;
     if (this.isChefCuisine) return false;
+    if (this.isResponsableAchat) {
+      if (fieldName === 'price' || fieldName === 'category_id' || fieldName === 'description' || fieldName === 'image') {
+        return false;
+      }
+    }
     if (this.selectedProductApprovalStatus === 'approved') {
       const editableFields = ['description', 'usage_status', 'image', 'allergens'];
       return !editableFields.includes(fieldName);
@@ -1106,7 +1117,7 @@ export class ProductsComponent implements OnInit {
       return;
     }
 
-    if ((this.form.type === 'food' || this.form.type === 'plat') && this.recipeIngredients.some(ing => ing.product_id === 0)) {
+    if ((this.form.type === 'food' || this.form.type === 'plat') && this.recipeIngredients.some(ing => ing.product_id == 0)) {
       Swal.fire({
         title: 'Recette incomplète',
         text: 'Veuillez sélectionner un produit valide pour chaque ingrédient.',
@@ -1121,7 +1132,7 @@ export class ProductsComponent implements OnInit {
       const batchSize = this.form.quantity_per_batch || 1;
       const stockErrors: string[] = [];
       for (const ing of this.recipeIngredients) {
-        const prod = this.products.find(p => p.id === ing.product_id);
+        const prod = this.products.find(p => p.id == ing.product_id);
         const availableQty = prod?.stock?.quantity ?? 0;
         const requiredQty = ing.quantity * batchSize;
         if (requiredQty > availableQty) {
@@ -1206,38 +1217,85 @@ export class ProductsComponent implements OnInit {
 
   // ================= APPROVAL STATUS =================
   updateApprovalStatus(product: Product, status: 'approved' | 'rejected'): void {
-    Swal.fire({
-      title: status === 'approved' ? 'Approuver le produit ?' : 'Rejeter le produit ?',
-      text: `Voulez-vous ${status === 'approved' ? 'approuver' : 'rejeter'} le produit "${product.name}" ?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: status === 'approved' ? '#0D9488' : '#EF4444',
-      cancelButtonColor: '#475569',
-      confirmButtonText: status === 'approved' ? 'Oui, approuver' : 'Oui, rejeter',
-      cancelButtonText: 'Annuler'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        this.api.put(`products/${product.id}/approve`, { approval_status: status }).subscribe({
-          next: () => {
-            Swal.fire({
-              title: 'Succès !',
-              text: `Le produit a été ${status === 'approved' ? 'approuvé' : 'rejeté'}.`,
-              icon: 'success',
-              confirmButtonColor: '#0D9488'
-            });
-            this.load();
-          },
-          error: (err) => {
-            Swal.fire({
-              title: 'Erreur',
-              text: err.error?.message || 'Une erreur est survenue lors de la validation.',
-              icon: 'error',
-              confirmButtonColor: '#EF4444'
-            });
+    if (status === 'approved') {
+      Swal.fire({
+        title: 'Approuver le produit ?',
+        text: `Voulez-vous approuver le produit "${product.name}" ? Veuillez saisir le prix d'achat (TND) :`,
+        input: 'number',
+        inputAttributes: {
+          min: '0',
+          step: '0.01'
+        },
+        inputValue: String(product.price || 0),
+        showCancelButton: true,
+        confirmButtonColor: '#0D9488',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Approuver',
+        cancelButtonText: 'Annuler',
+        inputValidator: (value) => {
+          if (value === null || value === undefined || value.trim() === '' || isNaN(Number(value)) || Number(value) < 0) {
+            return 'Veuillez saisir un prix valide (supérieur ou égal à 0) !';
           }
-        });
-      }
-    });
+          return null;
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const priceVal = Number(result.value);
+          this.api.put(`products/${product.id}/approve`, { approval_status: status, price: priceVal }).subscribe({
+            next: () => {
+              Swal.fire({
+                title: 'Succès !',
+                text: 'Le produit a été approuvé avec succès.',
+                icon: 'success',
+                confirmButtonColor: '#0D9488'
+              });
+              this.load();
+            },
+            error: (err) => {
+              Swal.fire({
+                title: 'Erreur',
+                text: err.error?.message || 'Une erreur est survenue lors de la validation.',
+                icon: 'error',
+                confirmButtonColor: '#EF4444'
+              });
+            }
+          });
+        }
+      });
+    } else {
+      Swal.fire({
+        title: 'Rejeter le produit ?',
+        text: `Voulez-vous rejeter le produit "${product.name}" ?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#EF4444',
+        cancelButtonColor: '#475569',
+        confirmButtonText: 'Oui, rejeter',
+        cancelButtonText: 'Annuler'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.api.put(`products/${product.id}/approve`, { approval_status: status }).subscribe({
+            next: () => {
+              Swal.fire({
+                title: 'Succès !',
+                text: 'Le produit a été rejeté.',
+                icon: 'success',
+                confirmButtonColor: '#0D9488'
+              });
+              this.load();
+            },
+            error: (err) => {
+              Swal.fire({
+                title: 'Erreur',
+                text: err.error?.message || 'Une erreur est survenue lors de la validation.',
+                icon: 'error',
+                confirmButtonColor: '#EF4444'
+              });
+            }
+          });
+        }
+      });
+    }
   }
 
   // ================= DELETE =================

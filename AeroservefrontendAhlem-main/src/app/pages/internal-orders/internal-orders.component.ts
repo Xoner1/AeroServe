@@ -588,6 +588,18 @@ interface CartItem {
                   <h3 style="font-size: 16px; margin-bottom: 16px;">Planification de la Livraison</h3>
                   
                   <div class="scheduling-block">
+                    @if (userRole === 'RESPONSABLE_FB' || userRole === 'SUPER_ADMIN') {
+                      <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="display: block; margin-bottom: 6px; font-weight: 500;">Point de Vente *</label>
+                        <select [(ngModel)]="form.pdv_id" name="pdv_id" class="date-input" required style="width: 100%; max-width: 260px; padding: 8px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text-primary); outline: none;">
+                          <option value="" disabled selected>— Sélectionner un PDV —</option>
+                          @for (p of pdvs; track p.id) {
+                            <option [value]="p.id">{{ p.name }}</option>
+                          }
+                        </select>
+                      </div>
+                    }
+
                     <div class="form-group">
                       <label>Date de livraison souhaitée *</label>
                       <input type="date" [(ngModel)]="form.delivery_date" name="delivery_date" class="date-input" required />
@@ -602,6 +614,9 @@ interface CartItem {
                   <div class="order-summary" style="margin-top: 16px;">
                     <h4 style="font-size: 13px; font-weight:600; margin-bottom: 8px;">Récapitulatif de la Demande</h4>
                     <p><strong>Type:</strong> {{ userRole === 'CHEF_CUISINE' ? 'Matières Premières' : (form.type === 'food' ? 'Alimentaire' : 'Commercial') }}</p>
+                    @if (form.pdv_id) {
+                      <p><strong>Point de Vente:</strong> {{ getPdvName(form.pdv_id) }}</p>
+                    }
                     <p><strong>Date de Livraison:</strong> {{ form.delivery_date ? (form.delivery_date | date:'dd/MM/yyyy') : 'Non renseignée' }}</p>
                     <p><strong>Articles demandés:</strong> {{ cart.length }} référence(s)</p>
                     <ul style="margin-top: 8px;">
@@ -623,7 +638,7 @@ interface CartItem {
                 @if (wizardStep < 3) {
                   <button type="button" class="btn btn-primary" [disabled]="(wizardStep === 2 && cart.length === 0)" (click)="goStep(wizardStep + 1)">Suivant</button>
                 } @else {
-                  <button type="button" class="btn btn-primary" (click)="submitOrder()" [disabled]="saving || !form.delivery_date">
+                  <button type="button" class="btn btn-primary" (click)="submitOrder()" [disabled]="saving || !form.delivery_date || ((userRole === 'RESPONSABLE_FB' || userRole === 'SUPER_ADMIN') && !form.pdv_id)">
                     {{ saving ? 'Transmission...' : 'Confirmer & Commander' }}
                   </button>
                 }
@@ -814,7 +829,7 @@ export class InternalOrdersComponent implements OnInit {
     { n: 3, label: 'Date & Notes' },
   ];
 
-  form: any = { type: '', notes: '', delivery_date: '' };
+  form: any = { type: '', notes: '', delivery_date: '', pdv_id: '' };
 
   categories: Category[] = [];
   filteredCategories: Category[] = [];
@@ -836,6 +851,7 @@ export class InternalOrdersComponent implements OnInit {
 
   currentUser: any;
   userRole = '';
+  pdvs: any[] = [];
 
   constructor(
     private api: ApiService,
@@ -846,6 +862,16 @@ export class InternalOrdersComponent implements OnInit {
     this.currentUser = this.auth.getCurrentUser();
     this.userRole = this.currentUser?.role?.name || '';
     this.load();
+    if (this.userRole === 'RESPONSABLE_FB' || this.userRole === 'SUPER_ADMIN') {
+      this.loadPdvs();
+    }
+  }
+
+  loadPdvs(): void {
+    this.api.get<any>('points-de-vente').subscribe({
+      next: res => this.pdvs = res.data || res,
+      error: err => console.error('Error loading PDVs', err)
+    });
   }
 
   load(): void {
@@ -900,7 +926,7 @@ export class InternalOrdersComponent implements OnInit {
 
   openCreateModal(): void {
     this.wizardStep = this.userRole === 'CHEF_CUISINE' ? 2 : 1;
-    this.form = { type: this.userRole === 'CHEF_CUISINE' ? 'commercial' : '', notes: '', delivery_date: '' };
+    this.form = { type: this.userRole === 'CHEF_CUISINE' ? 'commercial' : '', notes: '', delivery_date: '', pdv_id: '' };
     this.selectedCategories = [];
     this.availableProducts = [];
     this.cart = [];
@@ -909,6 +935,11 @@ export class InternalOrdersComponent implements OnInit {
     if (this.userRole === 'CHEF_CUISINE') {
       this.loadFilteredCategoriesAndProducts();
     }
+  }
+
+  getPdvName(id: any): string {
+    const pdv = this.pdvs.find(p => p.id == id);
+    return pdv ? pdv.name : '-';
   }
 
   goStep(n: number): void {
@@ -1029,6 +1060,10 @@ export class InternalOrdersComponent implements OnInit {
       this.saveError = 'Please select a delivery date.';
       return;
     }
+    if ((this.userRole === 'RESPONSABLE_FB' || this.userRole === 'SUPER_ADMIN') && !this.form.pdv_id) {
+      this.saveError = 'Please select a Point de Vente.';
+      return;
+    }
     this.saving = true;
     this.saveError = '';
 
@@ -1036,6 +1071,7 @@ export class InternalOrdersComponent implements OnInit {
       type: this.form.type,
       notes: this.form.notes,
       delivery_date: this.form.delivery_date,
+      pdv_id: this.form.pdv_id ? Number(this.form.pdv_id) : null,
       items: this.cart.map(i => ({
         product_id: i.product.id,
         quantity_requested: i.quantity

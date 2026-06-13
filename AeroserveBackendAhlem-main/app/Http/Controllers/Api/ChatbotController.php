@@ -33,18 +33,10 @@ class ChatbotController extends Controller
 
         // ─── 1. CAISSIER RESTRICTIONS ──────────────────────────────────────────
         if ($userRole === 'CAISSIER') {
-            if (!$productId) {
-                return response()->json([
-                    'success'  => true,
-                    'response' => "Assistant Qualite et Sante (Mode Client) : Bonjour {$userName} !\n\nEn tant que Caissier, je suis configure pour repondre exclusivement aux questions des clients concernant la composition, les allergenes et la securite de nos plats et boissons.\n\nVeuillez scanner le code QR d'un produit ou le selectionner depuis sa fiche pour poser vos questions (ex: intolerance au gluten, lactose, arachides, diabete, etc.).",
-                    'source'   => 'cashier_restriction_engine'
-                ]);
-            }
-
             if ($this->isForbiddenForCashier($message)) {
                 return response()->json([
                     'success'  => true,
-                    'response' => "Acces limite : En tant que Caissier, vous pouvez uniquement poser des questions sur les allergenes, les ingredients ou la compatibilite sante de ce produit pour repondre aux clients. Les questions administratives, financieres ou logistiques (stocks, commandes, plannings, utilisateurs) ne sont pas autorisees pour ce role.",
+                    'response' => "Acces limite : En tant que Caissier, vous pouvez uniquement poser des questions sur les allergenes, les ingredients ou la compatibilite sante de nos produits pour repondre aux clients. Les questions administratives, financieres ou logistiques (stocks, commandes, plannings, utilisateurs) ne sont pas autorisees pour ce role.",
                     'source'   => 'cashier_restriction_engine'
                 ]);
             }
@@ -74,6 +66,55 @@ class ChatbotController extends Controller
                 return response()->json(['success' => false, 'message' => 'Produit non trouve.'], 404);
             }
 
+            // Programmatic Guardrail: If no hygiene reports exist AND there is no substantial ingredients list,
+            // check if the question is health-related and return a safe message immediately to prevent hallucinations.
+            $desc = trim($product->description ?? '');
+            $hasHygiene = $product->hygieneReports->isNotEmpty();
+            $hasIngredients = !empty($desc) && strlen($desc) > 15 && !preg_match('/^\d+(\.\d+)?\s*(l|ml|cl|g|kg|can|piece|pcs|gazeuz)$/i', $desc);
+
+            $isHealthQuestion = false;
+            $healthKeywords = [
+                // French/English/German/Spanish/Italian stems
+                'allergen', 'allerg', 'gluten', 'lactose', 'arachid', 'diabét', 'diabet',
+                'sant', 'health', 'gesund', 'salud', 'salute',
+                'sécurit', 'securit', 'sicher', 'segur', 'sicur',
+                'ingréd', 'ingred', 'zutat',
+                'compos', 'inhalt',
+                'calor', 'nutri', 'conforme', 'hygièn', 'hygien', 'malad',
+                // Arabic
+                'حساسية', 'جلوتين', 'لاكتوز', 'مكونات', 'صحة', 'مرض',
+                'سكري', 'مريض', 'أمان', 'سليم', 'تسمم', 'انتهاء', 'تاريخ',
+                'مكسرات', 'صويا', 'سمك', 'بيض', 'قمح', 'حليب',
+            ];
+            $messageLower = mb_strtolower($message);
+            foreach ($healthKeywords as $kw) {
+                if (str_contains($messageLower, $kw)) {
+                    $isHealthQuestion = true;
+                    break;
+                }
+            }
+
+            if ($userRole === 'CAISSIER' || $userRole === 'GUEST' || $isHealthQuestion) {
+                if (!$hasHygiene && !$hasIngredients) {
+                    $lang = $this->detectMessageLanguage($message);
+                    $warnings = [
+                        'ar' => "عذراً، لم يتم تسجيل أي تقرير صحي رسمي أو قائمة مكونات مفصلة للمنتج \"" . $product->name . "\" من قبل مسؤول النظافة والسلامة الصحية (RESPONSABLE_HYGIENE). لدواعي السلامة، لا يمكن تقديم أي نصيحة صحية أو معلومات حول توافق الحساسية لهذا المنتج.",
+                        'fr' => "Désolé, aucun rapport officiel d'hygiène ou liste détaillée d'ingrédients n'a été enregistré pour le produit \"" . $product->name . "\" par le responsable Hygiène (RESPONSABLE_HYGIENE). Par sécurité, aucun conseil de santé ou de compatibilité allergène ne peut être donné pour ce produit.",
+                        'en' => "Sorry, no official hygiene report or detailed ingredients list has been recorded for the product \"" . $product->name . "\" by the hygiene officer (RESPONSABLE_HYGIENE). For safety reasons, no health advice or allergen compatibility information can be provided for this product.",
+                        'es' => "Lo sentimos, el responsable de higiene (RESPONSABLE_HYGIENE) no ha registrado ningún informe oficial de higiene ni una lista detallada de ingredientes para el producto \"" . $product->name . "\". Por razones de seguridad, no se pueden proporcionar consejos de salud o información de compatibilidad de alérgenos para este producto.",
+                        'it' => "Spiacenti, non è stato registrato alcun rapporto ufficiale di igiene o elenco dettagliato degli ingredienti per il prodotto \"" . $product->name . "\" da parte del responsabile dell'igiene (RESPONSABLE_HYGIENE). Per motivi di sicurezza, non è possibile fornire consigli sulla salute o informazioni sulla compatibilité con gli allergeni per questo prodotto.",
+                        'de' => "Entschuldigung, für das Produkt \"" . $product->name . "\" wurde vom Hygienebeauftragten (RESPONSABLE_HYGIENE) kein offizieller Hygienebericht oder eine detaillierte Zutatenliste erfasst. Aus Sicherheitsgründen können für dieses Produkt keine Gesundheitsratschläge oder Informationen zur Allergenverträglichkeit bereitgestellt werden."
+                    ];
+                    $responseMsg = $warnings[$lang] ?? $warnings['en'];
+
+                    return response()->json([
+                        'success'  => true,
+                        'response' => $responseMsg,
+                        'source'   => 'hygiene_guardrail_engine'
+                    ]);
+                }
+            }
+
             $ingredients   = $product->description ?? 'Aucun ingredient specifie.';
             $productContext = "Voici les details du produit alimentaire actuel :\n" .
                               "Produit: {$product->name}\n" .
@@ -93,7 +134,7 @@ class ChatbotController extends Controller
                     $expStr      = $report->expiration_verified ? "Date d'expiration verifiee" : "Date d'expiration non verifiee";
                     $hygieneReportsContext .= "- Statut: {$statusStr} | {$allergensStr} | {$expStr}\n";
                     if ($report->remarks) {
-                        $hygieneReportsContext .= "  Remarques de l'officier d'hygiene: \"{$report->remarks}\"\n";
+                        $hygieneReportsContext .= "  Remarques de l'officier d'hygiene (RESPONSABLE_HYGIENE): \"{$report->remarks}\"\n";
                     }
                 }
             } else {
@@ -101,30 +142,38 @@ class ChatbotController extends Controller
             }
         }
 
-        // Build system role prompt
-        if ($userRole === 'CAISSIER') {
-            $systemRole = "Tu es l'assistant nutritionnel du Caissier de AeroServe en contact direct avec les clients.\n" .
-                          "Tu dois repondre exclusivement aux questions des clients (rapportees par le caissier) concernant la composition, les allergenes et la compatibilite de ce produit avec les maladies ou regimes (ex: intolerance au gluten, au lactose, arachides, diabete, hypertension, etc.).\n" .
+        // Build system role prompt with XML separation and strict grounding directives
+        if ($userRole === 'CAISSIER' || $userRole === 'GUEST') {
+            $roleTitle = $userRole === 'GUEST'
+                ? "Tu es l'assistant clientèle officiel d'AeroServe pour les visiteurs et voyageurs de l'aéroport."
+                : "Tu es l'assistant nutritionnel du Caissier de AeroServe en contact direct avec les clients.";
+
+            $systemRole = "<role>\n" .
+                          $roleTitle . "\n" .
+                          "</role>\n\n" .
+                          "<context>\n" .
                           $productContext . "\n" .
                           $hygieneReportsContext . "\n" .
-                          "Directives strictes de securite et de role :\n" .
-                          "- Reponds de maniere concise, chaleureuse, et professionnelle dans la meme langue que la question (arabe, francais, etc.).\n" .
-                          "- Base-toi STRICTEMENT sur les ingredients du produit et les remarques/declarations pre-configurees par le responsable Hygiene pour evaluer la securite du produit.\n" .
-                          "- Ne reponds a AUCUNE question ne concernant pas les aspects nutritionnels, allergenes ou de sante de ce produit specifique.\n" .
-                          "- TU NE DOIS JAMAIS divulguer d'informations d'autres comptes, utilisateurs, stocks generaux, commandes ou plannings.\n" .
-                          "- Refuse poliment toute question en dehors de la sante et des allergenes de ce produit.\n" .
-                          "- N'utilise absolument aucun emoji dans tes reponses.";
+                          "</context>\n\n" .
+                          "<directives_strictes>\n" .
+                          "1. SÉCURITÉ ALIMENTAIRE STRICTE : Tu as L'INTERDICTION ABSOLUE d'utiliser tes propres connaissances pré-entraînées ou de faire des suppositions sur la composition, la santé, la sécurité, ou la présence d'allergènes dans le produit. Ne te fie qu'aux données écrites textuellement dans le <context> ci-dessus.\n" .
+                          "2. MODE D'ÉCHEC (Pas de données) : Si le produit n'a aucun ingrédient listé dans le context, ou si la section 'Remarques du responsable Hygiene' est absente ou vide, tu DOIS obligatoirement répondre dans la langue du client (comme le français, l'arabe, l'anglais, etc.) : 'Désolé, aucune fiche d'hygiène officielle ou rapport de conformité n'a encore été enregistré pour ce produit. Par sécurité, je ne peux pas me prononcer.'\n" .
+                          "3. RÉPONSES AUX ALLERGÈNES : Si le client pose une question sur un allergène (ex: gluten, arachide, lactose) et que cet allergène n'est pas spécifié comme vérifié et absent dans le <context> fourni, réponds que l'information n'est pas confirmée officiellement et conseille-lui de ne pas consommer le produit par précaution.\n" .
+                          "4. TON ET STYLE : Réponds de manière concise, polie, chaleureuse et professionnelle dans la même langue que la question (arabe, français, anglais, espagnol, italien, allemand, etc.). N'utilise absolument aucun emoji dans tes réponses.\n" .
+                          "5. RESTRICTION DE RÔLE : Ne réponds à aucune question concernant l'administration de l'entreprise, les stocks en réserve, les plannings du personnel, les commandes internes ou les données financières. Tu es uniquement là pour assister le client sur les produits et la restauration d'AeroServe.\n" .
+                          "</directives_strictes>";
         } else {
             $systemRole = "Tu es l'assistant intelligent et le copilote de l'application de restauration AeroServe.\n" .
                           "L'utilisateur connecte s'appelle {$userName} avec le role: {$userRole}.\n" .
                           $userContext . "\n" .
-                          ($productId ? $productContext . "\n" . $hygieneReportsContext . "\n" : "") .
+                          ($productId ? "<context>\n" . $productContext . "\n" . $hygieneReportsContext . "\n" . "</context>\n" : "") .
                           "Directives strictes de securite :\n" .
                           "- {$roleInstruction}\n" .
                           "- Tu ne dois repondre a AUCUNE question qui ne concerne pas directement l'application AeroServe (produits, stocks, commandes, plannings, menus, hygiene, utilisateurs, points de vente). Meme les salutations simples ou les questions hors-sujet doivent etre refusees poliment avec : 'Je suis desole, je suis uniquement un assistant operationnel pour l'application AeroServe.'\n" .
                           "- TU NE DOIS JAMAIS divulguer de donnees, de profils, d'e-mails, d'informations de stocks, de commandes ou de plannings concernant d'autres comptes ou roles.\n" .
                           "- Reste strictement cantonne aux sujets et perimetres autorises pour ton role.\n" .
                           "- Tu dois assister l'utilisateur connecte uniquement pour les taches requises par son propre travail.\n" .
+                          "- Si tu parles de la composition ou des allergenes d'un produit, base-toi STRICTEMENT sur les informations du <context> et ne fais aucune supposition en dehors des rapports officiels du responsable Hygiene (RESPONSABLE_HYGIENE).\n" .
                           "- Si l'utilisateur pose une question sur un autre compte, un autre utilisateur, ou en dehors de ses responsabilites professionnelles, refuse poliment d'y repondre en mentionnant la limite de ses droits.\n" .
                           "- Reponds de maniere concise, polie et dans la meme langue que celle de la question.\n" .
                           "- N'utilise absolument aucun emoji dans tes reponses.\n" .
@@ -154,7 +203,7 @@ class ChatbotController extends Controller
                     'messages'    => $messages,
                     'tools'       => $tools,
                     'tool_choice' => 'auto',
-                    'temperature' => 0.5,
+                    'temperature' => 0.1,
                     'max_tokens'  => 800,
                 ]);
 
@@ -185,7 +234,7 @@ class ChatbotController extends Controller
                         ])->post($url, [
                             'model'       => 'gpt-4o-mini',
                             'messages'    => $messages,
-                            'temperature' => 0.5,
+                            'temperature' => 0.1,
                             'max_tokens'  => 800,
                         ]);
 
@@ -241,7 +290,7 @@ class ChatbotController extends Controller
                     'messages'    => $messages,
                     'tools'       => $tools,
                     'tool_choice' => 'auto',
-                    'temperature' => 0.6,
+                    'temperature' => 0.1,
                     'max_tokens'  => 800,
                 ]);
 
@@ -270,7 +319,7 @@ class ChatbotController extends Controller
                         ])->post($url, [
                             'model'       => 'llama-3.1-8b-instant',
                             'messages'    => $messages,
-                            'temperature' => 0.6,
+                            'temperature' => 0.1,
                             'max_tokens'  => 800,
                         ]);
 
@@ -323,6 +372,7 @@ class ChatbotController extends Controller
                     ->post($url, [
                         'contents' => $contents,
                         'tools'    => [['function_declarations' => $functionDeclarations]],
+                        'generationConfig' => ['temperature' => 0.1],
                     ]);
 
                 if ($response->successful()) {
@@ -364,6 +414,7 @@ class ChatbotController extends Controller
                             ->post($url, [
                                 'contents' => $contentsWithResult,
                                 'tools'    => [['function_declarations' => $functionDeclarations]],
+                                'generationConfig' => ['temperature' => 0.1],
                             ]);
 
                         if ($finalResp->successful()) {
@@ -678,9 +729,9 @@ class ChatbotController extends Controller
         ];
 
         $allowedKeywords = [
-            'allerg', 'allergi', 'gluten', 'lactose', 'arachide', 'œuf', 'oeuf', 'ingréd', 'compos', 'calor',
-            'nutrit', 'diabète', 'diabete', 'coeliaque', 'cœliaque', 'sensibl', 'malad', 'manger', 'sain', 'ingred',
-            'lait', 'fromage', 'farine', 'blé', 'sucre', 'sel', 'gras', 'hygiene', 'hygiène', 'santé', 'sante',
+            'allerg', 'allergi', 'gluten', 'lactose', 'arachid', 'œuf', 'oeuf', 'ingréd', 'ingred', 'compos', 'calor',
+            'nutri', 'diabét', 'diabet', 'coeliaque', 'cœliaque', 'sensibl', 'malad', 'manger', 'sain',
+            'lait', 'fromage', 'farine', 'blé', 'sucre', 'sel', 'gras', 'hygien', 'hygièn', 'sant',
             'حساسية', 'جلوتين', 'لاكتوز', 'مكونات', 'صحة', 'مرض', 'سكري', 'ضغط', 'حليب', 'بيض', 'قمح', 'مريض', 'أكل', 'تناول',
             'صالح', 'تسمم', 'تاريخ', 'انتهاء', 'أمان', 'سليم', 'عنب', 'مكسرات', 'فول صويا', 'سمك',
         ];
@@ -855,5 +906,82 @@ class ChatbotController extends Controller
         }
 
         return $context;
+    }
+
+    /**
+     * Detect user query language from content keywords or fallback to Accept-Language header.
+     */
+    private function detectMessageLanguage(string $message): string
+    {
+        $msgLower = mb_strtolower($message);
+
+        // 1. Arabic script check
+        if (preg_match('/\p{Arabic}/u', $message)) {
+            return 'ar';
+        }
+
+        // 2. Spanish keywords
+        $esKeywords = ['este', 'producto', 'sano', 'salud', 'diabetico', 'alerg', 'ingrediente', 'comer', 'contiene', 'seguro'];
+        // 3. Italian keywords
+        $itKeywords = ['questo', 'prodotto', 'sano', 'salute', 'diabetico', 'allergi', 'ingrediente', 'mangiare', 'contiene', 'sicuro'];
+        // 4. German keywords
+        $deKeywords = ['dieses', 'produkt', 'gesund', 'gesundheit', 'diabetiker', 'allergie', 'zutat', 'essen', 'enthalt', 'sicher'];
+        // 5. French keywords
+        $frKeywords = ['est-ce', 'produit', 'sain', 'sante', 'diabete', 'diabetique', 'allerg', 'ingredient', 'manger', 'contient', 'securite'];
+        // 6. English keywords
+        $enKeywords = ['is', 'this', 'product', 'safe', 'healthy', 'health', 'diabet', 'allerg', 'ingredient', 'contain', 'lactose', 'gluten'];
+
+        $esCount = 0;
+        foreach ($esKeywords as $kw) {
+            if (str_contains($msgLower, $kw)) $esCount++;
+        }
+
+        $itCount = 0;
+        foreach ($itKeywords as $kw) {
+            if (str_contains($msgLower, $kw)) $itCount++;
+        }
+
+        $deCount = 0;
+        foreach ($deKeywords as $kw) {
+            if (str_contains($msgLower, $kw)) $deCount++;
+        }
+
+        $frCount = 0;
+        foreach ($frKeywords as $kw) {
+            if (str_contains($msgLower, $kw)) $frCount++;
+        }
+
+        $enCount = 0;
+        foreach ($enKeywords as $kw) {
+            if (str_contains($msgLower, $kw)) $enCount++;
+        }
+
+        $scores = [
+            'es' => $esCount,
+            'it' => $itCount,
+            'de' => $deCount,
+            'fr' => $frCount,
+            'en' => $enCount
+        ];
+
+        arsort($scores);
+        $bestLang = key($scores);
+        $bestScore = current($scores);
+
+        if ($bestScore > 0) {
+            return $bestLang;
+        }
+
+        // Default: Check browser Accept-Language header
+        $acceptLang = request()->header('Accept-Language');
+        if ($acceptLang) {
+            $langs = explode(',', $acceptLang);
+            $primary = strtolower(substr(trim($langs[0]), 0, 2));
+            if (in_array($primary, ['en', 'fr', 'ar', 'es', 'it', 'de'])) {
+                return $primary;
+            }
+        }
+
+        return 'en';
     }
 }

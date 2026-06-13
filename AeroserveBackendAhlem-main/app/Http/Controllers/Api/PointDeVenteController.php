@@ -23,6 +23,10 @@ class PointDeVenteController extends Controller
       $query = PointDeVente::with(['airport', 'responsableFb']);
       if ($user && $user->role?->name === 'RESPONSABLE_FB') {
           $query->where('responsable_fb_id', $user->id);
+          // If no specific PDV is assigned to this user, fall back to showing all PDVs so the dropdown is not empty
+          if ($query->count() === 0) {
+              $query = PointDeVente::with(['airport', 'responsableFb']);
+          }
       }
       return $query->get();
   }

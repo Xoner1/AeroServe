@@ -96,21 +96,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 if (user?.roleName != null) ...[
                   const SizedBox(height: AppTheme.spacingS),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
-                    decoration: BoxDecoration(
-                      color: AppTheme.accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusFull),
-                    ),
-                    child: Text(
-                      user!.roleName!.toUpperCase(),
-                      style: GoogleFonts.inter(
-                        color: AppTheme.accent,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                        letterSpacing: 0.5,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
+                        decoration: BoxDecoration(
+                          color: AppTheme.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                        ),
+                        child: Text(
+                          user!.roleName!.toUpperCase(),
+                          style: GoogleFonts.inter(
+                            color: AppTheme.accent,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (user.roleName == 'CAISSIER' || user.roleName == 'RESPONSABLE_FB')
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingM, vertical: AppTheme.spacingXXS),
+                          decoration: BoxDecoration(
+                            color: (user.pdvName != null) ? AppTheme.success.withValues(alpha: 0.1) : AppTheme.textSecondary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppTheme.radiusFull),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.storefront_rounded,
+                                size: 11,
+                                color: (user.pdvName != null) ? AppTheme.success : AppTheme.textSecondary,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                user.pdvName ?? 'Aucun PDV',
+                                style: GoogleFonts.inter(
+                                  color: (user.pdvName != null) ? AppTheme.success : AppTheme.textSecondary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ),
                 ],
                 const Divider(color: AppTheme.divider, height: 24),

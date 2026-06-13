@@ -17,7 +17,7 @@ class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Product::with('category', 'creator', 'stock');
+        $query = Product::with('category', 'creator', 'stock', 'hygieneReports');
 
         $user = auth()->user();
         $role = $user->role?->name;
@@ -39,9 +39,9 @@ class ProductController extends Controller
             $query->whereIn('type', ['commercial', 'matiere_premiere']);
         }
 
-        // Responsable Hygiene: only approved FOOD products (chef-made items, not commercial goods)
+        // Responsable Hygiene: only approved FOOD and PLAT products (chef-made items, not commercial goods)
         if ($role === 'RESPONSABLE_HYGIENE') {
-            $query->where('type', 'food')
+            $query->whereIn('type', ['food', 'plat'])
                   ->where('approval_status', 'approved');
         }
 
@@ -87,7 +87,7 @@ class ProductController extends Controller
                 'name' => 'required|string|max:255|unique:products,name',
                 'description' => 'nullable|string',
                 'type' => 'required|in:food,plat',
-                'category_id' => 'required|exists:categories,id',
+                'category_id' => 'nullable|exists:categories,id',
                 'image' => 'nullable|image|max:2048',
                 'quantity_per_batch' => 'required|integer|min:1',
                 'ingredients' => 'required|array|min:1',
@@ -100,7 +100,7 @@ class ProductController extends Controller
                 'name' => 'required|string|max:255|unique:products,name',
                 'description' => 'nullable|string',
                 'type' => 'required|in:commercial,matiere_premiere,food,plat',
-                'category_id' => 'required|exists:categories,id',
+                'category_id' => 'required_unless:type,food,plat|exists:categories,id',
                 'price' => 'nullable|numeric|min:0',
                 'image' => 'nullable|image|max:2048',
                 'allergens' => 'nullable|array',
@@ -116,7 +116,7 @@ class ProductController extends Controller
                     'message' => 'Le type du produit ne correspond pas à la catégorie.'
                 ], 422);
             }
-        } elseif ($request->type !== 'food') {
+        } elseif (!in_array($request->type, ['food', 'plat'])) {
             return response()->json([
                 'message' => 'La catégorie est obligatoire pour ce type de produit.'
             ], 422);
@@ -247,50 +247,47 @@ class ProductController extends Controller
         $user = auth()->user();
         $role = $user->role?->name;
 
-        // Prevent modification if approval_status is not 'pending' for Chef Magasin
+        // Chef Magasin: can only update usage_status or image for approved/rejected products
         if ($role === 'CHEF_MAGASIN' && $product->approval_status !== 'pending') {
-            // Chef Magasin can only update usage_status or image for approved/rejected products
-            if (!empty(array_diff(array_keys($request->all()), ['usage_status', 'image']))) {
-                return response()->json([
-                    'message' => 'Vous ne pouvez pas modifier ce produit après approbation ou rejet.'
-                ], 403);
+            $request->validate([
+                'usage_status' => 'sometimes|in:IN_USE,NOT_IN_USE,OUT_OF_STOCK',
+                'image' => 'nullable|image|max:2048',
+            ]);
+
+            $data = $request->only(['usage_status']);
+
+            if ($request->hasFile('image')) {
+                if ($product->image && \Illuminate\Support\Facades\Storage::disk('public')->exists($product->image)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+                }
+                $data['image'] = $request->file('image')->store('products', 'public');
             }
+
+            $oldStatus = $product->usage_status;
+            $product->update($data);
+
+            $title = 'Produit modifié';
+            $msg = "Le produit \"{$product->name}\" a été modifié par le Chef Magasin.";
+            if ($request->has('usage_status') && $request->usage_status === 'OUT_OF_STOCK' && $oldStatus !== 'OUT_OF_STOCK') {
+                $title = 'Rupture de stock';
+                $msg = "Le produit \"{$product->name}\" est désormais en rupture de stock (OUT_OF_STOCK).";
+            }
+
+            $this->notifyResponsableAchat(
+                $title,
+                $msg,
+                $request->usage_status === 'OUT_OF_STOCK' ? 'warning' : 'info',
+                ['product_id' => $product->id]
+            );
+
+            return response()->json([
+                'message' => 'Statut d\'utilisation mis à jour.',
+                'product' => $product->fresh()->load('category', 'stock'),
+            ]);
         }
 
         // Chef Magasin: can only update if product is pending
-        // If approved, can only change usage_status or image
         if ($role === 'CHEF_MAGASIN') {
-            if ($product->approval_status === 'approved') {
-                $request->validate([
-                    'usage_status' => 'sometimes|in:IN_USE,NOT_IN_USE,OUT_OF_STOCK',
-                    'image' => 'nullable|image|max:2048',
-                ]);
-
-                $data = $request->only(['usage_status']);
-
-                if ($request->hasFile('image')) {
-                    if ($product->image && Storage::disk('public')->exists($product->image)) {
-                        Storage::disk('public')->delete($product->image);
-                    }
-                    $data['image'] = $request->file('image')->store('products', 'public');
-                }
-
-                $product->update($data);
-
-                if ($role === 'CHEF_MAGASIN') {
-                    $this->notifyResponsableAchat(
-                        'Produit modifié',
-                        "Le produit \"{$product->name}\" a été modifié par le Chef Magasin.",
-                        'info',
-                        ['product_id' => $product->id]
-                    );
-                }
-
-                return response()->json([
-                    'message' => 'Statut d\'utilisation mis à jour.',
-                    'product' => $product->fresh()->load('category', 'stock'),
-                ]);
-            }
 
             // Pending: can update basic fields, image
             $request->validate([

@@ -921,3 +921,78 @@ Lecture partagée : /products (read), /categories, /internal-orders (read), /sto
 | Chatbot restriction Caissier | Questions hors santé rejetées | `isForbiddenForCashier()` |
 | Données sensibles | `password` hidden dans User model, `approval_status` verrouillé après approbation | `User.php` casts + `products.component.ts` isLockedField() |
 | CORS | Origins configurées dans `.env` | `config/cors.php` |
+
+---
+
+## 10. Application Mobile Flutter — Architecture du code
+
+```
+aeroservemobileahlem-main/lib/
+├── core/
+│   ├── app_theme.dart         ← Design system (couleurs, spacing, radius)
+│   └── app_icons.dart         ← Icônes centralisées
+├── models/
+│   └── models.dart            ← Toutes les classes Dart (User, Planning, Product, HygieneReport…)
+├── providers/
+│   └── auth_provider.dart     ← ChangeNotifier : login, logout, user courant
+├── services/
+│   └── api_service.dart       ← Wrapper HTTP : get/post/put/delete avec token JWT
+└── screens/
+    ├── login_screen.dart       ← Connexion + configuration URL serveur (icône ⚙️)
+    ├── home_screen.dart        ← Nav bas + polling notifications (15s)
+    ├── dashboard_screen.dart   ← KPIs multi-rôles
+    ├── orders_screen.dart      ← Commandes internes + catalogue interactif
+    ├── planning_screen.dart    ← Planning personnel avec badge PDV par shift
+    ├── profile_screen.dart     ← Profil + badge PDV + notifications
+    ├── chatbot_screen.dart     ← Chatbot IA (sans product_id requis pour CAISSIER)
+    ├── cashier_kanban_screen.dart ← Onglets Actifs/Inactifs + assignation PDV
+    ├── hygiene_products_screen.dart ← Liste produits food approuvés + badge conformité
+    ├── hygiene_check_screen.dart    ← Formulaire inspection + soumission rapport
+    ├── menu_planning_screen.dart    ← Planning des menus
+    ├── sales_screen.dart            ← Ventes (SUPER_ADMIN)
+    └── stock_alerts_screen.dart     ← Alertes stock bas
+```
+
+### Navigation par rôle (`home_screen.dart`)
+
+| Rôle | Onglets disponibles |
+|------|---------------------|
+| `SUPER_ADMIN` | Dashboard, Commandes, Ventes, Stocks, Planning, Profil |
+| `RESPONSABLE_FB` | Dashboard, Commandes, Caissiers, Planning, Profil |
+| `CHEF_CUISINE` | Dashboard, Commandes, Menus, Stocks, Profil |
+| `CHEF_MAGASIN` | Dashboard, Commandes, Stocks, Profil |
+| `RESPONSABLE_ACHAT` | Dashboard, Profil |
+| `RESPONSABLE_HYGIENE` | Contrôle Produits, Profil |
+| `CAISSIER` | Planning, Chatbot IA, Profil |
+
+### Modèle `Planning.fromJson()` — Parsing du PDV
+
+```dart
+// Supporte snake_case (Laravel) ET camelCase (fallback)
+final pdv = json['point_de_vente'] ?? json['pointDeVente'];
+if (pdv is Map) {
+  pName = pdv['name'];
+  pId   = pdv['id'];
+}
+```
+
+### Badge de conformité hygiène — Logique de tri
+
+```dart
+// hygiene_products_screen.dart
+// Trier par created_at DESC → prendre le plus récent
+final sorted = List.from(reports)
+  ..sort((a, b) => DateTime.parse(b['created_at'])
+      .compareTo(DateTime.parse(a['created_at'])));
+final latest = sorted.first;
+```
+
+### Chatbot Caissier — Sans scan requis
+
+```dart
+// chatbot_screen.dart — product_id n'est plus obligatoire
+await ApiService.post('/chatbot/ask', {
+  'message': _input,
+  // product_id omis → le backend accepte sans product_id pour CAISSIER
+});
+```

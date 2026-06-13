@@ -193,12 +193,16 @@ class DashboardController extends Controller
             $roleData['message'] = 'Bienvenue sur votre espace.';
         }
 
+        // Fetch recent orders with items and products for the mobile dashboard
+        $recentOrders = InternalOrder::with('items.product')->latest()->limit(5)->get();
+
         return response()->json([
             'low_stock_count' => $lowStockCount,
             'expired_products_count' => $expiredCount,
 
             // New metrics
             'active_users' => $activeUsers,
+            'total_users' => $activeUsers, // Align with mobile model
             'pending_orders' => $pendingOrders,
             'processed_today' => $processedToday,
             'delayed_orders' => $delayedOrders,
@@ -206,6 +210,7 @@ class DashboardController extends Controller
             'warehouse_load' => $warehouseLoad,
             'total_waste' => $totalWaste,
             'waste_trend' => $wasteTrend,
+            'recent_orders' => $recentOrders, // Align with mobile model
 
             // Role specific
             'role_specific' => $roleData,
