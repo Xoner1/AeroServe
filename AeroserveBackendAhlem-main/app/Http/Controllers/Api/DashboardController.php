@@ -30,7 +30,7 @@ class DashboardController extends Controller
         $lowStockCount = Stock::whereColumn('quantity', '<=', 'min_threshold')->count();
 
         // Expired products count
-        $expiredCount = Product::where('expiration_date', '<', now())->where('is_active', true)->count();
+        $expiredCount = StockMovement::where('type', 'in')->whereNotNull('expiration_date')->where('expiration_date', '<', now())->where('quantity', '>', 0)->count();
 
         // ─── ACTIVE USERS KPI ───
         $activeUsers = User::where('status', 'active')->count();
