@@ -33,7 +33,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Future<void> _loadProducts() async {
     try {
-      final res = await ApiService.get('/products');
+      final res = await ApiService.get('/products?is_active=1');
       final data = (res is Map) ? (res['data'] ?? res) : res;
       setState(() {
         _products = (data as List).map((e) => Product.fromJson(e)).toList();

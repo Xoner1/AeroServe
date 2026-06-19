@@ -43,7 +43,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
   Future<void> _loadProducts() async {
     try {
-      final res = await ApiService.get('/products');
+      final res = await ApiService.get('/products?is_active=1');
       final data = res['data'] ?? res;
       setState(() {
         _products = (data as List).map((e) => Product.fromJson(e)).toList();
