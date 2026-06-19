@@ -26,19 +26,34 @@ Avant de configurer la liaison réseau, les données précédemment hébergées 
 
 ---
 
-## 2. Configuration du Tunnel TCP Ngrok
+## 2. Configuration du Tunnel TCP (Pinggy ou Bore)
 
-Vercel hébergeant le chatbot sur une infrastructure cloud publique, il est nécessaire d'établir un canal de communication sécurisé (tunnel) pour lui permettre d'accéder au port de base de données local de la machine de présentation.
+Vercel hébergeant le chatbot sur une infrastructure cloud publique, il est nécessaire d'établir un canal de communication sécurisé (tunnel) pour lui permettre d'accéder au port de base de données local de la machine de présentation. Comme Ngrok requiert désormais une vérification par carte bancaire pour le trafic TCP sur son offre gratuite, nous utilisons à la place **Pinggy** (via SSH sans installation) ou **Bore** (sans limite de temps).
 
-### Activation du tunnel :
-1. Télécharger et installer l'utilitaire Ngrok sur la machine locale.
-2. Lancer un tunnel TCP orienté vers le port local de MySQL en exécutant la commande suivante :
+### Option A : Activation du tunnel avec Pinggy (Recommandé - Sans installation)
+Pinggy utilise le client SSH intégré de votre système pour créer le tunnel. **Note :** La version gratuite de Pinggy limite la session à 60 minutes.
+
+1. Ouvrir le terminal (Invite de commandes CMD ou PowerShell sur Windows, ou Terminal sur macOS/Linux).
+2. Lancer la commande suivante :
    ```bash
-   ngrok tcp 3306
+   ssh -p 443 -R0:localhost:3306 tcp.pinggy.io
    ```
-3. Identifier la ligne de redirection générée par Ngrok dans la console, qui se présente sous le format suivant :
-   `Forwarding tcp://0.tcp.ngrok.io:12345 -> localhost:3306`
-4. Extraire de cette adresse le nom d'hôte (`0.tcp.ngrok.io`) et le numéro de port affecté (`12345`). Ces informations seront utilisées pour la configuration sur Vercel.
+3. Si un message de sécurité SSH s'affiche (*Are you sure you want to continue connecting?*), saisir `yes` et valider.
+4. Dans la console, repérer l'adresse de redirection générée sous la forme suivante :
+   `tcp.pinggy.io:12345` (où `12345` est le port dynamique attribué).
+5. Extraire le nom d'hôte (`tcp.pinggy.io`) et le numéro de port (`12345`). Ces informations seront utilisées pour la configuration sur Vercel.
+
+### Option B : Activation du tunnel avec Bore (Alternative sans limite de temps)
+Bore est un outil open-source très léger qui ne possède pas de limite de temps de session.
+
+1. Télécharger l'utilitaire Bore pour votre système (sur [trybore.com](https://trybore.com)).
+2. Lancer la commande suivante dans le dossier contenant le fichier `bore` (ou `bore.exe`) :
+   ```bash
+   bore local 3306 --to bore.pub
+   ```
+3. Repérer l'adresse de redirection générée sous la forme suivante :
+   `bore.pub:54321` (où `54321` est le port dynamique attribué).
+4. Extraire le nom d'hôte (`bore.pub`) et le numéro de port (`54321`). Ces informations seront utilisées pour la configuration sur Vercel.
 
 ---
 
@@ -60,15 +75,15 @@ Les variables d'environnement suivantes doivent être renseignées dans l'interf
 
 | Nom de la variable | Valeur requise | Rôle |
 |---|---|---|
-| `DB_HOST` | `0.tcp.ngrok.io` | Nom d'hôte réseau généré par le tunnel Ngrok |
-| `DB_PORT` | `12345` (port dynamique) | Port réseau attribué dynamiquement par Ngrok |
+| `DB_HOST` | `tcp.pinggy.io` (ou `bore.pub`) | Nom d'hôte réseau généré par le tunnel |
+| `DB_PORT` | `12345` (port dynamique) | Port réseau attribué dynamiquement par le tunnel |
 | `DB_USER` | `root` (ou utilisateur local) | Identifiant d'accès au serveur de base de données local |
 | `DB_PASSWORD` | (laisser vide si aucun) | Mot de passe du serveur MySQL local |
 | `DB_NAME` | `aeroserve` | Nom de la base de données importée localement |
 | `GROQ_API_KEY` | Clé API d'accès Groq | Clé d'authentification pour les appels au modèle Llama 3.3 |
 
 ### Note technique sur la persistance du tunnel :
-Les comptes d'utilisation gratuits de Ngrok attribuent un port dynamique différent à chaque fois que la commande d'initialisation du tunnel est lancée. Lors de chaque nouvelle session de présentation, il est impératif de modifier la valeur de la variable `DB_PORT` dans les paramètres de Vercel avec le nouveau port fourni par la console Ngrok, puis de relancer un déploiement (Redeploy) pour appliquer les changements.
+Les tunnels gratuits (Pinggy ou Bore) attribuent un port dynamique différent à chaque fois que la commande d'initialisation du tunnel est lancée. Lors de chaque nouvelle session de présentation, il est impératif de modifier la valeur de la variable `DB_PORT` (et éventuellement `DB_HOST` si vous changez d'outil) dans les paramètres de Vercel avec le nouveau port fourni, puis de relancer un déploiement (Redeploy) pour appliquer les changements.
 
 ---
 

@@ -58,9 +58,9 @@ ORDER BY h.created_at DESC LIMIT 1;
 
 ---
 
-## 5. Guide de Connexion entre Vercel et le Serveur Local (Ngrok)
+## 5. Guide de Connexion entre Vercel et le Serveur Local (Pinggy / Bore)
 
-Pour les besoins de la soutenance académique (PFE) ou des phases de test client, la base de données MySQL s'exécute sur une machine locale, tandis que le chatbot est déployé sur Vercel. Pour permettre au serveur Vercel de franchir le pare-feu local et de lire la base de données, la technologie de tunnel TCP Ngrok est implémentée.
+Pour les besoins de la soutenance académique (PFE) ou des phases de test client, la base de données MySQL s'exécute sur une machine locale, tandis que le chatbot est déployé sur Vercel. Pour permettre au serveur Vercel de franchir le pare-feu local et de lire la base de données sans requérir de carte bancaire, nous utilisons un tunnel TCP via **Pinggy** (sans installation via SSH) ou **Bore**.
 
 ### Protocole de configuration :
 
@@ -68,23 +68,29 @@ Pour les besoins de la soutenance académique (PFE) ou des phases de test client
    S'assurer que MySQL est actif sur le port standard `3306` (via XAMPP, Laragon ou MySQL autonome).
 
 2. **Initialisation du Tunnel TCP** :
-   Exécuter la commande suivante dans le terminal de la machine locale :
-   ```bash
-   ngrok tcp 3306
-   ```
-   Ngrok génère une URL de redirection TCP publique sous la forme :
-   `tcp://0.tcp.ngrok.io:12345`
+   * **Option A (Pinggy - Recommandé, limite de 60 minutes)** :
+     Exécuter la commande suivante dans le terminal :
+     ```bash
+     ssh -p 443 -R0:localhost:3306 tcp.pinggy.io
+     ```
+     L'adresse générée sera de la forme : `tcp.pinggy.io:12345` (nom d'hôte : `tcp.pinggy.io`, port : `12345`).
+   
+   * **Option B (Bore - Pas de limite de temps)** :
+     Exécuter la commande suivante :
+     ```bash
+     bore local 3306 --to bore.pub
+     ```
+     L'adresse générée sera de la forme : `bore.pub:54321` (nom d'hôte : `bore.pub`, port : `54321`).
 
 3. **Mise à jour des variables d'environnement sur Vercel** :
    Dans l'interface de gestion du projet Vercel, accédez aux paramètres des variables d'environnement et configurez les clés suivantes :
-   - `DB_HOST` : `0.tcp.ngrok.io` (adresse de redirection fournie par Ngrok)
-   - `DB_PORT` : `12345` (port dynamique attribué par Ngrok)
+   - `DB_HOST` : `tcp.pinggy.io` (ou `bore.pub` selon l'option choisie)
+   - `DB_PORT` : Le port dynamique fourni (ex: `12345` ou `54321`)
    - `DB_USER` : `root` (ou utilisateur local configuré)
    - `DB_PASSWORD` : (laissez vide si aucun mot de passe n'est configuré localement)
    - `DB_NAME` : `aeroserve`
    - `GROQ_API_KEY` : (clé d'accès Groq active)
 
-4. **Déploiement** :
    Déclencher un nouveau déploiement sur Vercel pour appliquer les nouveaux paramètres de connexion. Le chatbot Vercel est alors directement connecté à la base de données s'exécutant sur la machine locale.
 
 ---
