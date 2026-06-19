@@ -233,6 +233,18 @@ import { environment } from '../../../environments/environment';
                     </div>
                   }
 
+                  <!-- UNIT OF STOCK -->
+                  <div class="form-group">
+                    <label>Unité de Stock</label>
+                    <select [(ngModel)]="form.unit" name="unit" required [disabled]="isLockedField('unit')">
+                      <option value="piece">Pièce (piece)</option>
+                      <option value="kg">Kilogramme (kg)</option>
+                      <option value="g">Gramme (g)</option>
+                      <option value="liter">Litre (liter)</option>
+                      <option value="ml">Millilitre (ml)</option>
+                    </select>
+                  </div>
+
                   <!-- DESCRIPTION -->
                   <div class="form-group">
                     <label>Description & Notes</label>
@@ -890,7 +902,8 @@ export class ProductsComponent implements OnInit {
     allergens_text: '',
     expiration_date: '',
     usage_status: 'IN_USE',
-    quantity_per_batch: 1
+    quantity_per_batch: 1,
+    unit: 'piece'
   };
 
   constructor(private api: ApiService, private auth: AuthService, private route: ActivatedRoute) {}
@@ -1007,7 +1020,8 @@ export class ProductsComponent implements OnInit {
           allergens_text: fullProduct.allergens?.join(', ') || '',
           expiration_date: fullProduct.expiration_date || '',
           usage_status: fullProduct.usage_status || 'IN_USE',
-          quantity_per_batch: fullProduct.quantity_per_batch || 1
+          quantity_per_batch: fullProduct.quantity_per_batch || 1,
+          unit: fullProduct.stock?.unit || 'piece'
         };
 
         this.selectedProductApprovalStatus = fullProduct.approval_status;
@@ -1051,7 +1065,8 @@ export class ProductsComponent implements OnInit {
       allergens_text: '',
       expiration_date: '',
       usage_status: 'IN_USE',
-      quantity_per_batch: 1
+      quantity_per_batch: 1,
+      unit: 'piece'
     };
     this.selectedImageFile = null;
     this.imagePreview = null;
@@ -1127,34 +1142,12 @@ export class ProductsComponent implements OnInit {
       return;
     }
 
-    // Stock validation for FOOD products
-    if (this.form.type === 'food' || this.form.type === 'plat') {
-      const batchSize = this.form.quantity_per_batch || 1;
-      const stockErrors: string[] = [];
-      for (const ing of this.recipeIngredients) {
-        const prod = this.products.find(p => p.id == ing.product_id);
-        const availableQty = prod?.stock?.quantity ?? 0;
-        const requiredQty = ing.quantity * batchSize;
-        if (requiredQty > availableQty) {
-          stockErrors.push(`"${prod?.name || 'Produit'}" : besoin de ${requiredQty} ${ing.unit}, disponible ${availableQty} ${ing.unit}`);
-        }
-      }
-      if (stockErrors.length > 0) {
-        Swal.fire({
-          title: 'Stock insuffisant',
-          html: `Les ingrédients suivants n'ont pas assez de stock (batch: ${batchSize}):<br><br>${stockErrors.join('<br>')}`,
-          icon: 'error',
-          confirmButtonColor: '#EF4444'
-        });
-        return;
-      }
-    }
-
     const formData = new FormData();
     formData.append('name', this.form.name);
     formData.append('type', this.form.type);
     formData.append('category_id', String(this.form.category_id));
     formData.append('description', this.form.description || '');
+    formData.append('unit', this.form.unit || 'piece');
 
     if (this.form.type === 'food' || this.form.type === 'plat') {
       formData.append('quantity_per_batch', String(this.form.quantity_per_batch || 1));

@@ -157,10 +157,18 @@ import Swal from 'sweetalert2';
                   <div class="form-group">
                     <label>Type de Mouvement</label>
                     <select [(ngModel)]="movementForm.type" name="type">
-                      <option value="in">Entrée de Stock</option>
-                      <option value="out">Sortie de Stock</option>
+                      @if (!isSelectedProductFood) {
+                        <option value="in">Entrée de Stock</option>
+                        <option value="out">Sortie de Stock</option>
+                      }
                       <option value="adjustment">Ajustement direct</option>
                     </select>
+                    @if (isSelectedProductFood) {
+                      <p class="food-info-banner">
+                        ⚠️ Food product: stock movements are managed automatically via internal orders (recipe × quantity).
+                        Only manual adjustments are allowed here.
+                      </p>
+                    }
                   </div>
 
                   <div class="form-group">
@@ -237,6 +245,10 @@ export class StocksComponent implements OnInit {
     return this.auth.getUserRole() === 'CHEF_MAGASIN';
   }
 
+  get isSelectedProductFood(): boolean {
+    return this.selectedStock?.product?.type === 'food';
+  }
+
   constructor(private api: ApiService, private auth: AuthService) {}
 
   ngOnInit(): void {
@@ -274,11 +286,13 @@ export class StocksComponent implements OnInit {
 
   openMovement(stock: Stock, type: string): void {
     this.selectedStock = stock;
-    this.movementForm = { type, quantity: 1, reason: '', expiration_date: '' };
+    // For food products, only adjustment is permitted — default the form accordingly
+    const defaultType = stock.product?.type === 'food' ? 'adjustment' : type;
+    this.movementForm = { type: defaultType, quantity: 1, reason: '', expiration_date: '' };
     this.fifoLots = [];
     this.stockMovements = [];
     this.showModal = true;
-    if (type === 'out') {
+    if (defaultType === 'out') {
       this.computeFIFO(1);
     }
   }

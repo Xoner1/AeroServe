@@ -245,3 +245,16 @@
   text-align: right;
   font-size: 10px;
 }
+
+/* ================= FOOD PRODUCT BANNER ================= */
+.food-info-banner {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: #FEF3C7;
+  border: 1px solid #F59E0B;
+  color: #92400E;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}

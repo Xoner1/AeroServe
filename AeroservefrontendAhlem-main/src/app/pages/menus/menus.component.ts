@@ -712,7 +712,7 @@ export class MenusComponent implements OnInit {
   }
 
   loadAllProducts(): void {
-    this.api.get<any>('products', { no_paginate: true, type: 'plat' }).subscribe(res => {
+    this.api.get<any>('products', { no_paginate: true, type: 'plat', is_active: true }).subscribe(res => {
       this.allProducts = res.data || res;
       this.foodProducts = this.allProducts.filter(p => p.approval_status === 'approved');
     });
