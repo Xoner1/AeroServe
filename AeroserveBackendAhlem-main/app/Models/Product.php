@@ -28,6 +28,31 @@ class Product extends Model
         ];
     }
 
+    protected static function booted()
+    {
+        static::saving(function (Product $product) {
+            // Synchronize is_active with usage_status
+            if ($product->isDirty('usage_status')) {
+                if ($product->usage_status === 'IN_USE') {
+                    $product->is_active = true;
+                } else {
+                    $product->is_active = false;
+                }
+            }
+            // Synchronize usage_status with is_active
+            elseif ($product->isDirty('is_active')) {
+                if ($product->is_active) {
+                    $product->usage_status = 'IN_USE';
+                } else {
+                    if ($product->usage_status === 'IN_USE') {
+                        $product->usage_status = 'NOT_IN_USE';
+                    }
+                }
+            }
+        });
+    }
+
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);

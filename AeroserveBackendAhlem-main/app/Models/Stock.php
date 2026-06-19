@@ -59,7 +59,10 @@ class Stock extends Model
 
                 $newStatus = $allAvailable ? 'IN_USE' : 'OUT_OF_STOCK';
                 if ($food->usage_status !== $newStatus) {
-                    $food->updateQuietly(['usage_status' => $newStatus]); // use updateQuietly to avoid infinite loops if it triggers its own observers
+                    $food->updateQuietly([
+                        'usage_status' => $newStatus,
+                        'is_active' => $allAvailable
+                    ]); // use updateQuietly to avoid infinite loops if it triggers its own observers
                 }
             }
         });

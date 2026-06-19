@@ -110,7 +110,8 @@ class MenuController extends Controller
 
             if (in_array($product->type, ['food', 'plat']) && $product->ingredients->isNotEmpty()) {
                 foreach ($product->ingredients as $ingredient) {
-                    $requiredQty = $ingredient->pivot->quantity * $staffCount;
+                    $rawRequired = $ingredient->pivot->quantity * $staffCount;
+                    $requiredQty = $this->convertQuantityToStockUnit($rawRequired, $ingredient->pivot->unit, $ingredient->stock?->unit);
                     $availableQty = $ingredient->stock?->quantity ?? 0;
                     if ($availableQty < $requiredQty) {
                         $allSufficient = false;
@@ -118,7 +119,7 @@ class MenuController extends Controller
                             'product' => $product->name.' > '.$ingredient->name,
                             'required' => $requiredQty,
                             'available' => $availableQty,
-                            'unit' => $ingredient->pivot->unit ?? 'piece',
+                            'unit' => $ingredient->stock?->unit ?? $ingredient->pivot->unit ?? 'piece',
                         ];
                     }
                 }
@@ -154,8 +155,9 @@ class MenuController extends Controller
 
                     if (in_array($product->type, ['food', 'plat']) && $product->ingredients->isNotEmpty()) {
                         foreach ($product->ingredients as $ingredient) {
-                            $ingredientQty = $ingredient->pivot->quantity * $staffCount;
-                            if ($ingredient->stock) {
+                            $rawRequired = $ingredient->pivot->quantity * $staffCount;
+                            $ingredientQty = $this->convertQuantityToStockUnit($rawRequired, $ingredient->pivot->unit, $ingredient->stock?->unit);
+                            if ($ingredient->stock && $ingredientQty > 0) {
                                 $this->fifoDeduction($ingredient->stock, $ingredientQty, 'Menu: '.$menu->name);
                             }
                         }

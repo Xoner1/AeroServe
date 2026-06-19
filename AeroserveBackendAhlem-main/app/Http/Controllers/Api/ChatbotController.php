@@ -116,10 +116,12 @@ class ChatbotController extends Controller
             }
 
             $ingredients   = $product->description ?? 'Aucun ingredient specifie.';
+            $allergensList = is_array($product->allergens) ? implode(', ', $product->allergens) : ($product->allergens ?? 'Aucun.');
             $productContext = "Voici les details du produit alimentaire actuel :\n" .
                               "Produit: {$product->name}\n" .
                               "Type: {$product->type}\n" .
                               "Description/Ingredients: {$ingredients}\n" .
+                              "Allergenes declares: {$allergensList}\n" .
                               "Prix: {$product->price} TND\n";
 
             if ($product->expiration_date) {
@@ -155,12 +157,11 @@ class ChatbotController extends Controller
                           $productContext . "\n" .
                           $hygieneReportsContext . "\n" .
                           "</context>\n\n" .
-                          "<directives_strictes>\n" .
                           "1. SÉCURITÉ ALIMENTAIRE STRICTE : Tu as L'INTERDICTION ABSOLUE d'utiliser tes propres connaissances pré-entraînées ou de faire des suppositions sur la composition, la santé, la sécurité, ou la présence d'allergènes dans le produit. Ne te fie qu'aux données écrites textuellement dans le <context> ci-dessus.\n" .
-                          "2. MODE D'ÉCHEC (Pas de données) : Si le produit n'a aucun ingrédient listé dans le context, ou si la section 'Remarques du responsable Hygiene' est absente ou vide, tu DOIS obligatoirement répondre dans la langue du client (comme le français, l'arabe, l'anglais, etc.) : 'Désolé, aucune fiche d'hygiène officielle ou rapport de conformité n'a encore été enregistré pour ce produit. Par sécurité, je ne peux pas me prononcer.'\n" .
-                          "3. RÉPONSES AUX ALLERGÈNES : Si le client pose une question sur un allergène (ex: gluten, arachide, lactose) et que cet allergène n'est pas spécifié comme vérifié et absent dans le <context> fourni, réponds que l'information n'est pas confirmée officiellement et conseille-lui de ne pas consommer le produit par précaution.\n" .
-                          "4. TON ET STYLE : Réponds de manière concise, polie, chaleureuse et professionnelle dans la même langue que la question (arabe, français, anglais, espagnol, italien, allemand, etc.). N'utilise absolument aucun emoji dans tes réponses.\n" .
-                          "5. RESTRICTION DE RÔLE : Ne réponds à aucune question concernant l'administration de l'entreprise, les stocks en réserve, les plannings du personnel, les commandes internes ou les données financières. Tu es uniquement là pour assister le client sur les produits et la restauration d'AeroServe.\n" .
+                          "2. MODE D'ÉCHEC (Pas de données) : Si le produit n'a aucun ingrédient listé dans le context, ou si la section 'Remarques du responsable Hygiene' est absente ou indique 'Aucune remarque', tu DOIS obligatoirement répondre dans la langue du client : 'Désolé, aucun rapport officiel d'hygiène ou de conformité n'a été enregistré pour ce produit. Par sécurité, je ne peux pas me prononcer.' Ne dis JAMAIS que le produit est conforme s'il n'y a pas de rapport.\n" .
+                          "3. RÉPONSES AUX ALLERGÈNES : Si le client pose une question sur un allergène et que cet allergène n'est pas spécifié comme vérifié dans le <context> fourni, réponds que l'information n'est pas confirmée officiellement et conseille-lui de ne pas consommer le produit.\n" .
+                          "4. TON ET STYLE : Réponds de manière concise, polie et professionnelle. N'utilise absolument aucun emoji dans tes réponses.\n" .
+                          "5. RESTRICTION DE RÔLE : Ne réponds à aucune question administrative (stocks, commandes, etc.). Tu es uniquement là pour assister sur le produit actuel affiché.\n" .
                           "</directives_strictes>";
         } else {
             $systemRole = "Tu es l'assistant intelligent et le copilote de l'application de restauration AeroServe.\n" .
@@ -168,16 +169,14 @@ class ChatbotController extends Controller
                           $userContext . "\n" .
                           ($productId ? "<context>\n" . $productContext . "\n" . $hygieneReportsContext . "\n" . "</context>\n" : "") .
                           "Directives strictes de securite :\n" .
-                          "- {$roleInstruction}\n" .
-                          "- Tu ne dois repondre a AUCUNE question qui ne concerne pas directement l'application AeroServe (produits, stocks, commandes, plannings, menus, hygiene, utilisateurs, points de vente). Meme les salutations simples ou les questions hors-sujet doivent etre refusees poliment avec : 'Je suis desole, je suis uniquement un assistant operationnel pour l'application AeroServe.'\n" .
-                          "- TU NE DOIS JAMAIS divulguer de donnees, de profils, d'e-mails, d'informations de stocks, de commandes ou de plannings concernant d'autres comptes ou roles.\n" .
-                          "- Reste strictement cantonne aux sujets et perimetres autorises pour ton role.\n" .
-                          "- Tu dois assister l'utilisateur connecte uniquement pour les taches requises par son propre travail.\n" .
-                          "- Si tu parles de la composition ou des allergenes d'un produit, base-toi STRICTEMENT sur les informations du <context> et ne fais aucune supposition en dehors des rapports officiels du responsable Hygiene (RESPONSABLE_HYGIENE).\n" .
-                          "- Si l'utilisateur pose une question sur un autre compte, un autre utilisateur, ou en dehors de ses responsabilites professionnelles, refuse poliment d'y repondre en mentionnant la limite de ses droits.\n" .
+                          "- Tu ne dois repondre a AUCUNE question qui ne concerne pas directement l'application AeroServe. Les questions hors-sujet doivent etre refusees poliment.\n" .
+                          "- RÈGLE ANTI-HALLUCINATION ABSOLUE : Si l'utilisateur demande un rapport d'hygiene, une conformite, un stock, ou des ingredients d'une chose, et que cette information n'est pas EXPLICITEMENT fournie dans le <context> ou par un appel de fonction (tool), tu DOIS repondre : 'Desole, je ne dispose d'aucune donnee officielle ou rapport pour cet element dans le systeme.'\n" .
+                          "- NE DIS JAMAIS qu'un element est 'conforme' ou 'sans danger' si tu n'as pas lu un rapport d'hygiene explicite affirmant cela.\n" .
+                          "- TU NE DOIS JAMAIS inventer de donnees, de profils, d'e-mails, d'informations de stocks, ou de commandes.\n" .
+                          "- Si tu parles de la composition ou des allergenes d'un produit, base-toi STRICTEMENT sur les informations du <context> et ne fais aucune supposition.\n" .
                           "- Reponds de maniere concise, polie et dans la meme langue que celle de la question.\n" .
                           "- N'utilise absolument aucun emoji dans tes reponses.\n" .
-                          "- Tu as acces a des outils (tools/fonctions) pour interroger la base de donnees AeroServe en temps reel. Utilise-les pour repondre avec des donnees precises plutot que d'inventer des informations.";
+                          "- Tu as acces a des outils (tools) pour chercher dans la base de donnees. Utilise-les pour obtenir des donnees reelles au lieu de deviner.";
         }
 
         $openaiKey = config('services.openai.key');
@@ -286,7 +285,7 @@ class ChatbotController extends Controller
                     'Authorization' => "Bearer {$groqKey}",
                     'Content-Type'  => 'application/json',
                 ])->post($url, [
-                    'model'       => 'llama-3.1-8b-instant',
+                    'model'       => 'llama-3.3-70b-versatile',
                     'messages'    => $messages,
                     'tools'       => $tools,
                     'tool_choice' => 'auto',
@@ -317,7 +316,7 @@ class ChatbotController extends Controller
                             'Authorization' => "Bearer {$groqKey}",
                             'Content-Type'  => 'application/json',
                         ])->post($url, [
-                            'model'       => 'llama-3.1-8b-instant',
+                            'model'       => 'llama-3.3-70b-versatile',
                             'messages'    => $messages,
                             'temperature' => 0.1,
                             'max_tokens'  => 800,
@@ -477,7 +476,7 @@ class ChatbotController extends Controller
                 'type'     => 'function',
                 'function' => [
                     'name'        => 'chercher_produits',
-                    'description' => 'Recherche des produits dans le catalogue AeroServe par nom, type (food, commercial, matiere_premiere) ou mot-cle. Utiliser pour repondre aux questions sur les produits existants.',
+                    'description' => 'Recherche des produits dans le catalogue AeroServe par nom, type (food, commercial, matiere_premiere) ou mot-cle.',
                     'parameters'  => [
                         'type'       => 'object',
                         'properties' => [
@@ -494,13 +493,13 @@ class ChatbotController extends Controller
                 'type'     => 'function',
                 'function' => [
                     'name'        => 'obtenir_details_produit',
-                    'description' => "Obtenir les details complets d'un produit specifique : stock disponible, rapports d'hygiene, ingredients de la recette, categorie, prix.",
+                    'description' => "Obtenir les details complets d'un produit specifique : stock, rapports d'hygiene, ingredients, categorie, prix.",
                     'parameters'  => [
                         'type'       => 'object',
                         'properties' => [
                             'product_id' => [
                                 'type'        => 'integer',
-                                'description' => 'ID unique du produit dans la base de donnees AeroServe',
+                                'description' => 'ID unique du produit',
                             ],
                         ],
                         'required' => ['product_id'],
@@ -511,7 +510,77 @@ class ChatbotController extends Controller
                 'type'     => 'function',
                 'function' => [
                     'name'        => 'obtenir_tous_produits',
-                    'description' => 'Obtenir le catalogue complet de tous les produits actifs et approuves dans AeroServe. Utiliser quand l\'utilisateur demande une liste generale ou un apercu du catalogue.',
+                    'description' => 'Obtenir le catalogue complet de tous les produits actifs et approuves.',
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => new \stdClass(),
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_stocks',
+                    'description' => 'Obtenir les niveaux de stock actuels de tous les produits ou filtrer par nom. Inclut quantite, unite et seuil critique.',
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'query' => [
+                                'type'        => 'string',
+                                'description' => 'Optionnel: nom du produit pour filtrer les stocks',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_commandes',
+                    'description' => 'Obtenir les commandes internes recentes avec leur statut (EN_ATTENTE, EN_COURS, LIVREE, ANNULEE).',
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'status' => [
+                                'type'        => 'string',
+                                'description' => 'Optionnel: filtrer par statut (EN_ATTENTE, EN_COURS, LIVREE, ANNULEE)',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_menu_semaine',
+                    'description' => 'Obtenir le menu actuel ou le plus recent avec les plats prevus pour chaque jour de la semaine.',
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => new \stdClass(),
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_rapports_hygiene',
+                    'description' => "Obtenir les rapports d'hygiene et de conformite pour un produit specifique ou tous les rapports recents.",
+                    'parameters'  => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'product_id' => [
+                                'type'        => 'integer',
+                                'description' => 'Optionnel: ID du produit pour filtrer les rapports',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type'     => 'function',
+                'function' => [
+                    'name'        => 'obtenir_statistiques',
+                    'description' => 'Obtenir les KPIs et statistiques globales : nombre de produits, stock total, commandes en attente, alertes critiques.',
                     'parameters'  => [
                         'type'       => 'object',
                         'properties' => new \stdClass(),
@@ -566,10 +635,6 @@ class ChatbotController extends Controller
         ];
     }
 
-    /**
-     * Executes a tool call requested by the LLM — queries real DB data.
-     * Tools: chercher_produits | obtenir_details_produit | obtenir_tous_produits
-     */
     private function executeToolCall(string $toolName, array $args): string
     {
         switch ($toolName) {
@@ -584,6 +649,10 @@ class ChatbotController extends Controller
                     })
                     ->limit(10)
                     ->get();
+
+                if ($products->isEmpty()) {
+                    return json_encode(['message' => "Aucun produit trouve pour la recherche: '{$query}'"]);
+                }
 
                 return json_encode($products->map(fn($p) => [
                     'id'          => $p->id,
@@ -601,7 +670,7 @@ class ChatbotController extends Controller
                 $product   = Product::with('stock', 'hygieneReports', 'category', 'ingredients')->find($productId);
 
                 if (!$product) {
-                    return json_encode(['erreur' => "Produit ID {$productId} non trouve."]);
+                    return json_encode(['erreur' => "Produit ID {$productId} non trouve dans la base de donnees."]);
                 }
 
                 return json_encode([
@@ -614,10 +683,14 @@ class ChatbotController extends Controller
                     'date_expiration'     => $product->expiration_date,
                     'statut_approbation'  => $product->approval_status,
                     'actif'               => $product->is_active,
-                    'stock_disponible'    => $product->stock ? $product->stock->quantity : 0,
+                    'stock_disponible'    => $product->stock ? $product->stock->quantity . ' ' . ($product->stock->unit ?? '') : 'Aucun stock',
                     'categorie'           => $product->category?->name,
                     'nb_rapports_hygiene' => $product->hygieneReports?->count() ?? 0,
-                    'ingredients'         => $product->ingredients?->pluck('name')->toArray(),
+                    'ingredients'         => $product->ingredients?->map(fn($i) => [
+                        'nom' => $i->name,
+                        'quantite' => $i->pivot->quantity ?? 0,
+                        'unite' => $i->pivot->unit ?? 'piece',
+                    ])->toArray(),
                 ]);
 
             case 'obtenir_tous_produits':
@@ -626,14 +699,150 @@ class ChatbotController extends Controller
                     ->where('approval_status', 'approved')
                     ->get();
 
-                return json_encode($products->map(fn($p) => [
-                    'id'        => $p->id,
-                    'nom'       => $p->name,
-                    'type'      => $p->type,
-                    'prix'      => $p->price,
-                    'stock'     => $p->stock ? $p->stock->quantity : 0,
-                    'categorie' => $p->category?->name,
+                return json_encode([
+                    'nombre_total' => $products->count(),
+                    'produits' => $products->map(fn($p) => [
+                        'id'        => $p->id,
+                        'nom'       => $p->name,
+                        'type'      => $p->type,
+                        'prix'      => $p->price,
+                        'stock'     => $p->stock ? $p->stock->quantity : 0,
+                        'categorie' => $p->category?->name,
+                    ])->values(),
+                ]);
+
+            case 'obtenir_stocks':
+                $query = $args['query'] ?? null;
+                $stockQuery = \App\Models\Stock::with('product.category');
+
+                if ($query) {
+                    $stockQuery->whereHas('product', function ($q) use ($query) {
+                        $q->where('name', 'like', "%{$query}%");
+                    });
+                }
+
+                $stocks = $stockQuery->orderBy('quantity', 'asc')->limit(20)->get();
+
+                if ($stocks->isEmpty()) {
+                    return json_encode(['message' => $query
+                        ? "Aucun stock trouve pour '{$query}'"
+                        : 'Aucun stock enregistre dans le systeme.'
+                    ]);
+                }
+
+                return json_encode([
+                    'nombre_resultats' => $stocks->count(),
+                    'stocks' => $stocks->map(fn($s) => [
+                        'produit'     => $s->product?->name,
+                        'type'        => $s->product?->type,
+                        'quantite'    => $s->quantity,
+                        'unite'       => $s->unit,
+                        'seuil_alerte'=> $s->alert_threshold ?? 'Non defini',
+                        'categorie'   => $s->product?->category?->name,
+                    ])->values(),
+                ]);
+
+            case 'obtenir_commandes':
+                $status = $args['status'] ?? null;
+                $orderQuery = \App\Models\InternalOrder::with('items.product', 'creator')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10);
+
+                if ($status) {
+                    $orderQuery->where('status', $status);
+                }
+
+                $orders = $orderQuery->get();
+
+                if ($orders->isEmpty()) {
+                    return json_encode(['message' => $status
+                        ? "Aucune commande avec le statut '{$status}'"
+                        : 'Aucune commande interne enregistree.'
+                    ]);
+                }
+
+                return json_encode([
+                    'nombre_commandes' => $orders->count(),
+                    'commandes' => $orders->map(fn($o) => [
+                        'id'          => $o->id,
+                        'type'        => $o->type,
+                        'statut'      => $o->status,
+                        'cree_par'    => $o->creator ? ($o->creator->first_name . ' ' . $o->creator->last_name) : 'N/A',
+                        'date'        => $o->created_at?->format('Y-m-d H:i'),
+                        'articles'    => $o->items->map(fn($i) => [
+                            'produit'   => $i->product?->name,
+                            'demande'   => $i->quantity_requested,
+                            'livre'     => $i->quantity_fulfilled,
+                        ])->toArray(),
+                    ])->values(),
+                ]);
+
+            case 'obtenir_menu_semaine':
+                $menu = \App\Models\Menu::with('items.product')
+                    ->orderBy('start_date', 'desc')
+                    ->first();
+
+                if (!$menu) {
+                    return json_encode(['message' => 'Aucun menu enregistre dans le systeme.']);
+                }
+
+                return json_encode([
+                    'nom'        => $menu->name,
+                    'debut'      => $menu->start_date,
+                    'fin'        => $menu->end_date,
+                    'statut'     => $menu->status,
+                    'effectif'   => $menu->staff_count,
+                    'plats'      => $menu->items->map(fn($i) => [
+                        'jour'    => $i->day_of_week,
+                        'repas'   => $i->meal_type,
+                        'produit' => $i->product?->name,
+                    ])->toArray(),
+                ]);
+
+            case 'obtenir_rapports_hygiene':
+                $productId = $args['product_id'] ?? null;
+                $reportQuery = \App\Models\HygieneReport::with('product', 'inspector')
+                    ->orderBy('created_at', 'desc')
+                    ->limit(10);
+
+                if ($productId) {
+                    $reportQuery->where('product_id', $productId);
+                }
+
+                $reports = $reportQuery->get();
+
+                if ($reports->isEmpty()) {
+                    return json_encode(['message' => $productId
+                        ? "Aucun rapport d'hygiene pour le produit ID {$productId}."
+                        : "Aucun rapport d'hygiene enregistre."
+                    ]);
+                }
+
+                return json_encode($reports->map(fn($r) => [
+                    'id'                   => $r->id,
+                    'produit'              => $r->product?->name,
+                    'statut'               => $r->status,
+                    'allergenes_verifies'  => $r->allergens_verified ? 'Oui' : 'Non',
+                    'expiration_verifiee'  => $r->expiration_verified ? 'Oui' : 'Non',
+                    'remarques'            => $r->remarks ?? 'Aucune remarque',
+                    'inspecteur'           => $r->inspector ? ($r->inspector->first_name . ' ' . $r->inspector->last_name) : 'N/A',
+                    'date'                 => $r->created_at?->format('Y-m-d'),
                 ])->values());
+
+            case 'obtenir_statistiques':
+                $totalProducts = Product::where('is_active', true)->count();
+                $totalStock = \App\Models\Stock::sum('quantity');
+                $pendingOrders = \App\Models\InternalOrder::where('status', 'EN_ATTENTE')->count();
+                $criticalStocks = \App\Models\Stock::whereColumn('quantity', '<=', \Illuminate\Support\Facades\DB::raw('COALESCE(alert_threshold, 5)'))->count();
+                $nonConformeReports = \App\Models\HygieneReport::where('status', 'non_conforme')->count();
+
+                return json_encode([
+                    'produits_actifs'        => $totalProducts,
+                    'stock_total'            => round($totalStock, 2),
+                    'commandes_en_attente'   => $pendingOrders,
+                    'stocks_critiques'       => $criticalStocks,
+                    'rapports_non_conformes' => $nonConformeReports,
+                ]);
 
             default:
                 return json_encode(['erreur' => "Outil '{$toolName}' inconnu."]);
@@ -652,7 +861,7 @@ class ChatbotController extends Controller
 
         // Only respond to health-related questions; reject everything else
         $healthKeywords = [
-            'allergen', 'gluten', 'lactose', 'arachide', 'diabète', 'diabete',
+            'allergen', 'allerg', 'allergi', 'gluten', 'lactose', 'arachide', 'diabète', 'diabete',
             'santé', 'sante', 'sécurité', 'securite', 'ingréd', 'compos',
             'calor', 'nutrit', 'conforme', 'hygiène', 'hygiene', 'malad',
             'حساسية', 'جلوتين', 'لاكتوز', 'مكونات', 'صحة', 'مرض',
@@ -680,6 +889,9 @@ class ChatbotController extends Controller
         // Build response strictly from hygiene report data
         $parts = [];
         $parts[] = "Informations sanitaires pour \"" . $product->name . "\" (donnees declarees par le responsable Hygiene) :\n";
+        
+        $allergensList = is_array($product->allergens) ? implode(', ', $product->allergens) : ($product->allergens ?? 'Aucun.');
+        $parts[] = "Allergenes declares : " . $allergensList . "\n";
 
         foreach ($product->hygieneReports as $report) {
             // Status
@@ -813,42 +1025,48 @@ class ChatbotController extends Controller
     {
         $messageLower = mb_strtolower($message);
 
-        if (str_contains($messageLower, 'command') || str_contains($messageLower, 'passer') || str_contains($messageLower, 'achat')) {
+        // Commandes / Orders
+        if (str_contains($messageLower, 'command') || str_contains($messageLower, 'passer') || str_contains($messageLower, 'achat') || str_contains($messageLower, 'طلب') || str_contains($messageLower, 'شراء')) {
             if (!in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CHEF_CUISINE', 'CHEF_MAGASIN', 'RESPONSABLE_ACHAT'])) {
-                return "Acces non autorise : Votre role de {$userRole} ne vous permet pas de gerer ou consulter les commandes internes.";
+                return "Acces non autorise / دخول غير مصرح : Votre role de {$userRole} ne vous permet pas de gerer ou consulter les commandes internes.";
             }
-            return "Pour passer une commande interne : 1. Accedez a la page Commandes Internes dans le menu lateral. 2. Cliquez sur le bouton Nouvelle Commande en haut a droite. 3. Selectionnez les produits requis dans notre catalogue. 4. Confirmez la quantite et soumettez la commande.";
+            return "Pour passer une commande interne : 1. Accedez a la page Commandes Internes dans le menu lateral. 2. Cliquez sur le bouton Nouvelle Commande en haut a droite. 3. Selectionnez les produits requis dans notre catalogue. 4. Confirmez la quantite et soumettez la commande. (لإنشاء طلب: انتقل إلى الطلبات الداخلية -> طلب جديد -> اختر المنتجات -> تأكيد).";
         }
 
-        if (str_contains($messageLower, 'stock') || str_contains($messageLower, 'inventaire') || str_contains($messageLower, 'lots')) {
+        // Stocks / Inventaire
+        if (str_contains($messageLower, 'stock') || str_contains($messageLower, 'inventaire') || str_contains($messageLower, 'lots') || str_contains($messageLower, 'مخزون') || str_contains($messageLower, 'مخزن')) {
             if (!in_array($userRole, ['SUPER_ADMIN', 'CHEF_MAGASIN', 'CHEF_CUISINE', 'RESPONSABLE_ACHAT'])) {
-                return "Acces non autorise : Votre role de {$userRole} ne vous permet pas de consulter les stocks ou l'inventaire en reserve.";
+                return "Acces non autorise / دخول غير مصرح : Votre role de {$userRole} ne vous permet pas de consulter les stocks ou l'inventaire en reserve.";
             }
-            return "Pour consulter et gerer les stocks : Visitez la section Stocks pour voir les quantites disponibles, l'historique des mouvements FIFO et les alertes de seuil critique.";
+            return "Pour consulter et gerer les stocks : Visitez la section Stocks pour voir les quantites disponibles, l'historique des mouvements FIFO et les alertes de seuil critique. (لمراجعة المخزون: توجه إلى قسم المخزون في القائمة الجانبية لمعرفة الكميات والحركات).";
         }
 
-        if (str_contains($messageLower, 'valid') || str_contains($messageLower, 'approuv') || str_contains($messageLower, 'accepter')) {
+        // Validation / Produits
+        if (str_contains($messageLower, 'valid') || str_contains($messageLower, 'approuv') || str_contains($messageLower, 'accepter') || str_contains($messageLower, 'اعتماد') || str_contains($messageLower, 'منتج')) {
             if (!in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_ACHAT'])) {
-                return "Acces non autorise : Votre role de {$userRole} ne vous permet pas d'acceder au panneau de validation des produits.";
+                return "Acces non autorise / دخول غير مصرح : Votre role de {$userRole} ne vous permet pas d'acceder au panneau de validation des produits.";
             }
-            return "Pour la validation des produits : Le Responsable Achat peut approuver ou refuser les nouveaux produits dans la section Validation Produits.";
+            return "Pour la validation des produits : Le Responsable Achat peut approuver ou refuser les nouveaux produits dans la section Validation Produits. (لاعتماد المنتجات: توجه إلى قسم اعتماد المنتجات).";
         }
 
-        if (str_contains($messageLower, 'planning') || str_contains($messageLower, 'calendrier') || str_contains($messageLower, 'horaire')) {
+        // Plannings / Horaires
+        if (str_contains($messageLower, 'planning') || str_contains($messageLower, 'calendrier') || str_contains($messageLower, 'horaire') || str_contains($messageLower, 'تخطيط') || str_contains($messageLower, 'شفت') || str_contains($messageLower, 'جدول')) {
             if (!in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_FB', 'CAISSIER'])) {
-                return "Acces non autorise : Votre role de {$userRole} ne vous permet pas d'acceder aux plannings horaires.";
+                return "Acces non autorise / دخول غير مصرح : Votre role de {$userRole} ne vous permet pas d'acceder aux plannings horaires.";
             }
-            return "Pour les plannings et horaires : Accedez a Plannings et Horaires pour voir la repartition hebdomadaire des shifts du personnel.";
+            return "Pour les plannings et horaires : Accedez a Plannings et Horaires pour voir la repartition hebdomadaire des shifts du personnel. (للجداول الزمنية: توجه إلى قسم التخطيط لمعرفة ورديات العمل).";
         }
 
-        if (str_contains($messageLower, 'hygiène') || str_contains($messageLower, 'hygiene') || str_contains($messageLower, 'rapport')) {
+        // Hygiene / Rapports
+        if (str_contains($messageLower, 'hygiène') || str_contains($messageLower, 'hygiene') || str_contains($messageLower, 'rapport') || str_contains($messageLower, 'صحة') || str_contains($messageLower, 'سلامة') || str_contains($messageLower, 'تقرير')) {
             if (!in_array($userRole, ['SUPER_ADMIN', 'RESPONSABLE_HYGIENE'])) {
-                return "Acces non autorise : Votre role de {$userRole} ne vous permet pas d'acceder aux rapports de conformite hygiene.";
+                return "Acces non autorise / دخول غير مصرح : Votre role de {$userRole} ne vous permet pas d'acceder aux rapports de conformite hygiene.";
             }
-            return "Pour les rapports d'hygiene : Allez dans Rapports d'Hygiene pour creer des audits sanitaires de conformite et enregistrer des alertes allergenes.";
+            return "Pour les rapports d'hygiene : Allez dans Rapports d'Hygiene pour creer des audits sanitaires de conformite et enregistrer des alertes allergenes. (لتقارير السلامة الصحية: توجه إلى قسم التقارير لإنشاء أو مراجعة المطابقة).";
         }
 
-        return "AeroServe Assistant : Bonjour ! Je suis votre copilote operationnel. Je peux vous aider a comprendre l'utilisation des commandes, le suivi des stocks, la validation des produits et la planification des plannings pour votre compte. Que desirez-vous savoir aujourd'hui ?";
+        // Default generic response
+        return "AeroServe Assistant (Mode Secours / الوضع البديل) : Le service d'intelligence artificielle est temporairement indisponible. Je peux vous guider vers les sections (Commandes, Stocks, Plannings, Hygiene). Que cherchez-vous ? / خدمة الذكاء الاصطناعي غير متاحة حالياً. يمكنني توجيهك إلى الأقسام الرئيسية.";
     }
 
     /**

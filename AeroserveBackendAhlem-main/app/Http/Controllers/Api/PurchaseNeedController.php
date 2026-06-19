@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\PurchaseNeed;
 use App\Models\Stock;
+use App\Traits\FifoStockTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -68,20 +69,25 @@ class PurchaseNeedController extends Controller
         foreach ($ingredientMap as $ingId => $data) {
             $stock = Stock::where('product_id', $ingId)->first();
             $currentStock = (float) ($stock->quantity ?? 0);
-            $shortfall = max(0, $data['qty'] - $currentStock);
+
+            // Convert recipe quantity (in recipe unit) to stock unit
+            $stockUnit = $stock?->unit ?? $data['unit'] ?? 'piece';
+            $requiredQtyStockUnit = FifoStockTrait::convertQuantityToStockUnit($data['qty'], $data['unit'], $stockUnit);
+
+            $shortfallStockUnit = max(0, $requiredQtyStockUnit - $currentStock);
 
             // BUG FIX: Only persist items that actually have a shortfall
-            if ($shortfall <= 0) {
+            if ($shortfallStockUnit <= 0) {
                 continue;
             }
 
             $items[] = [
                 'ingredient_id' => $ingId,
                 'ingredient_name' => $data['name'],
-                'unit' => $data['unit'],
+                'unit' => $stockUnit, // Use stock unit for consistency
                 'current_stock' => $currentStock,
-                'required_quantity' => $data['qty'],
-                'shortfall' => $shortfall,
+                'required_quantity' => $requiredQtyStockUnit,
+                'shortfall' => $shortfallStockUnit,
             ];
         }
 

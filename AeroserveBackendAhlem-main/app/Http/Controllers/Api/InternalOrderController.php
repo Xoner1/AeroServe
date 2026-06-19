@@ -211,12 +211,82 @@ class InternalOrderController extends Controller
         $oldStatus = $internalOrder->status;
         $diff = $request->quantity_fulfilled - $item->quantity_fulfilled;
 
-        $item->update(['quantity_fulfilled' => $request->quantity_fulfilled]);
+        // Verify stock sufficiency before fulfilling
+        if ($diff > 0 && $item->product) {
+            $product = $item->product;
+            if ($product->type === 'food') {
+                $ingredients = $product->ingredients()->with('stock')->get();
 
-        // Deduct from stock if quantity increased
-        if ($diff > 0 && $item->product && $item->product->stock) {
-            $this->fifoDeduction($item->product->stock, $diff, 'Internal Order #'.$internalOrder->id);
+                // Guard: food product must have a recipe defined
+                if ($ingredients->isEmpty()) {
+                    return response()->json([
+                        'message' => "Product '{$product->name}' is of type food but has no recipe (ingredients) defined. Please define the recipe before fulfilling this order.",
+                        'hint' => 'Define the ingredients of this food product via the recipe management section.',
+                    ], 422);
+                }
+
+                $insufficientIngredients = [];
+                foreach ($ingredients as $ingredient) {
+                    $rawRequired = $ingredient->pivot->quantity * $diff;
+                    $requiredQty = $this->convertQuantityToStockUnit($rawRequired, $ingredient->pivot->unit, $ingredient->stock?->unit);
+                    $availableQty = $ingredient->stock ? $ingredient->stock->quantity : 0;
+                    if ($availableQty < $requiredQty) {
+                        $unit = $ingredient->stock?->unit ?? $ingredient->pivot->unit ?? 'piece';
+                        $insufficientIngredients[] = [
+                            'name' => $ingredient->name,
+                            'required' => round($requiredQty, 3),
+                            'available' => round($availableQty, 3),
+                            'unit' => $unit,
+                        ];
+                    }
+                }
+
+                if (count($insufficientIngredients) > 0) {
+                    $details = collect($insufficientIngredients)->map(fn($i) =>
+                        "{$i['name']} : Insufficient stock — available {$i['available']} {$i['unit']}, required {$i['required']} {$i['unit']}"
+                    )->implode("\n");
+                    return response()->json([
+                        'message' => 'Insufficient raw materials to fulfill this order.',
+                        'stock_issues' => $insufficientIngredients,
+                        'details' => $details,
+                    ], 422);
+                }
+            } else {
+                $availableStock = $product->stock ? $product->stock->quantity : 0;
+                if ($diff > $availableStock) {
+                    return response()->json([
+                        'message' => 'Stock insuffisant pour ce produit. Quantité maximale disponible : ' . $availableStock,
+                    ], 422);
+                }
+            }
         }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($item, $request, $diff, $internalOrder) {
+            $item->update(['quantity_fulfilled' => $request->quantity_fulfilled]);
+
+            // Deduct from stock if quantity increased
+            if ($diff > 0 && $item->product) {
+                $product = $item->product;
+                if ($product->type === 'food') {
+                    $ingredients = $product->ingredients()->with('stock')->get();
+                    foreach ($ingredients as $ingredient) {
+                        $rawRequired = $ingredient->pivot->quantity * $diff;
+                        $requiredQty = $this->convertQuantityToStockUnit($rawRequired, $ingredient->pivot->unit, $ingredient->stock?->unit);
+                        if ($requiredQty > 0 && $ingredient->stock) {
+                            $this->fifoDeduction(
+                                $ingredient->stock,
+                                $requiredQty,
+                                "Fulfill Order #{$internalOrder->id} ({$product->name})"
+                            );
+                        }
+                    }
+                } else {
+                    if ($product->stock) {
+                        $this->fifoDeduction($product->stock, $diff, 'Internal Order #'.$internalOrder->id);
+                    }
+                }
+            }
+        });
 
         // Auto-update order status based on fulfillment
         $order = $internalOrder->fresh()->load('items');

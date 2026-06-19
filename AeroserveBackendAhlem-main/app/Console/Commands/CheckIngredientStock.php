@@ -30,7 +30,10 @@ class CheckIngredientStock extends Command
             }
 
             if ($product->is_active !== $shouldBeActive) {
-                $product->update(['is_active' => $shouldBeActive]);
+                $product->update([
+                    'is_active' => $shouldBeActive,
+                    'usage_status' => $shouldBeActive ? 'IN_USE' : 'OUT_OF_STOCK'
+                ]);
                 $updated++;
                 $this->info(
                     $shouldBeActive

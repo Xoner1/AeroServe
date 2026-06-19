@@ -81,6 +81,7 @@ class ProductController extends Controller
                 'type' => 'required|in:commercial,matiere_premiere',
                 'category_id' => 'required|exists:categories,id',
                 'image' => 'nullable|image|max:2048',
+                'unit' => 'sometimes|string|in:piece,kg,g,liter,ml',
             ]);
         } elseif ($role === 'CHEF_CUISINE') {
             $request->validate([
@@ -94,6 +95,7 @@ class ProductController extends Controller
                 'ingredients.*.product_id' => 'required|exists:products,id',
                 'ingredients.*.quantity' => 'required|numeric|min:0.01',
                 'ingredients.*.unit' => 'sometimes|string',
+                'unit' => 'sometimes|string|in:piece,kg,g,liter,ml',
             ]);
         } else {
             $request->validate([
@@ -105,6 +107,7 @@ class ProductController extends Controller
                 'image' => 'nullable|image|max:2048',
                 'allergens' => 'nullable|array',
                 'expiration_date' => 'nullable|date',
+                'unit' => 'sometimes|string|in:piece,kg,g,liter,ml',
             ]);
         }
 
@@ -153,35 +156,18 @@ class ProductController extends Controller
         }
 
         if ($request->has('ingredients')) {
-            $stockIssues = [];
             $approvalIssues = [];
-            $batchSize = $request->quantity_per_batch ?? 1;
             foreach ($request->ingredients as $ingredient) {
-                $ingredientProduct = Product::with('stock')->find($ingredient['product_id']);
+                $ingredientProduct = Product::find($ingredient['product_id']);
                 if (!$ingredientProduct) {
-                    $stockIssues[] = [
-                        'product' => 'Inconnu (ID: ' . $ingredient['product_id'] . ')',
-                        'reason' => 'Produit introuvable',
-                    ];
-                    continue;
+                    return response()->json([
+                        'message' => 'L\'ingrédient ID ' . $ingredient['product_id'] . ' est introuvable.',
+                    ], 422);
                 }
 
                 // Check that ingredient is APPROVED
                 if ($ingredientProduct->approval_status !== 'approved') {
                     $approvalIssues[] = $ingredientProduct->name;
-                }
-
-                // Check stock sufficiency: ingredient.quantity × batchSize vs available
-                $requiredQty = $ingredient['quantity'] * $batchSize;
-                $stockQty = $ingredientProduct->stock ? $ingredientProduct->stock->quantity : 0;
-                if ($stockQty < $requiredQty) {
-                    $unit = $ingredient['unit'] ?? 'piece';
-                    $stockIssues[] = [
-                        'product' => $ingredientProduct->name,
-                        'required' => $requiredQty,
-                        'available' => $stockQty,
-                        'unit' => $unit,
-                    ];
                 }
             }
 
@@ -189,17 +175,6 @@ class ProductController extends Controller
                 return response()->json([
                     'message' => 'Les ingrédients doivent être approuvés.',
                     'unapproved_ingredients' => $approvalIssues,
-                ], 422);
-            }
-
-            if (count($stockIssues) > 0) {
-                $details = collect($stockIssues)->map(fn($i) =>
-                    "{$i['product']} : Stock insuffisant — {$i['available']} {$i['unit']} disponible(s), {$i['required']} {$i['unit']} requis(es)"
-                )->implode("\n");
-                return response()->json([
-                    'message' => 'Stock insuffisant pour les ingrédients.',
-                    'stock_issues' => $stockIssues,
-                    'details' => $details,
                 ], 422);
             }
         }
@@ -223,7 +198,7 @@ class ProductController extends Controller
             $product->stock()->create([
                 'quantity' => 0,
                 'min_threshold' => 15,
-                'unit' => 'piece',
+                'unit' => $request->unit ?? 'piece',
             ]);
 
             return $product;
@@ -295,6 +270,7 @@ class ProductController extends Controller
                 'description' => 'sometimes|nullable|string',
                 'category_id' => 'sometimes|nullable|exists:categories,id',
                 'image' => 'nullable|image|max:2048',
+                'unit' => 'sometimes|string|in:piece,kg,g,liter,ml',
             ]);
 
             $data = $request->only(['name', 'description', 'category_id']);
@@ -309,6 +285,7 @@ class ProductController extends Controller
                 'ingredients.*.product_id' => 'sometimes|exists:products,id',
                 'ingredients.*.quantity' => 'sometimes|numeric|min:0.01',
                 'ingredients.*.unit' => 'sometimes|string',
+                'unit' => 'sometimes|string|in:piece,kg,g,liter,ml',
             ]);
 
             $data = $request->only(['name', 'description']);
@@ -316,27 +293,17 @@ class ProductController extends Controller
                 $data['quantity_per_batch'] = $request->quantity_per_batch;
             }
 
-            // Re-check stock for recipe update
             if ($request->has('ingredients')) {
-                $stockIssues = [];
                 $approvalIssues = [];
-                $batchSize = $product->quantity_per_batch ?? $request->quantity_per_batch ?? 1;
                 foreach ($request->ingredients as $ingredient) {
-                    $ingredientProduct = Product::with('stock')->find($ingredient['product_id']);
-                    if ($ingredientProduct && $ingredientProduct->approval_status !== 'approved') {
-                        $approvalIssues[] = $ingredientProduct->name;
+                    $ingredientProduct = Product::find($ingredient['product_id']);
+                    if (!$ingredientProduct) {
+                        return response()->json([
+                            'message' => 'L\'ingrédient ID ' . $ingredient['product_id'] . ' est introuvable.',
+                        ], 422);
                     }
-                    if ($ingredientProduct && $ingredientProduct->stock) {
-                        $requiredQty = $ingredient['quantity'] * $batchSize;
-                        if ($ingredientProduct->stock->quantity < $requiredQty) {
-                            $unit = $ingredient['unit'] ?? 'piece';
-                            $stockIssues[] = [
-                                'product' => $ingredientProduct->name,
-                                'required' => $requiredQty,
-                                'available' => $ingredientProduct->stock->quantity,
-                                'unit' => $unit,
-                            ];
-                        }
+                    if ($ingredientProduct->approval_status !== 'approved') {
+                        $approvalIssues[] = $ingredientProduct->name;
                     }
                 }
 
@@ -344,17 +311,6 @@ class ProductController extends Controller
                     return response()->json([
                         'message' => 'Les ingrédients doivent être approuvés.',
                         'unapproved_ingredients' => $approvalIssues,
-                    ], 422);
-                }
-
-                if (count($stockIssues) > 0) {
-                    $details = collect($stockIssues)->map(fn($i) =>
-                        "{$i['product']} : Stock insuffisant — {$i['available']} {$i['unit']} disponible(s), {$i['required']} {$i['unit']} requis(es)"
-                    )->implode("\n");
-                    return response()->json([
-                        'message' => 'Stock insuffisant pour les ingrédients.',
-                        'stock_issues' => $stockIssues,
-                        'details' => $details,
                     ], 422);
                 }
             }
@@ -369,6 +325,7 @@ class ProductController extends Controller
                 'is_active' => 'sometimes|boolean',
                 'allergens' => 'sometimes|nullable|array',
                 'expiration_date' => 'sometimes|nullable|date',
+                'unit' => 'sometimes|string|in:piece,kg,g,liter,ml',
             ]);
 
             $data = $request->only([
@@ -385,6 +342,10 @@ class ProductController extends Controller
         }
 
         $product->update($data);
+
+        if ($request->has('unit') && $product->stock) {
+            $product->stock->update(['unit' => $request->unit]);
+        }
 
         // Sync recipe ingredients
         if ($request->has('ingredients')) {
@@ -462,7 +423,11 @@ class ProductController extends Controller
 
     public function toggleActive(Product $product): JsonResponse
     {
-        $product->update(['is_active' => !$product->is_active]);
+        $newActive = !$product->is_active;
+        $product->update([
+            'is_active' => $newActive,
+            'usage_status' => $newActive ? 'IN_USE' : 'NOT_IN_USE'
+        ]);
 
         return response()->json([
             'message' => $product->is_active ? 'Produit activé.' : 'Produit désactivé.',
@@ -516,25 +481,16 @@ class ProductController extends Controller
         ]);
 
         // Check stock and approval status for each ingredient
-        $stockIssues = [];
         $approvalIssues = [];
-        $batchSize = $product->quantity_per_batch ?? 1;
         foreach ($request->ingredients as $ingredient) {
-            $ingredientProduct = Product::with('stock')->find($ingredient['product_id']);
-            if ($ingredientProduct && $ingredientProduct->approval_status !== 'approved') {
-                $approvalIssues[] = $ingredientProduct->name;
+            $ingredientProduct = Product::find($ingredient['product_id']);
+            if (!$ingredientProduct) {
+                return response()->json([
+                    'message' => 'L\'ingrédient ID ' . $ingredient['product_id'] . ' est introuvable.',
+                ], 422);
             }
-            if ($ingredientProduct && $ingredientProduct->stock) {
-                $requiredQty = $ingredient['quantity'] * $batchSize;
-                if ($ingredientProduct->stock->quantity < $requiredQty) {
-                    $unit = $ingredient['unit'] ?? 'piece';
-                    $stockIssues[] = [
-                        'product' => $ingredientProduct->name,
-                        'required' => $requiredQty,
-                        'available' => $ingredientProduct->stock->quantity,
-                        'unit' => $unit,
-                    ];
-                }
+            if ($ingredientProduct->approval_status !== 'approved') {
+                $approvalIssues[] = $ingredientProduct->name;
             }
         }
 
@@ -542,17 +498,6 @@ class ProductController extends Controller
             return response()->json([
                 'message' => 'Les ingrédients doivent être approuvés.',
                 'unapproved_ingredients' => $approvalIssues,
-            ], 422);
-        }
-
-        if (count($stockIssues) > 0) {
-            $details = collect($stockIssues)->map(fn($i) =>
-                "{$i['product']} : Stock insuffisant — {$i['available']} {$i['unit']} disponible(s), {$i['required']} {$i['unit']} requis(es)"
-            )->implode("\n");
-            return response()->json([
-                'message' => 'Stock insuffisant pour les ingrédients de la recette.',
-                'stock_issues' => $stockIssues,
-                'details' => $details,
             ], 422);
         }
 

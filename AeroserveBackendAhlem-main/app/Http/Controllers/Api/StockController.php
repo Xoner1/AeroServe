@@ -97,6 +97,28 @@ class StockController extends Controller
             'expiration_date' => 'nullable|date',
         ]);
 
+        $product = $stock->product;
+
+        // Food products are NEVER stored as ready inventory.
+        // Deduction happens automatically via recipe × quantity when an internal order is fulfilled.
+        // Only 'adjustment' is allowed for manual corrections by admins.
+        if ($product && $product->type === 'food') {
+            if ($request->type === 'in') {
+                return response()->json([
+                    'message' => 'Stock movement "in" is not allowed for food products. Food is prepared on-demand via internal orders (recipe x quantity).',
+                    'hint' => 'Create an internal order of type food to trigger automatic ingredient deduction.',
+                ], 422);
+            }
+
+            if ($request->type === 'out') {
+                return response()->json([
+                    'message' => 'Stock movement "out" is not allowed for food products. Deduction is handled automatically when an internal order is fulfilled.',
+                    'hint' => 'Food stock is managed exclusively via internal orders.',
+                ], 422);
+            }
+            // Allow 'adjustment' only — for admin manual corrections
+        }
+
         if ($request->type === 'out' && $request->quantity > $stock->quantity) {
             return response()->json([
                 'message' => 'Stock insuffisant. La quantité disponible est de '.$stock->quantity.' '.($stock->unit ?? 'unité(s)').'.',
