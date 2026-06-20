@@ -53,14 +53,24 @@ async function obtenirInfosProduit(nomProduit: string) {
       allergenes_declares: p.allergens,
       remarques_sante: p.remarks,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("DB Error:", error);
-    return JSON.stringify({ erreur: "Erreur de connexion à la base de données." });
+    return JSON.stringify({ 
+      erreur: "Erreur de connexion à la base de données.",
+      details: error.message || String(error)
+    });
   }
 }
 
 export async function POST(req: Request) {
   try {
+    if (!process.env.GROQ_API_KEY) {
+      return NextResponse.json({ 
+        error: 'Configuration Error',
+        details: 'GROQ_API_KEY is not defined in the environment variables on Vercel/local.'
+      }, { status: 500 });
+    }
+
     const { message, messages: history = [] } = await req.json();
 
     const systemRole = `Tu es l'assistant clientèle virtuel officiel d'AeroServe, accessible via QR Code sur les tables.
@@ -96,7 +106,11 @@ Directives strictes:
     if (!groqResponse.ok) {
       const err = await groqResponse.text();
       console.error("Groq Error:", err);
-      return NextResponse.json({ error: 'Failed to communicate with AI provider' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to communicate with AI provider',
+        details: err,
+        status: groqResponse.status
+      }, { status: 500 });
     }
 
     const data = await groqResponse.json();
@@ -133,15 +147,36 @@ Directives strictes:
         }),
       });
 
+      if (!finalResponse.ok) {
+        const err = await finalResponse.text();
+        console.error("Groq Final Error:", err);
+        return NextResponse.json({ 
+          error: 'Failed to communicate with AI provider during tool response',
+          details: err,
+          status: finalResponse.status
+        }, { status: 500 });
+      }
+
       const finalData = await finalResponse.json();
+      
+      if (!finalData.choices || !finalData.choices[0] || !finalData.choices[0].message) {
+        return NextResponse.json({ 
+          error: 'AI Provider returned invalid response structure',
+          details: JSON.stringify(finalData)
+        }, { status: 500 });
+      }
+
       return NextResponse.json({ response: finalData.choices[0].message.content });
     }
 
     // Direct response (no tool needed)
     return NextResponse.json({ response: choice.message.content });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("API Error:", error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error.message || String(error)
+    }, { status: 500 });
   }
 }
