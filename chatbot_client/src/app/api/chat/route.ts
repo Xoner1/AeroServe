@@ -22,16 +22,26 @@ const tools = [
   },
 ];
 
+interface ProductHygieneRow {
+  id: number;
+  name: string;
+  description: string;
+  type: string;
+  hygiene_status: string | null;
+  allergens: string | null;
+  remarks: string | null;
+}
+
 async function obtenirInfosProduit(nomProduit: string) {
   try {
-    const [rows]: any = await pool.query(
+    const [rows] = await pool.query(
       `SELECT p.id, p.name, p.description, p.type, h.status as hygiene_status, p.allergens, h.remarks 
        FROM products p 
        LEFT JOIN hygiene_reports h ON p.id = h.product_id 
        WHERE p.name LIKE ? AND p.type = 'food'
        ORDER BY h.created_at DESC LIMIT 1`,
       [`%${nomProduit}%`]
-    );
+    ) as unknown as [ProductHygieneRow[], unknown];
 
     if (rows.length === 0) {
       return JSON.stringify({ erreur: "Aucun produit trouvé avec ce nom." });
@@ -53,11 +63,12 @@ async function obtenirInfosProduit(nomProduit: string) {
       allergenes_declares: p.allergens,
       remarques_sante: p.remarks,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("DB Error:", error);
+    const errMessage = error instanceof Error ? error.message : String(error);
     return JSON.stringify({ 
       erreur: "Erreur de connexion à la base de données.",
-      details: error.message || String(error)
+      details: errMessage
     });
   }
 }
@@ -172,11 +183,12 @@ Directives strictes:
     // Direct response (no tool needed)
     return NextResponse.json({ response: choice.message.content });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("API Error:", error);
+    const errMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ 
       error: 'Internal server error',
-      details: error.message || String(error)
+      details: errMessage
     }, { status: 500 });
   }
 }
