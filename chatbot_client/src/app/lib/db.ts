@@ -1,5 +1,8 @@
 import mysql from 'mysql2/promise';
 
+const useSSL = process.env.DB_SSL === 'true' || 
+               (process.env.DB_HOST && process.env.DB_HOST.includes('tidbcloud.com'));
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '3306'),
@@ -9,6 +12,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  ssl: useSSL ? { rejectUnauthorized: true } : undefined,
 });
 
 export default pool;
